@@ -25,7 +25,10 @@ lofty = "0.22"
 # 递归目录遍历
 walkdir = "2.5"
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+# preserve_order：serde_json 默认按字母序重排对象键，V8 的 JSON.parse/stringify
+# 保留插入顺序。设置文件的键序必须与 Node 端逐字节一致（回环测试判据），
+# 故启用该特性改用 IndexMap 保序。属 serde_json 自带特性，未引入白名单外依赖。
+serde_json = { version = "1", features = ["preserve_order"] }
 
 [build-dependencies]
 napi-build = "2"

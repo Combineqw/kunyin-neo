@@ -18,6 +18,7 @@
 
 import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
+import { statSync } from 'node:fs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '..')
@@ -27,6 +28,67 @@ export const DEFAULT_INPUT = join(repoRoot, 'test-assets')
 
 /** Rust 产物所在目录（napi build 输出带平台后缀，框架会自动挑选） */
 export const NATIVE_DIR = join(repoRoot, 'crates', 'aurora-native')
+
+// ─────────────── 真实数据位置（settings_io 用，只读 + 防篡改校验） ───────────────
+
+/** userData 目录：Electron 的 app.getPath('userData') 在纯 Node 下的等价推导 */
+const userData = join(
+  process.env.APPDATA ?? join(process.env.USERPROFILE ?? '', 'AppData', 'Roaming'),
+  'kunyin-desktop'
+)
+
+/** 真实设置文件；不存在时 settings_io 模块自动跳过（不报错） */
+export const REAL_SETTINGS = (() => {
+  const p = join(userData, 'data', 'settings.json')
+  return existsSyncSafe(p) ? p : null
+})()
+
+/** 真实歌单库（SQLite）；一并纳入防篡改校验，确保写测试没波及它 */
+export const REAL_DB = (() => {
+  const p = join(userData, 'data', 'kunyin_music.db')
+  return existsSyncSafe(p) ? p : null
+})()
+
+function existsSyncSafe(p) {
+  try {
+    // 用 statSync 而非 existsSync，避免把权限错误误判为「文件不存在」
+    statSync(p)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * 回环测试用例：读 → 改一个键 → 序列化 → 读回。
+ *
+ * 覆盖几类最容易出分歧的值：浮点、整数、布尔、含非 ASCII 的字符串、
+ * 数组整体替换、嵌套新键。
+ */
+export const LOOP_CASES = [
+  { id: 'float', keyPath: 'player.volume', value: 0.4321 },
+  { id: 'negative-float', keyPath: 'player.equalizerProfile.preampDb', value: -12.75 },
+  { id: 'integer', keyPath: 'player.srsIntensity', value: 42 },
+  { id: 'zero', keyPath: 'player.srsBass', value: 0 },
+  { id: 'boolean', keyPath: 'player.srsEnabled', value: true },
+  { id: 'unicode', keyPath: 'appearance.themeId', value: '极光·美人鱼「测试」' },
+  { id: 'escape', keyPath: 'behavior.customAnimationPack.name', value: 'a"b\\c\nd\te' },
+  { id: 'array-replace', keyPath: 'player.equalizerFilters', value: [] },
+  { id: 'nested-new', keyPath: 'network.proxy.host', value: '127.0.0.1' },
+  { id: 'exponent', keyPath: 'player.equalizerPreampDb', value: 1e-7 },
+]
+
+/** 按点分路径写入一个键，中间层缺失则创建（对齐 Rust 侧 set_by_path） */
+export function setByPath(root, keyPath, value) {
+  const parts = keyPath.split('.').filter(Boolean)
+  let cur = root
+  for (let i = 0; i < parts.length - 1; i++) {
+    const k = parts[i]
+    if (cur[k] === null || typeof cur[k] !== 'object' || Array.isArray(cur[k])) cur[k] = {}
+    cur = cur[k]
+  }
+  cur[parts[parts.length - 1]] = value
+}
 
 // ───────────────────────── scan（R2-1） ─────────────────────────
 
@@ -70,6 +132,8 @@ export const modules = [
   {
     id: 'scan',
     label: '库扫描 / 元数据解析',
+    // 能力位：纯只读，无写路径
+    capabilities: { read: true, write: false },
     unit: '首',
     keyField: 'path',
     fields: ['title', 'artist', 'album', 'duration', 'path'],
@@ -259,7 +323,155 @@ export const modules = [
       return out
     },
   },
-  // R2-3 在此追加 { id: 'settings_io', ... }
+  // ───────────────────────── settings_io（R2-3） ─────────────────────────
+  {
+    id: 'settings_io',
+    label: '设置读写（序列化层）',
+    unit: '项',
+    // 能力位：有写路径。写只落沙箱临时文件，真实文件由 guardFiles 防篡改校验兜底。
+    // R2-4 的接入开关按此位控制激活范围。
+    capabilities: { read: true, write: true },
+
+    /**
+     * 需要防篡改校验的真实文件。框架跑前后各算一次 SHA-256，必须一致。
+     * 声明了 write 能力却不给 guardFiles 的模块会被框架直接拒跑。
+     */
+    get guardFiles() {
+      return [REAL_SETTINGS, REAL_DB].filter(Boolean)
+    },
+
+    keyField: 'key',
+    fields: ['value'],
+    describe: (it) => it?.key ?? '(未知项)',
+
+    /**
+     * Node 侧：读真实设置 + 回环测试。
+     *
+     * 两类用例合成一个扁平结果集：
+     *   read:<点分路径>       读路径 —— 真实文件解析后的每个叶子值
+     *   loop:<用例>:<路径>    回环 —— 改一个键后写沙箱、读回，比对全量语义
+     *
+     * 真实文件只读；所有写操作落 os.tmpdir() 下的沙箱目录，用例跑完即删。
+     */
+    async runNode(input) {
+      const fs = await import('node:fs/promises')
+      const os = await import('node:os')
+      const path = await import('node:path')
+
+      const out = []
+      if (!REAL_SETTINGS) return out
+
+      // ── 读路径：真实文件照常读 ──
+      const raw = await fs.readFile(REAL_SETTINGS, 'utf8')
+      const root = JSON.parse(raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw)
+
+      // 摊平成叶子值，逐项比对（键序差异会体现为「只有一侧有」）
+      const flatten = (v, prefix, sink) => {
+        if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
+          for (const k of Object.keys(v)) flatten(v[k], prefix ? prefix + '.' + k : k, sink)
+        } else {
+          // 数组与标量整体序列化，转义差异会直接暴露
+          sink.push({ path: prefix, value: JSON.stringify(v) })
+        }
+      }
+      const leaves = []
+      flatten(root, '', leaves)
+      for (const l of leaves) out.push({ key: 'read:' + l.path, value: l.value })
+
+      // ── 回环路径：读 → 改一个键 → 序列化 → 读回 ──
+      const sandbox = await fs.mkdtemp(path.join(os.tmpdir(), 'aurora-shadow-node-'))
+      try {
+        for (const c of LOOP_CASES) {
+          const target = path.join(sandbox, c.id + '.json')
+          const copy = JSON.parse(JSON.stringify(root))
+          setByPath(copy, c.keyPath, c.value)
+          // 原子写：临时文件 + rename，对齐 settings.ts 的 persist
+          const tmp = target + '.tmp'
+          await fs.writeFile(tmp, JSON.stringify(copy, null, 2), 'utf8')
+          await fs.rename(tmp, target)
+          // 读回后整体摊平，任何键序/转义/结构差异都会逐项暴露
+          const back = JSON.parse(await fs.readFile(target, 'utf8'))
+          const backLeaves = []
+          flatten(back, '', backLeaves)
+          for (const l of backLeaves) {
+            out.push({ key: 'loop:' + c.id + ':' + l.path, value: l.value })
+          }
+        }
+      } finally {
+        // 用例跑完即删，不留垃圾
+        await fs.rm(sandbox, { recursive: true, force: true })
+      }
+      return out
+    },
+
+    async runRust(input, native) {
+      const fs = await import('node:fs/promises')
+      const os = await import('node:os')
+      const path = await import('node:path')
+
+      const out = []
+      if (!REAL_SETTINGS) return out
+
+      const flatten = (v, prefix, sink) => {
+        if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
+          for (const k of Object.keys(v)) flatten(v[k], prefix ? prefix + '.' + k : k, sink)
+        } else {
+          sink.push({ path: prefix, value: JSON.stringify(v) })
+        }
+      }
+
+      // ── 读路径 ──
+      const root = JSON.parse(native.readSettings(REAL_SETTINGS))
+      const leaves = []
+      flatten(root, '', leaves)
+      for (const l of leaves) out.push({ key: 'read:' + l.path, value: l.value })
+
+      // ── 回环路径 ──
+      const sandbox = await fs.mkdtemp(path.join(os.tmpdir(), 'aurora-shadow-rust-'))
+      try {
+        for (const c of LOOP_CASES) {
+          const target = path.join(sandbox, c.id + '.json')
+          // Rust 侧全程只读 REAL_SETTINGS，写只落 target（沙箱）
+          const back = JSON.parse(
+            native.settingsRoundtrip(REAL_SETTINGS, target, c.keyPath, JSON.stringify(c.value))
+          )
+          const backLeaves = []
+          flatten(back, '', backLeaves)
+          for (const l of backLeaves) {
+            out.push({ key: 'loop:' + c.id + ':' + l.path, value: l.value })
+          }
+        }
+      } finally {
+        await fs.rm(sandbox, { recursive: true, force: true })
+      }
+      return out
+    },
+
+    /**
+     * 数值按语义等值判定，格式差异单列报告（已与用户确认的判据）。
+     *
+     * 理由：Rust 的 f64→文本规则与 V8 的 JSON.stringify 不完全相同
+     * （尾随零、指数阈值、最短往返表示）。settings.json 有 71 个非整数浮点，
+     * 若按字节判，会被无害的写法差异淹没，真正的精度丢失反而看不见。
+     * 这里对数值做 f64 位级比较，非数值仍要求完全相等。
+     * 格式差异不判 FAIL，但由框架统计后单列，供人工审查。
+     */
+    compare(field, a, b) {
+      if (a === b) return true
+      if (field !== 'value') return false
+      // 两侧都是合法 JSON 数字才走等值判定
+      const na = Number(a)
+      const nb = Number(b)
+      if (!Number.isFinite(na) || !Number.isFinite(nb)) return false
+      if (String(a).trim() === '' || String(b).trim() === '') return false
+      return na === nb
+    },
+
+    /** 格式差异登记：语义相等但文本不同的项，由框架单列统计 */
+    formatDiff(field, a, b) {
+      return field === 'value' && a !== b
+    },
+  },
 ]
 
 /** 按 id 取模块；找不到时列出可用值，避免拼错后一头雾水。 */

@@ -16,9 +16,10 @@
  * 退出码：0 = 全部 PASS，1 = 有不一致或出错（供 CI / bat 判断）。
  */
 
-import { existsSync, readdirSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { createRequire } from 'node:module'
+import { createHash } from 'node:crypto'
 
 import { modules, getModule, DEFAULT_INPUT, NATIVE_DIR } from './shadow-modules.mjs'
 
@@ -71,6 +72,53 @@ function loadNative() {
     candidates.find((f) => f.includes(process.platform) && f.includes(process.arch)) ??
     candidates[0]
   return require(join(NATIVE_DIR, preferred))
+}
+
+// ───────────────────── 防篡改校验（影子期只读约束 v2）─────────────────────
+
+/**
+ * 对一批真实文件算 SHA-256 快照。
+ *
+ * 用途：所有用例跑完后再算一次，两次必须完全一致 —— 这是「影子期不污染
+ * 真实数据」这条约束的机器证明，而不是靠人记得「我应该没写吧」。
+ * 含写路径的模块（capabilities.write）必须声明 guardFiles，否则拒绝运行。
+ */
+function snapshotFiles(paths) {
+  const snap = new Map()
+  for (const p of paths) {
+    if (!existsSync(p)) {
+      snap.set(p, 'ABSENT')
+      continue
+    }
+    try {
+      const buf = readFileSync(p)
+      const st = statSync(p)
+      // 同时锁内容与大小；mtime 不入校验（读取本身可能更新 atime）
+      snap.set(p, createHash('sha256').update(buf).digest('hex') + ':' + st.size)
+    } catch (e) {
+      snap.set(p, 'UNREADABLE:' + e.code)
+    }
+  }
+  return snap
+}
+
+/** 比较前后两次快照，返回被改动的文件列表 */
+function diffSnapshots(before, after) {
+  const changed = []
+  for (const [p, sig] of before) {
+    const now = after.get(p)
+    if (now !== sig) changed.push({ path: p, before: sig, after: now })
+  }
+  return changed
+}
+
+/** 收集所有待守护的真实文件（去重） */
+function collectGuardFiles(mods) {
+  const out = new Set()
+  for (const m of mods) {
+    for (const p of m.guardFiles ?? []) out.add(p)
+  }
+  return [...out]
 }
 
 // ───────────────────────── 比对核心 ─────────────────────────
@@ -148,6 +196,10 @@ function printReport(r) {
   console.log('')
   console.log('─'.repeat(64))
   console.log('模块：' + r.mod.label + '（' + r.mod.id + '）')
+  // 能力位：R2-4 的接入开关按此控制激活范围
+  const caps = r.mod.capabilities ?? { read: true, write: false }
+  const capText = [caps.read ? '读' : null, caps.write ? '写' : null].filter(Boolean).join(' + ')
+  console.log('能力位：' + capText + (caps.write ? '（写测试仅落沙箱临时文件）' : '（纯只读）'))
   console.log('─'.repeat(64))
   console.log('  Node 引擎：' + n(r.nodeCount) + ' ' + u + '，耗时 ' + n(r.nodeMs) + ' ms')
   console.log('  Rust 引擎：' + n(r.rustCount) + ' ' + u + '，耗时 ' + n(r.rustMs) + ' ms')
@@ -235,6 +287,26 @@ async function main() {
   const targets = args.module ? [getModule(args.module)] : modules
   console.log('  参与比对的模块：' + targets.map((m) => m.id).join(' / '))
 
+  // 含写路径的模块必须声明 guardFiles，否则直接拒跑：
+  // 没有防篡改基线的写测试等于没有安全网
+  const writeMods = targets.filter((m) => m.capabilities?.write)
+  for (const m of writeMods) {
+    if (!m.guardFiles?.length) {
+      console.log('')
+      console.log('  ✗ 模块「' + m.id + '」声明了写能力但未提供 guardFiles，拒绝运行。')
+      console.log('    含写路径的模块必须列出需要防篡改校验的真实文件。')
+      process.exitCode = 1
+      return
+    }
+  }
+
+  const guarded = collectGuardFiles(targets)
+  let before = null
+  if (guarded.length) {
+    before = snapshotFiles(guarded)
+    console.log('  防篡改基线：已对 ' + guarded.length + ' 个真实文件建立 SHA-256 快照')
+  }
+
   let allPass = true
   for (const mod of targets) {
     try {
@@ -244,6 +316,24 @@ async function main() {
     } catch (e) {
       console.log('')
       console.log('  ✗ 模块「' + mod.id + '」执行出错：' + e.message)
+      allPass = false
+    }
+  }
+
+  // 跑后复算：真实文件必须与基线逐字节一致
+  if (before) {
+    const changed = diffSnapshots(before, snapshotFiles(guarded))
+    console.log('')
+    console.log('─'.repeat(64))
+    if (changed.length === 0) {
+      console.log('  真实文件未被触碰 ✓（' + guarded.length + ' 个文件校验一致）')
+    } else {
+      console.log('  ✗ 真实文件被改动了 ' + changed.length + ' 处 —— 违反影子期只读约束：')
+      for (const c of changed.slice(0, MAX_DETAIL)) {
+        console.log('      · ' + c.path)
+        console.log('          跑前：' + c.before)
+        console.log('          跑后：' + c.after)
+      }
       allPass = false
     }
   }
