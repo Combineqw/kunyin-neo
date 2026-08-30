@@ -133,7 +133,132 @@ export const modules = [
     },
   },
 
-  // R2-2 在此追加 { id: 'lyrics', ... }
+  // ───────────────────────── lyrics（R2-2） ─────────────────────────
+  {
+    id: 'lyrics',
+    label: '歌词解析（LRC 行级）',
+    // 能力位：纯只读，无写路径
+    capabilities: { read: true, write: false },
+    unit: '行',
+    // 一首歌一个文件，但比对粒度是「行」：键取 文件路径#行号
+    keyField: 'key',
+    fields: ['start', 'end', 'text'],
+    describe: (it) => it?.key ?? '(未知行)',
+
+    /**
+     * Node 侧实现。
+     *
+     * 同样不 import 渲染层的 ParserPipeline —— 那条链路带 Vue 依赖、
+     * 且会跑 8 个 transform 插件。这里复刻 matchLyric + processNormal 的
+     * **行级**语义（本块范围），与 Rust 侧一一对应。
+     * 契约见 PROJECT_STATUS.md「lyrics 模块」表。
+     */
+    async runNode(input) {
+      const fs = await import('node:fs/promises')
+      const path = await import('node:path')
+
+      // 与 kit/utils/time/index.ts 的 parseMilliSecond 一致：截断而非四舍五入
+      const parseMilli = (frac) => parseInt(frac.padEnd(3, '0').slice(0, 3), 10) || 0
+
+      // 对齐 kit/utils/time/index.ts 的 parseTime
+      const parseTime = (content) => {
+        const t = (content ?? '').trim()
+        if (!t) return null
+        if (t.startsWith('.')) {
+          const v = t.slice(1)
+          return /^\d+$/.test(v) ? parseMilli(v) : null
+        }
+        if (/^\d+$/.test(t)) return parseInt(t, 10)
+        const m = t.match(/^(?:(?:(\d+):)?(\d+):)?(\d+)(?:\.(\d+))?$/u)
+        if (!m) return null
+        const h = parseInt(m[1], 10) || 0
+        const mi = parseInt(m[2], 10) || 0
+        const s = parseInt(m[3], 10) || 0
+        const ms = parseMilli(m[4] || '0')
+        return ((h * 60 + mi) * 60 + s) * 1000 + ms
+      }
+
+      const parseTagTime = (tag) => {
+        const c = (tag ?? '').trim().match(/^[<\[]([^>\]]+)[>\]]$/)
+        if (!c) return null
+        const v = c[1]?.trim()
+        return v ? parseTime(v) : null
+      }
+
+      // 对齐 kit/plugin-format-lrc/parser/utils/match.ts
+      const LINE_REGEXP =
+        /(\[(?:[a-zA-Z]+\s*:\s*[^\]]+|(?:\d+:)?\d+:\d+(?:\.\d+)?)\])([\s\S]*?)(?=(?:\[(?:[a-zA-Z]+\s*:\s*[^\]]+|(?:\d+:)?\d+:\d+(?:\.\d+)?)\])|$)/g
+      const META_REGEX = /^\[[a-zA-Z]+:[^\]]+\]$/
+      const LINE_REGEX = /^\[(\d+:)?\d+:\d+(\.\d+)?\].+$/
+      const rmSpaceAll = (s) => s.replaceAll(/\s+/g, '').trim()
+
+      const parseLrc = (content) => {
+        // BOM 会让首个标签匹配失败
+        let text = content
+        if (text.charCodeAt(0) === 0xfeff) text = text.slice(1)
+        if (!text.trim()) return []
+
+        const lines = []
+        for (const src of text.split('\n')) {
+          if (!src.trim()) continue
+          for (const m of src.matchAll(LINE_REGEXP)) {
+            const raw = m[0]
+            const tag = (m[1] || '').trim()
+            const body = (m[2] || '').trim()
+            if (!tag) continue
+            const flat = rmSpaceAll(raw)
+            if (META_REGEX.test(flat)) continue // meta 行不算歌词
+            if (!LINE_REGEX.test(flat)) continue // 无正文的行被丢弃
+            lines.push({ start: parseTagTime(tag) || 0, end: 0, text: body })
+          }
+        }
+
+        // end 用下一行 start 回填；末行保持 0
+        for (let i = 0; i < lines.length - 1; i++) lines[i].end = lines[i + 1].start
+        return lines
+      }
+
+      // 收集 .lrc 并按路径排序（与 Rust 侧一致）
+      const files = []
+      const walk = async (dir) => {
+        let entries
+        try {
+          entries = await fs.readdir(dir, { withFileTypes: true })
+        } catch {
+          return
+        }
+        for (const e of entries) {
+          const full = path.join(dir, e.name)
+          if (e.isDirectory()) await walk(full)
+          else if (e.name.toLowerCase().endsWith('.lrc')) files.push(full)
+        }
+      }
+      await walk(input)
+      files.sort()
+
+      // 摊平成「行」，键为 路径#序号，便于逐行配对
+      const out = []
+      for (const file of files) {
+        const text = await fs.readFile(file, 'utf8')
+        const parsed = parseLrc(text)
+        parsed.forEach((line, i) => {
+          out.push({ key: file + '#' + i, start: line.start, end: line.end, text: line.text })
+        })
+      }
+      return out
+    },
+
+    async runRust(input, native) {
+      const files = JSON.parse(native.scanLyrics(input))
+      const out = []
+      for (const f of files) {
+        f.lines.forEach((line, i) => {
+          out.push({ key: f.path + '#' + i, start: line.start, end: line.end, text: line.text })
+        })
+      }
+      return out
+    },
+  },
   // R2-3 在此追加 { id: 'settings_io', ... }
 ]
 

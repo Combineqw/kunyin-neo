@@ -5,7 +5,7 @@
 //!
 //! 模块划分：
 //!   · scan        库扫描 / 元数据解析（R2-1 已实现）
-//!   · lyrics      歌词解析（R2-2 占位）
+//!   · lyrics      歌词解析 · LRC 行级（R2-2 已实现）
 //!   · settings_io 设置读写（R2-3 占位）
 //!
 //! 全局约定：所有对外函数返回 JSON 字符串，字段名与 Node 端完全一致；
@@ -32,6 +32,16 @@ pub mod settings_io;
 #[napi]
 pub fn scan_directory(dir: String) -> napi::Result<String> {
     let json = scan::scan_dir_json(Path::new(&dir))?;
+    Ok(json)
+}
+
+/// 递归扫描目录下所有 .lrc，返回 JSON 数组字符串。
+///
+/// 每项：path + lines[]，每行 start / end（毫秒）/ text。
+/// 只读操作；end 由下一行 start 回填，末行为 0（对齐 Node 引擎）。
+#[napi]
+pub fn scan_lyrics(dir: String) -> napi::Result<String> {
+    let json = lyrics::scan_lyrics_json(Path::new(&dir))?;
     Ok(json)
 }
 
