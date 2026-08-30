@@ -1,0 +1,19 @@
+{
+  "generatedAt": "2026-08-30T11:55:12.769Z",
+  "source": "C:\\Users\\Administrator\\Music",
+  "targetCount": 50,
+  "actualCount": 1,
+  "meetsTarget": false,
+  "totalBytes": 49723083,
+  "extDistribution": {
+    ".flac": 1
+  },
+  "files": [
+    {
+      "name": "KUNYIN__陈奕迅 - 陀飞轮 [24Bit-44.1kHz].flac",
+      "ext": ".flac",
+      "bytes": 49723083,
+      "sha256": "70d84446a0b36a1a01576b588537b9a61bc4f0acd7002098592d5f032777abcc"
+    }
+  ]
+}
