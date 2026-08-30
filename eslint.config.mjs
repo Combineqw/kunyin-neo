@@ -12,6 +12,9 @@ export default defineConfig(
       '**/out',
       '**/reference',
       'scripts',
+      // 复审材料包：里面是 scripts/ 下文件的副本，交付给裁判用。
+      // 原文件已由上面的 'scripts' 豁免，副本同样不该进 lint。
+      '_review',
       // 静态资源目录：startup-diagnostics.js 是刻意写成 ES5 传统脚本的（要先于
       // ES Module 入口执行，见文件头注释），套 TS 规则会要求它标注返回类型——
       // 那是纯 JS 文件做不到的事。它不参与打包，由 index.html 直接引用。

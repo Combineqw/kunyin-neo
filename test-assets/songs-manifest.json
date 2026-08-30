@@ -1,19 +1,314 @@
 {
-  "generatedAt": "2026-08-30T11:55:12.769Z",
-  "source": "C:\\Users\\Administrator\\Music",
+  "generatedAt": "2026-08-30T13:47:47.955Z",
+  "source": "D:\\text",
+  "sourceIsCustom": true,
   "targetCount": 50,
-  "actualCount": 1,
-  "meetsTarget": false,
-  "totalBytes": 49723083,
+  "actualCount": 50,
+  "meetsTarget": true,
+  "totalBytes": 2008561833,
   "extDistribution": {
-    ".flac": 1
+    ".flac": 50
   },
   "files": [
     {
-      "name": "KUNYIN__陈奕迅 - 陀飞轮 [24Bit-44.1kHz].flac",
+      "name": "爱如潮水 - 张信哲.flac",
       "ext": ".flac",
-      "bytes": 49723083,
-      "sha256": "70d84446a0b36a1a01576b588537b9a61bc4f0acd7002098592d5f032777abcc"
+      "bytes": 27789546,
+      "sha256": "eafd6fdc513f7245dc2674614c56201857dd793ba0ad79df1dba69a2272fea30"
+    },
+    {
+      "name": "爱在西元前 - 周杰伦.flac",
+      "ext": ".flac",
+      "bytes": 29255570,
+      "sha256": "098c27f3429b66a5a03e4eaee4b22ae0b2dcd36f59f49762c169562db8765c80"
+    },
+    {
+      "name": "背对背拥抱 - 林俊杰.flac",
+      "ext": ".flac",
+      "bytes": 47908289,
+      "sha256": "55a0072eb2b2b6fe51cb86aaa51a684f7f9f314a4963002836b6080755f59c31"
+    },
+    {
+      "name": "带我去找夜生活 - 告五人.flac",
+      "ext": ".flac",
+      "bytes": 64991337,
+      "sha256": "f2e978a4771e9210b12c48cdcbbfbdf9b1df3222bdfc27c98d10b850bf58473c"
+    },
+    {
+      "name": "渡口 - 蔡琴.flac",
+      "ext": ".flac",
+      "bytes": 41216253,
+      "sha256": "70ac345471e6bb523676cc054ff0a76425c11ed4d7cc7687688ebdb4947c4299"
+    },
+    {
+      "name": "反方向的钟 - 周杰伦.flac",
+      "ext": ".flac",
+      "bytes": 179453951,
+      "sha256": "cf1e8502f4a671dd2275a1aaaf8ac5b679e6531a274d6ec9bfba4824167c6e4e"
+    },
+    {
+      "name": "刚好遇见你 - 李玉刚.flac",
+      "ext": ".flac",
+      "bytes": 23235488,
+      "sha256": "15cf11e8379f657bc291e37a75d092c3ad8dbb243cb4139da13a4b62a118c614"
+    },
+    {
+      "name": "光辉岁月 - BEYOND.flac",
+      "ext": ".flac",
+      "bytes": 31060628,
+      "sha256": "d4560ba9a28697a1fa01aee47ba81b0edb17fe7f5616dfe0164d24c7c0e35bcf"
+    },
+    {
+      "name": "海阔天空 - BEYOND.flac",
+      "ext": ".flac",
+      "bytes": 32941455,
+      "sha256": "708410a594fb46239738a2bb0086853d21183def670e346e58b53a4e79a37cc2"
+    },
+    {
+      "name": "红色高跟鞋 - 蔡健雅.flac",
+      "ext": ".flac",
+      "bytes": 46786490,
+      "sha256": "ede6d5867211ca476fb39e114b0efd2b0e3ac636c7fdf261d3370110c1dee738"
+    },
+    {
+      "name": "华夏传说 - 凤凰传奇.flac",
+      "ext": ".flac",
+      "bytes": 30427688,
+      "sha256": "42a6f839343080b7903e362a2bf0e08a71783d8c6a8678d6a47c87779d3e9926"
+    },
+    {
+      "name": "蓝莲花 - 许巍.flac",
+      "ext": ".flac",
+      "bytes": 32210802,
+      "sha256": "a52ed3c9b13bd31322ccfe7ff96ba3a27717c152120fee7059023b966255cee0"
+    },
+    {
+      "name": "郎的诱惑 - 凤凰传奇.flac",
+      "ext": ".flac",
+      "bytes": 25061369,
+      "sha256": "ddf9396921648230f3d40ae40a6089fb06116c17a73bd5784392a2e5c3815819"
+    },
+    {
+      "name": "李白 - 李荣浩.flac",
+      "ext": ".flac",
+      "bytes": 30721720,
+      "sha256": "0931ade3bc9cfa45b91e146966026177713862ce9d4b453f758342c9cbdda377"
+    },
+    {
+      "name": "淋雨一直走 - 张韶涵.flac",
+      "ext": ".flac",
+      "bytes": 25899333,
+      "sha256": "48cf83c77ba09dd8bdf2841cf6fa43d82e6daa0897a8e31ec9352944aeb2f70d"
+    },
+    {
+      "name": "玫瑰花的葬礼 - 许嵩.flac",
+      "ext": ".flac",
+      "bytes": 28047251,
+      "sha256": "c6ea5db1eb03a241cc471106c728d4e5d78710d42f6d687e45ec35006763dbd7"
+    },
+    {
+      "name": "模特 - 李荣浩.flac",
+      "ext": ".flac",
+      "bytes": 35488530,
+      "sha256": "7c484de5de8a14f7316ddfcfecdbdfdafc40232e385b5cfb419241488500180d"
+    },
+    {
+      "name": "漠河舞厅 - 半吨兄弟.flac",
+      "ext": ".flac",
+      "bytes": 52078745,
+      "sha256": "fb701b401a81f3cb6e7f7fd217094ea6fe1d727c1ad6345134de4bbf9608b440"
+    },
+    {
+      "name": "凄美地 - 郭顶.flac",
+      "ext": ".flac",
+      "bytes": 29221182,
+      "sha256": "a42b5266cc52fba194464df013fedc0fe6673b52f4f18dae31521d0c1d394ded"
+    },
+    {
+      "name": "起风了 - 周深.flac",
+      "ext": ".flac",
+      "bytes": 68748815,
+      "sha256": "10f28862d72057370b0d1ac56cdd7cbd2008485dddaa5e716c6ba3d71a0f146c"
+    },
+    {
+      "name": "清明上河图 - 李玉刚.flac",
+      "ext": ".flac",
+      "bytes": 32901036,
+      "sha256": "5f06276b901d7ab350b6baff317dc2fcd23a68b836e5d285a766f76790f7e8dc"
+    },
+    {
+      "name": "求佛 - 誓言.flac",
+      "ext": ".flac",
+      "bytes": 57936091,
+      "sha256": "46d2c7d3b30805f22b1e234b41f131349dfedc15b95954fe1d5cf74b32a3fc73"
+    },
+    {
+      "name": "全是爱 - 凤凰传奇.flac",
+      "ext": ".flac",
+      "bytes": 30586361,
+      "sha256": "4a2e5c04175eb52fc4cc3392b4a88dd97acddb71bb3b184b8cf523d7f2e0e415"
+    },
+    {
+      "name": "热爱105°C的你 - 阿肆.flac",
+      "ext": ".flac",
+      "bytes": 21778681,
+      "sha256": "357845994fb2acfb107c3a255e03bc93f61f7c98703eb4d4938644ffea34ba87"
+    },
+    {
+      "name": "山河图 - 凤凰传奇.flac",
+      "ext": ".flac",
+      "bytes": 52706228,
+      "sha256": "44d304a10c10979efbe175b52d1dba13c5e78844160e5dc4b9dfe450f2812846"
+    },
+    {
+      "name": "少年 - 梦然.flac",
+      "ext": ".flac",
+      "bytes": 52270755,
+      "sha256": "bf85f1c24f646a31e156089e6387b6d4fb48db24bdc2b5117e22d839790d7daa"
+    },
+    {
+      "name": "奢香夫人 - 凤凰传奇.flac",
+      "ext": ".flac",
+      "bytes": 31481988,
+      "sha256": "cf50b06edd543652c8b513025b6fb544ddb5304ccd57e2882439cd5bb0777e1b"
+    },
+    {
+      "name": "送亲 - 王琪.flac",
+      "ext": ".flac",
+      "bytes": 34709794,
+      "sha256": "73f97780637e63d9cf238c41ae81c5624831f0cbb5b3d2103ec60e395ac6feb2"
+    },
+    {
+      "name": "讨厌红楼梦 - 陶喆.flac",
+      "ext": ".flac",
+      "bytes": 28344155,
+      "sha256": "a98b52b19b3d85f13d881009915597583dcc6f66cec3900f328171b45bb87af4"
+    },
+    {
+      "name": "天下 - 张杰.flac",
+      "ext": ".flac",
+      "bytes": 50123110,
+      "sha256": "405cd52a4f20b339c040e7521f606060b02a09fdbb3dbcd2f36cca613e53ece5"
+    },
+    {
+      "name": "晚风心里吹 - 李克勤.flac",
+      "ext": ".flac",
+      "bytes": 40779844,
+      "sha256": "da9d1cf5eb8cde7163f11bd14efa9e22c7f09ffb9fbe88ab309c4b7d2fb19f89"
+    },
+    {
+      "name": "忘情水 - 刘德华.flac",
+      "ext": ".flac",
+      "bytes": 27189446,
+      "sha256": "745d24fa3c1aeb1108c05b1a4cb4af6eb6136c77e9f4c6542761f2f42bfc7b45"
+    },
+    {
+      "name": "悟空 - 戴荃.flac",
+      "ext": ".flac",
+      "bytes": 45855903,
+      "sha256": "5be8765fcd49eaa40c7a60e7c02fd298ea42d46ab5addf47e97ca92c8ec8e944"
+    },
+    {
+      "name": "西楼儿女 - 海来阿木.flac",
+      "ext": ".flac",
+      "bytes": 30242524,
+      "sha256": "79e2f85d739c632a21c1c59488e8d446fa2deeb369e0e213761f9aca9217010f"
+    },
+    {
+      "name": "喜欢 - 阿肆.flac",
+      "ext": ".flac",
+      "bytes": 27640696,
+      "sha256": "7c6b18e7cf7cdf1d2cf1c61bf6a3fc0694df501861adacfe327f4155cbbfc31b"
+    },
+    {
+      "name": "下个，路口，见 - 李宇春.flac",
+      "ext": ".flac",
+      "bytes": 44611522,
+      "sha256": "556360b5ed6c0eaa79829aad0185ee26879c89540fe62c3e2804c5907da47721"
+    },
+    {
+      "name": "下坠Falling - Corki刘宗鑫.flac",
+      "ext": ".flac",
+      "bytes": 40706736,
+      "sha256": "4a82f84b8a21596ea89634b153549cba3f675cf04d50a27184fb265a7a04b92f"
+    },
+    {
+      "name": "像风一样自由 - 许巍.flac",
+      "ext": ".flac",
+      "bytes": 25724038,
+      "sha256": "bf16762d33544eae5301a3af4a1dafe65ac29d2ea9a2c9c00bd1c9617be7cfe0"
+    },
+    {
+      "name": "像我这样的人 - 毛不易.flac",
+      "ext": ".flac",
+      "bytes": 21156426,
+      "sha256": "ff81a3f2e88cc8c99a3901dcdb1e63ce2691ab07292ef4bf98aa10584f199089"
+    },
+    {
+      "name": "消愁 - 毛不易.flac",
+      "ext": ".flac",
+      "bytes": 25332409,
+      "sha256": "f59b7e2452197433921077500bfbf6b4f43f4881b00dbe7e75646e6bcbda069d"
+    },
+    {
+      "name": "烟花易冷 - 周杰伦.flac",
+      "ext": ".flac",
+      "bytes": 55318585,
+      "sha256": "9d96e3cd46964375358f0b921fdbb979b9bffda01b286a82ef1046c9d805cb58"
+    },
+    {
+      "name": "痒 - 黄龄.flac",
+      "ext": ".flac",
+      "bytes": 24398900,
+      "sha256": "3137d42b45180c1d1e7878ba934c966ecc0f909a9b68e1190bf49e213e5ec636"
+    },
+    {
+      "name": "夜曲 - 周杰伦.flac",
+      "ext": ".flac",
+      "bytes": 50091779,
+      "sha256": "77456db972da7e373e0a6a1afe3c49b28c44db826e837b5ec3b8f2081c8a58f4"
+    },
+    {
+      "name": "以父之名 - 周杰伦.flac",
+      "ext": ".flac",
+      "bytes": 34091788,
+      "sha256": "df468ed25e31cf0db77897d3c7a9550ea0adc1112fa725173976dae7479bfaf7"
+    },
+    {
+      "name": "月半小夜曲 - 李克勤.flac",
+      "ext": ".flac",
+      "bytes": 27897519,
+      "sha256": "ffbcb5d38aae9393fa1b1ae1ea0d27c86f603e82e1a34fc8aaef09536aa6da9b"
+    },
+    {
+      "name": "月亮之上 - 凤凰传奇.flac",
+      "ext": ".flac",
+      "bytes": 28787056,
+      "sha256": "6b9eb233345eddf2599517de6c25c2c3f41c42ab26a143b617ba2f6e02e05329"
+    },
+    {
+      "name": "真的爱你 - Beyond.flac",
+      "ext": ".flac",
+      "bytes": 60395897,
+      "sha256": "5ea4af13e340c954fcaa1bd7fb49b4429920b43ed6c984afbfdd9d00c19780fe"
+    },
+    {
+      "name": "自由自在 - 凤凰传奇.flac",
+      "ext": ".flac",
+      "bytes": 31280876,
+      "sha256": "e1ce3346c196766c9295dbf1eb15223adfd7467d21b4417a28a71e470c5eea09"
+    },
+    {
+      "name": "Haunt Muskie - C418.flac",
+      "ext": ".flac",
+      "bytes": 60700547,
+      "sha256": "a16185b66d02e0cf69d4301d752802a5bd6a69eb47c918a3a37e04c32be1b1e9"
+    },
+    {
+      "name": "Letting Go - 蔡健雅.flac",
+      "ext": ".flac",
+      "bytes": 30976701,
+      "sha256": "9b455042a82820a8e54648427ccd62fee2362f2bdd267e03e7daa03a58471c66"
     }
   ]
 }

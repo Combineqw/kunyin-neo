@@ -19,3 +19,6 @@ crates/aurora-native/target/
 
 # 原子写留下的临时文件
 *.tmp
+
+# 复审材料包（交付物，随包提交给裁判，不入版本库）
+_review/
