@@ -77,6 +77,14 @@ fn parse_file_name(path: &Path) -> (String, String) {
 /// 语义对齐 Node 端 `parseLocalSong`：先按文件名兜底，标签能读到就覆盖；
 /// 读标签失败**不返回 Err**，而是回退文件名 + duration 0（不丢文件）。
 pub fn parse_track(path: &Path) -> ScannedTrack {
+    parse_track_counted(path).0
+}
+
+/// 同 parse_track，额外返回「读标签是否失败」，供扫描统计使用。
+///
+/// 失败定义：Probe::open().read() 返回 Err —— 文件仍被保留（回退文件名 +
+/// duration 0），只是元数据没读到。与 Node 端 try/catch 回退同语义。
+pub fn parse_track_counted(path: &Path) -> (ScannedTrack, bool) {
     let (fallback_title, fallback_artist) = parse_file_name(path);
     let mut title = fallback_title;
     let mut artist = fallback_artist;
@@ -84,6 +92,7 @@ pub fn parse_track(path: &Path) -> ScannedTrack {
     let mut duration: u64 = 0;
 
     // 读标签：任何失败都静默回退，与 Node 端 try/catch 同语义
+    let mut tag_failed = false;
     if let Ok(tagged) = Probe::open(path).and_then(|p| p.read()) {
         // 时长直接取毫秒，避免「秒(浮点) → 毫秒」的二次舍入误差
         duration = tagged.properties().duration().as_millis() as u64;
@@ -112,22 +121,42 @@ pub fn parse_track(path: &Path) -> ScannedTrack {
                 album = a.trim().to_string();
             }
         }
+    } else {
+        tag_failed = true;
     }
 
-    ScannedTrack {
-        title,
-        artist,
-        album,
-        duration,
-        path: path.display().to_string(),
-    }
+    (
+        ScannedTrack {
+            title,
+            artist,
+            album,
+            duration,
+            path: path.display().to_string(),
+        },
+        tag_failed,
+    )
+}
+
+/// 扫描结果：曲目列表 + 统计计数。
+///
+/// 计数用于报告展示，让「静默跳过」变成可见数字：
+///   · skipped_non_audio 扩展名不在白名单内而跳过的文件数
+///   · parse_failed      是音频但读标签失败（已回退文件名）的文件数
+///   · walk_errors       遍历时条目读不到（权限等）的次数
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScanResult {
+    pub tracks: Vec<ScannedTrack>,
+    pub skipped_non_audio: u32,
+    pub parse_failed: u32,
+    pub walk_errors: u32,
 }
 
 /// 递归扫描目录，返回全部可识别音频的元数据。
 ///
 /// 只读：仅 WalkDir 遍历 + Probe 读取，无任何写操作。
 /// 非音频文件（含图片等）按扩展名直接跳过，不会导致失败。
-pub fn scan_dir(root: &Path) -> Result<Vec<ScannedTrack>> {
+pub fn scan_dir(root: &Path) -> Result<ScanResult> {
     if !root.is_dir() {
         return Err(AuroraError::InvalidInput(format!(
             "{} 不是目录",
@@ -136,6 +165,10 @@ pub fn scan_dir(root: &Path) -> Result<Vec<ScannedTrack>> {
     }
 
     let mut out = Vec::new();
+    let mut skipped_non_audio: u32 = 0;
+    let mut parse_failed: u32 = 0;
+    let mut walk_errors: u32 = 0;
+
     for entry in WalkDir::new(root).follow_links(false) {
         // 单个条目读不到（权限等）不该中断整次扫描：记为遍历错误并跳过
         let entry = match entry {
@@ -143,6 +176,7 @@ pub fn scan_dir(root: &Path) -> Result<Vec<ScannedTrack>> {
             Err(e) => {
                 // 不 unwrap、不 panic；构造出的错误信息用于诊断
                 let _ = AuroraError::walk(root, e);
+                walk_errors = walk_errors.saturating_add(1);
                 continue;
             }
         };
@@ -151,18 +185,30 @@ pub fn scan_dir(root: &Path) -> Result<Vec<ScannedTrack>> {
         }
         let path = entry.path();
         if !is_audio(path) {
+            // 目录本身不计入，只统计「是文件但不是音频」
+            skipped_non_audio = skipped_non_audio.saturating_add(1);
             continue;
         }
-        out.push(parse_track(path));
+        let (track, failed) = parse_track_counted(path);
+        if failed {
+            parse_failed = parse_failed.saturating_add(1);
+        }
+        out.push(track);
     }
 
     // 稳定排序，保证两侧引擎输出顺序一致（对答案不受遍历顺序影响）
     out.sort_by(|a, b| a.path.cmp(&b.path));
-    Ok(out)
+    Ok(ScanResult {
+        tracks: out,
+        skipped_non_audio,
+        parse_failed,
+        walk_errors,
+    })
 }
 
 /// 序列化为 JSON 字符串，供 Node 侧解析。
+///
+/// 结构为 { tracks, skippedNonAudio, parseFailed, walkErrors }。
 pub fn scan_dir_json(root: &Path) -> Result<String> {
-    let tracks = scan_dir(root)?;
-    Ok(serde_json::to_string(&tracks)?)
+    Ok(serde_json::to_string(&scan_dir(root)?)?)
 }

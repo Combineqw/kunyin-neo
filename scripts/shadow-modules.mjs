@@ -178,7 +178,15 @@ export const modules = [
     },
 
     async runRust(input, native) {
-      return JSON.parse(native.scanDirectory(input))
+      // Rust 侧返回 { tracks, skippedNonAudio, parseFailed, walkErrors }。
+      // 计数存到 this.stats 供框架展示；比对仍只针对 tracks。
+      const r = JSON.parse(native.scanDirectory(input))
+      this.stats = {
+        skippedNonAudio: r.skippedNonAudio,
+        parseFailed: r.parseFailed,
+        walkErrors: r.walkErrors,
+      }
+      return r.tracks
     },
 
     /**

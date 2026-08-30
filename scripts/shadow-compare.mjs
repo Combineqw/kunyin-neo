@@ -245,6 +245,8 @@ function printReport(r) {
     : total === 0
       ? 'PASS（无素材，未做实质比对）'
       : 'FAIL'
+  // 模块自报的扫描统计（数据来自模块返回值，框架不参与计算，不影响比对逻辑）
+  if (r.mod.stats) console.log('  扫描统计：跳过非音频 ' + n(r.mod.stats.skippedNonAudio ?? 0) + ' 个 · 解析失败 ' + n(r.mod.stats.parseFailed ?? 0) + ' 个 · 遍历错误 ' + n(r.mod.stats.walkErrors ?? 0) + ' 次')
   console.log(
     '  结论：共 ' + n(total) + ' ' + u +
       ' · 一致 ' + n(r.matched) + ' · 不一致 ' + n(bad) +
