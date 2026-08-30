@@ -72,7 +72,7 @@ function toggleTab(id: TocId): void {
       <ul role="toolbar">
         <li v-for="h2 in tocList" :key="h2.id">
           <button
-            class="toc-h2"
+            class="toc-h2 pressable pressable-subtle"
             :class="{ active: activeId === h2.id }"
             role="tab"
             :aria-selected="activeId === h2.id"
@@ -151,11 +151,14 @@ function toggleTab(id: TocId): void {
   background: transparent;
   padding: 10px 10px;
   cursor: pointer;
-  transition: transform var(--anim-dur-fast) var(--anim-ease-standard);
+  /* 形变（含 hover 横移与按压缩放）统一交给全局 .pressable，这里不再自己
+     声明 transform / transform 过渡——自己写会整条覆盖掉按压的 scale。 */
+  transition: background-color var(--anim-dur-fast) var(--anim-ease-standard);
 }
 .toc-h2:not(.active):hover {
   background-color: var(--color-button-background-hover);
-  transform: translateX(2px);
+  /* 横移改喂 .pressable 的 --press-shift，与按下缩放复合 */
+  --press-shift: 2px;
 }
 .toc-h2.active {
   color: var(--color-primary-font);

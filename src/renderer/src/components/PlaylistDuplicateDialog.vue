@@ -110,11 +110,11 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
               <span class="name ellipsis" :title="e.item.title">{{ e.item.title }}</span>
               <span class="artist ellipsis" :title="e.item.artist">{{ e.item.artist }}</span>
               <span class="time">{{ fmt(e.item.duration) }}</span>
-              <button class="op" title="试听" @click="play(e.item)">
+              <button class="op pressable" title="试听" @click="play(e.item)">
                 <AppIcon name="play" :size="13" />
               </button>
               <button
-                class="op danger"
+                class="op danger pressable"
                 title="从列表移除"
                 :disabled="!!busyKey"
                 @click="remove(e.item)"
@@ -125,9 +125,9 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
           </template>
         </div>
 
-        <footer class="foot">
+        <footer class="foot aurora-divider">
           <span class="foot-hint">{{ loading ? '' : `共 ${entries.length} 首同名歌曲` }}</span>
-          <button class="btn ghost" @click="emit('close')">关闭</button>
+          <button class="btn ghost pressable" @click="emit('close')">关闭</button>
         </footer>
       </div>
     </div>

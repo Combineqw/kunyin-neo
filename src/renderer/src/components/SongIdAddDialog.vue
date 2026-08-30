@@ -105,7 +105,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
               v-for="item in PLATFORMS"
               :key="item.key"
               type="button"
-              class="platform"
+              class="platform pressable pressable-subtle"
               :class="{ active: platform === item.key }"
               :disabled="loading"
               @click="platform = item.key"
@@ -129,8 +129,8 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
           </div>
           <p v-if="error" class="error" role="alert">{{ error }}</p>
 
-          <footer class="foot">
-            <button type="button" class="btn ghost" :disabled="loading" @click="close">取消</button>
+          <footer class="foot aurora-divider">
+            <button type="button" class="btn ghost pressable" :disabled="loading" @click="close">取消</button>
             <button type="submit" class="btn primary" :disabled="!input.trim() || loading">
               {{ loading ? '正在导入…' : '导入' }}
             </button>

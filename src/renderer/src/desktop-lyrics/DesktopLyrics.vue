@@ -177,16 +177,16 @@ function toggleAlwaysOnTop(): void {
         <span class="dl-caption">{{ title || '坤音neo · 桌面歌词' }}</span>
       </div>
       <div class="dl-actions">
-        <button class="dl-btn text-btn" title="增大字号" @click="changeFontSize(1)">A⁺</button>
-        <button class="dl-btn text-btn" title="减小字号" @click="changeFontSize(-1)">A⁻</button>
-        <button class="dl-btn text-btn" title="提高歌词不透明度" @click="changeOpacity(10)">
+        <button class="dl-btn text-btn pressable" title="增大字号" @click="changeFontSize(1)">A⁺</button>
+        <button class="dl-btn text-btn pressable" title="减小字号" @click="changeFontSize(-1)">A⁻</button>
+        <button class="dl-btn text-btn pressable" title="提高歌词不透明度" @click="changeOpacity(10)">
           ◐⁺
         </button>
-        <button class="dl-btn text-btn" title="降低歌词不透明度" @click="changeOpacity(-10)">
+        <button class="dl-btn text-btn pressable" title="降低歌词不透明度" @click="changeOpacity(-10)">
           ◐⁻
         </button>
         <button
-          class="dl-btn text-btn wide"
+          class="dl-btn text-btn wide pressable"
           :class="{ active: lyricSettings?.desktopZoomActive }"
           title="切换当前行放大"
           @click="toggleZoom"
@@ -194,20 +194,20 @@ function toggleAlwaysOnTop(): void {
           当前行
         </button>
         <button
-          class="dl-btn text-btn wide"
+          class="dl-btn text-btn wide pressable"
           :class="{ active: lyricSettings?.desktopAlwaysOnTop }"
           title="切换窗口置顶"
           @click="toggleAlwaysOnTop"
         >
           置顶
         </button>
-        <button class="dl-btn" title="锁定并允许点击穿透" @click="lock">
+        <button class="dl-btn pressable" title="锁定并允许点击穿透" @click="lock">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <rect x="5" y="10" width="14" height="10" rx="2" />
             <path d="M8 10V7a4 4 0 0 1 8 0v3" />
           </svg>
         </button>
-        <button class="dl-btn" title="关闭桌面歌词" @click="close">
+        <button class="dl-btn pressable" title="关闭桌面歌词" @click="close">
           <AppIcon name="close" :size="15" />
         </button>
       </div>

@@ -49,7 +49,7 @@ function trigger(target: EventTarget | null): void {
   }
   el.addEventListener('animationend', onEnd)
   // 兜底：动画被 disable-animation / prefers-reduced-motion 停掉时
-  // animationend 永远不来，类会永久残留。350ms 略大于 --anim-dur-rebound。
+  // animationend 永远不来，类会永久残留。600ms 明显大于 --anim-dur-press(0.35s)。
   timer = window.setTimeout(cleanup, 600)
   pending.set(el, cleanup)
 }

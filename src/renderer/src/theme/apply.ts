@@ -56,6 +56,10 @@ export function applyTheme(id: string, lightId = currentLightId, darkId = curren
   // 亮度档位在最后一步统一后处理，覆盖内置与自定义主题
   setThemeVars(applyComfort(buildThemeColors(theme), comfortLevel, theme.isDark))
   document.documentElement.classList.toggle('theme-dark', theme.isDark)
+  // 已解析的具体主题 id（'auto' 已在 resolve 里落到真实主题）。
+  // CSS 侧据此把极光装饰限定在 aurora_* 五个主题上：html[data-theme^='aurora']。
+  // 写具体 id 而不是写一个 has-aurora 布尔类，是为了让将来按单个主题微调也够用。
+  document.documentElement.dataset.theme = theme.id
 }
 
 /** 记录界面亮度档位。只写状态不重放——调用方紧接着会 applyTheme，

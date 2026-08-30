@@ -57,7 +57,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
             <button
               v-for="f in FIELDS"
               :key="f.key"
-              class="opt"
+              class="opt pressable pressable-subtle"
               :class="{ on: field === f.key, dim: order === 'random' }"
               :disabled="order === 'random'"
               @click="field = f.key"
@@ -70,7 +70,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
             <button
               v-for="o in ORDERS"
               :key="o.key"
-              class="opt"
+              class="opt pressable pressable-subtle"
               :class="{ on: order === o.key }"
               @click="order = o.key"
             >
@@ -79,9 +79,9 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
           </div>
         </div>
 
-        <footer class="foot">
-          <button class="btn ghost" @click="emit('close')">取消</button>
-          <button class="btn primary" :disabled="busy" @click="apply">应用排序</button>
+        <footer class="foot aurora-divider">
+          <button class="btn ghost pressable" @click="emit('close')">取消</button>
+          <button class="btn primary pressable" :disabled="busy" @click="apply">应用排序</button>
         </footer>
       </div>
     </div>

@@ -555,10 +555,10 @@ onUnmounted(() => {
       <div class="side-head">
         <span class="side-title">我的列表</span>
         <div class="side-actions">
-          <button class="icon-btn" title="导入歌单" @click="importList">
+          <button class="icon-btn pressable" title="导入歌单" @click="importList">
             <AppIcon name="download" :size="16" />
           </button>
-          <button class="icon-btn" title="新建列表" @click="creating = true">
+          <button class="icon-btn pressable" title="新建列表" @click="creating = true">
             <AppIcon name="plus" :size="16" />
           </button>
         </div>
@@ -568,7 +568,7 @@ onUnmounted(() => {
         <!-- 系统列表 / 自建列表 / 平台歌单：全部平铺（LX MyList） -->
         <button
           v-if="trial"
-          class="list-item"
+          class="list-item pressable pressable-subtle"
           :class="{ active: selectedKey === `local:${trial.id}` }"
           @click="trial && selectLocal(trial)"
           @contextmenu.prevent.stop="trial && openMenu($event, trial)"
@@ -590,7 +590,7 @@ onUnmounted(() => {
         </button>
         <button
           v-if="favorites"
-          class="list-item"
+          class="list-item pressable pressable-subtle"
           :class="{ active: selectedKey === `local:${favorites.id}` }"
           @click="favorites && selectLocal(favorites)"
           @contextmenu.prevent.stop="favorites && openMenu($event, favorites)"
@@ -624,7 +624,7 @@ onUnmounted(() => {
           </div>
           <button
             v-else
-            class="list-item"
+            class="list-item pressable pressable-subtle"
             :class="{ active: selectedKey === `local:${p.id}`, 'drop-over': dragOverId === p.id }"
             draggable="true"
             @click="selectLocal(p)"
@@ -654,7 +654,7 @@ onUnmounted(() => {
         <button
           v-for="{ g, p } in platformItems"
           :key="`platform:${g.source}:${p.id}`"
-          class="list-item"
+          class="list-item pressable pressable-subtle"
           :class="{ active: selectedKey === `platform:${g.source}:${p.id}` }"
           @click="selectPlatform(g, p)"
         >
@@ -705,7 +705,7 @@ onUnmounted(() => {
             <span class="head-tools">
               <button
                 v-if="selection.kind === 'local'"
-                class="head-tool"
+                class="head-tool pressable"
                 title="通过 ID / MID 添加歌曲"
                 @click="openIdAddDialog()"
               >
@@ -713,14 +713,14 @@ onUnmounted(() => {
               </button>
               <button
                 v-if="player.current"
-                class="head-tool"
+                class="head-tool pressable"
                 title="定位当前播放"
                 @click="locateCurrent"
               >
                 <AppIcon name="locate" :size="14" />
               </button>
               <button
-                class="head-tool"
+                class="head-tool pressable"
                 :class="{ on: searchOpen }"
                 title="搜索列表内歌曲"
                 @click="toggleSearch"
@@ -768,19 +768,19 @@ onUnmounted(() => {
         <Transition name="batchbar">
           <div v-if="selectedCount" class="batch-bar">
             <span class="batch-count">已选 {{ selectedCount }} 首</span>
-            <button class="batch-btn" @click="playSelected">
+            <button class="batch-btn pressable" @click="playSelected">
               <AppIcon name="play" :size="14" /><span>播放</span>
             </button>
-            <button class="batch-btn" @click="addDialog = true">
+            <button class="batch-btn pressable" @click="addDialog = true">
               <AppIcon name="plus" :size="14" /><span>添加到列表</span>
             </button>
-            <button v-if="selection.kind === 'local'" class="batch-btn" @click="removeSelected">
+            <button v-if="selection.kind === 'local'" class="batch-btn pressable" @click="removeSelected">
               <AppIcon name="trash" :size="14" /><span>移除</span>
             </button>
-            <button class="batch-btn" @click="downloadSelected">
+            <button class="batch-btn pressable" @click="downloadSelected">
               <AppIcon name="download" :size="14" /><span>下载</span>
             </button>
-            <button class="batch-btn ghost" @click="clearSelection">
+            <button class="batch-btn ghost pressable" @click="clearSelection">
               <AppIcon name="close" :size="14" /><span>取消</span>
             </button>
           </div>
@@ -847,8 +847,8 @@ onUnmounted(() => {
         <div class="confirm-title">删除列表</div>
         <div class="confirm-text">确定删除「{{ pendingDelete.name }}」？此操作不可撤销。</div>
         <div class="confirm-actions">
-          <button class="btn-ghost" @click="pendingDelete = null">取消</button>
-          <button class="btn-danger" @click="confirmDelete">删除</button>
+          <button class="btn-ghost pressable" @click="pendingDelete = null">取消</button>
+          <button class="btn-danger pressable" @click="confirmDelete">删除</button>
         </div>
       </div>
     </div>

@@ -89,15 +89,15 @@ onMounted(() => void load())
         <p>完全基于本地播放、完整收听和喜欢标记生成，不上传你的收听数据。</p>
       </div>
       <div class="hero-actions">
-        <button class="primary" :disabled="!current" @click="startHeartbeat">
+        <button class="primary pressable" :disabled="!current" @click="startHeartbeat">
           <img class="hero-icon" :src="heartModeIcon" alt="" />
           从当前歌曲开启心动模式
         </button>
-        <button class="secondary" :disabled="!entries.length" @click="void saveAsPlaylist">
+        <button class="secondary pressable" :disabled="!entries.length" @click="void saveAsPlaylist">
           <AppIcon name="library" :size="16" />
           固化为歌单
         </button>
-        <button class="secondary" :disabled="loading" @click="void load(true)">
+        <button class="secondary pressable" :disabled="loading" @click="void load(true)">
           <AppIcon name="refresh" :size="16" />
           {{ loading ? '生成中…' : '刷新推荐' }}
         </button>

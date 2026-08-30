@@ -43,7 +43,7 @@ function setDark(id: string): void {
   <div v-if="modelValue" class="mask" @click.self="emit('update:modelValue', false)">
     <div class="dialog">
       <div class="toolbar">
-        <button class="close" title="关闭" @click="emit('update:modelValue', false)">✕</button>
+        <button class="close pressable" title="关闭" @click="emit('update:modelValue', false)">✕</button>
       </div>
       <h3 class="title">跟随系统主题设置</h3>
       <div class="body">
@@ -52,7 +52,7 @@ function setDark(id: string): void {
           <li
             v-for="t in lightThemes"
             :key="t.id"
-            class="item"
+            class="item pressable"
             :class="{ active: lightId === t.id }"
             :style="previewStyles(t)"
             :aria-label="t.name"
@@ -67,7 +67,7 @@ function setDark(id: string): void {
           <li
             v-for="t in darkThemes"
             :key="t.id"
-            class="item"
+            class="item pressable"
             :class="{ active: darkId === t.id }"
             :style="previewStyles(t)"
             :aria-label="t.name"

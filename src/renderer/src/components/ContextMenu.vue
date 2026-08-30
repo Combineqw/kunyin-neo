@@ -85,7 +85,7 @@ onBeforeUnmount(() => {
       @contextmenu.prevent.stop
     >
       <template v-for="item in items" :key="item.key">
-        <div v-if="item.divider" class="ctx-divider" />
+        <div v-if="item.divider" class="ctx-divider aurora-divider" />
         <div
           class="ctx-row pressable pressable-subtle"
           :class="{ danger: item.danger, disabled: item.disabled, open: openKey === item.key }"
@@ -109,7 +109,7 @@ onBeforeUnmount(() => {
           v-for="child in items.find((i) => i.key === openKey)?.children ?? []"
           :key="child.key"
         >
-          <div v-if="child.divider" class="ctx-divider" />
+          <div v-if="child.divider" class="ctx-divider aurora-divider" />
           <div
             class="ctx-row pressable pressable-subtle"
             :class="{ danger: child.danger, disabled: child.disabled }"

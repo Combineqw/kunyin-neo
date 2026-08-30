@@ -484,7 +484,7 @@ function resetAll(): void {
         />
       </label>
     </div>
-    <div class="option-grid compact weight-options">
+    <div class="option-grid compact weight-options aurora-divider">
       <BaseCheckbox
         id="setting_dl_bold_syllable"
         :model-value="settings.lyrics.desktopBoldSyllable"
@@ -569,7 +569,7 @@ function resetAll(): void {
       </div>
       <BaseBtn min @click="resetWindow">重置窗口</BaseBtn>
     </div>
-    <div class="reset-row">
+    <div class="reset-row aurora-divider">
       <div>
         <strong>全部桌面歌词设置</strong>
         <p>恢复窗口行为、排版、字体和颜色，并关闭桌面歌词。</p>

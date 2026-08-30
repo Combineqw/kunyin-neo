@@ -109,6 +109,13 @@ export function useLyricPlayer(): {
   play: (ms?: number) => void
   pause: () => void
   seekMs: (ms: number) => void
+  /**
+   * 订阅歌词行点击。回调收到的是「该行在宿主播放器时间轴上的起始毫秒」——
+   * 已经过 convertContentTime 把歌词偏移（全局 + meta + 临时）折回音频时钟，
+   * 宿主可以直接拿去 seek，不需要自己知道偏移存在。
+   * 返回取消订阅函数。
+   */
+  onLineClick: (handler: (ms: number) => void) => () => void
   setColors: (normal: string, active: string) => void
   setFontFamily: (font: string) => void
   setPresentation: (opts: {
@@ -420,6 +427,28 @@ export function useLyricPlayer(): {
     base.pause()
   }
 
+  /**
+   * 歌词行点击 → 该行起始时间（宿主音频时钟，毫秒）。
+   *
+   * 两处折算不能省：
+   * 1. getParsedLineTime 取的是行的 time.start，即「行开始时间戳」。间奏行
+   *    （interlude）同样有 time，取到的也是它自己的起点，因此前奏/间奏点了也能跳。
+   * 2. convertContentTime 把歌词时间换回播放时钟（减去 offset）。歌词偏移非 0 时
+   *    直接拿 time.start 去 seek，会连偏移量一起跳错。
+   *
+   * time=0 的前奏行不做任何特殊处理：0 是合法起点，正常跳到曲首。
+   * 这里用 `?? 0` 而不是「无 time 就忽略」，是因为 time 缺失只会出现在解析异常的
+   * 行上，跳到 0 比点了没反应更符合预期。
+   */
+  function onLineClick(handler: (ms: number) => void): () => void {
+    const listener = (line: Lyric.Parsed.ParsedLine): void => {
+      const start = Lyric.Parsed.getParsedLineTime(line)?.start ?? 0
+      handler(Math.max(0, base.convertContentTime(start)))
+    }
+    dom.event.add('lineClick', listener)
+    return () => dom.event.remove('lineClick', listener)
+  }
+
   onUnmounted(() => {
     base.event.remove('play', onEnginePlay)
     base.event.remove('pause', onEnginePause)
@@ -433,6 +462,7 @@ export function useLyricPlayer(): {
     play,
     pause,
     seekMs,
+    onLineClick,
     setColors,
     setFontFamily,
     setPresentation,

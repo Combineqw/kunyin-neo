@@ -175,7 +175,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
             <button
               v-for="p in PLATFORMS"
               :key="p.key"
-              class="opt"
+              class="opt pressable pressable-subtle"
               :class="{ on: platform === p.key }"
               @click="platform = p.key"
             >
@@ -184,10 +184,10 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
           </div>
 
           <div v-if="platform === 'qq'" class="opts">
-            <button class="opt small" :class="{ on: !qqUseMid }" @click="qqUseMid = false">
+            <button class="opt small pressable pressable-subtle" :class="{ on: !qqUseMid }" @click="qqUseMid = false">
               用数字 id
             </button>
-            <button class="opt small" :class="{ on: qqUseMid }" @click="qqUseMid = true">
+            <button class="opt small pressable pressable-subtle" :class="{ on: qqUseMid }" @click="qqUseMid = true">
               用 mid
             </button>
           </div>
@@ -200,7 +200,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
               @keyup.enter="lookup"
             />
             <input v-else v-model="input" :placeholder="inputLabel" @keyup.enter="lookup" />
-            <button class="btn primary sm" :disabled="loading" @click="lookup">
+            <button class="btn primary sm pressable" :disabled="loading" @click="lookup">
               {{ loading ? '查询中…' : isKg ? '搜索' : '查询' }}
             </button>
           </div>
@@ -211,7 +211,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
             <button
               v-for="(c, i) in kgCandidates"
               :key="`${c.accessKey}_${c.downloadId}_${i}`"
-              class="cand"
+              class="cand pressable pressable-subtle"
               :class="{ on: kgSelected === c }"
               @click="kgSelected = c"
             >
@@ -241,13 +241,13 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
           </div>
         </div>
 
-        <footer class="foot">
-          <button v-if="current" class="btn danger" :disabled="busy" @click="clear">
+        <footer class="foot aurora-divider">
+          <button v-if="current" class="btn danger pressable" :disabled="busy" @click="clear">
             清除重定向
           </button>
           <span class="spacer" />
-          <button class="btn ghost" @click="emit('close')">取消</button>
-          <button class="btn primary" :disabled="!canSave || busy" @click="save">保存</button>
+          <button class="btn ghost pressable" @click="emit('close')">取消</button>
+          <button class="btn primary pressable" :disabled="!canSave || busy" @click="save">保存</button>
         </footer>
       </div>
     </div>

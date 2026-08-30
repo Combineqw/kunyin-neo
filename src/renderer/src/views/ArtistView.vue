@@ -306,7 +306,7 @@ async function openMv(item: { vid: string; title: string; cover: string }): Prom
     <div ref="bodyEl" class="body scroll" @scroll.passive="onScroll">
       <!-- 头部：返回 + 圆形头像 + 名称 + 专辑/歌曲数 + 粉丝 + 播放全部 -->
       <div class="ar-header">
-        <button class="ar-back" title="返回" @click="router.back()">
+        <button class="ar-back pressable" title="返回" @click="router.back()">
           <AppIcon name="arrow-left" :size="18" />
         </button>
         <div class="ar-avatar">
@@ -329,14 +329,14 @@ async function openMv(item: { vid: string; title: string; cover: string }): Prom
       <!-- 歌手简介（长文折叠，对应 Android maxLines=6） -->
       <div v-if="info?.description" class="ar-desc" :class="{ expanded: descExpanded }">
         <p>{{ info.description }}</p>
-        <button class="ar-desc-toggle" @click="descExpanded = !descExpanded">
+        <button class="ar-desc-toggle pressable" @click="descExpanded = !descExpanded">
           {{ descExpanded ? '收起' : '展开' }}
         </button>
       </div>
 
       <div v-if="error && !songs.length" class="state">
         <span>{{ error }}</span>
-        <button class="retry" @click="artist.retry()">重试</button>
+        <button class="retry pressable" @click="artist.retry()">重试</button>
       </div>
 
       <template v-else>
@@ -372,7 +372,7 @@ async function openMv(item: { vid: string; title: string; cover: string }): Prom
         <template v-else-if="tab === 'albums'">
           <div class="ar-toolbar">
             <button
-              class="icon-btn text-btn"
+              class="icon-btn text-btn pressable"
               :class="{ on: albumSortAsc }"
               :title="
                 albumSortAsc ? '当前：发行时间旧 → 新，点击切换' : '当前：发行时间新 → 旧，点击切换'
@@ -384,7 +384,7 @@ async function openMv(item: { vid: string; title: string; cover: string }): Prom
             </button>
             <button
               v-if="!albumSelecting"
-              class="icon-btn text-btn"
+              class="icon-btn text-btn pressable"
               title="批量选择专辑"
               @click="enterAlbumSelection"
             >
@@ -393,7 +393,7 @@ async function openMv(item: { vid: string; title: string; cover: string }): Prom
             </button>
             <span class="toolbar-spacer" />
             <button
-              class="icon-btn"
+              class="icon-btn pressable"
               :title="albumListMode ? '网格视图' : '列表视图'"
               @click="toggleAlbumListMode"
             >
@@ -407,7 +407,7 @@ async function openMv(item: { vid: string; title: string; cover: string }): Prom
               <button
                 v-for="a in sortedAlbums"
                 :key="`${a.source}_${a.id}`"
-                class="album-row"
+                class="album-row pressable pressable-subtle"
                 :class="{ selected: albumSelected(a) }"
                 @click="onAlbumClick(a)"
               >
@@ -436,7 +436,7 @@ async function openMv(item: { vid: string; title: string; cover: string }): Prom
               <button
                 v-for="a in sortedAlbums"
                 :key="`${a.source}_${a.id}`"
-                class="album-card"
+                class="album-card pressable"
                 :class="{ selected: albumSelected(a) }"
                 @click="onAlbumClick(a)"
               >
@@ -473,7 +473,7 @@ async function openMv(item: { vid: string; title: string; cover: string }): Prom
               <button
                 v-for="m in mvs"
                 :key="`${m.source}_${m.vid}`"
-                class="mv-card"
+                class="mv-card pressable"
                 @click="openMv(m)"
               >
                 <div class="mv-thumb">
@@ -498,20 +498,20 @@ async function openMv(item: { vid: string; title: string; cover: string }): Prom
     <!-- 多选操作栏（对应 Android SelectionBottomBar） -->
     <div v-if="selectionMode" class="sel-bar">
       <span class="sel-count">已选 {{ selection.length }} 首</span>
-      <button class="sel-btn" @click="selectAll">
+      <button class="sel-btn pressable" @click="selectAll">
         {{ selection.length === songs.length ? '取消全选' : '全选' }}
       </button>
       <span class="sel-spacer" />
-      <button class="sel-btn" @click="playSelectedNext">
+      <button class="sel-btn pressable" @click="playSelectedNext">
         <AppIcon name="skip-forward" :size="14" /><span>下一首播放</span>
       </button>
-      <button class="sel-btn" @click="addDialog = true">
+      <button class="sel-btn pressable" @click="addDialog = true">
         <AppIcon name="add-to" :size="13" /><span>添加到列表</span>
       </button>
-      <button class="sel-btn" @click="qualityDialog = true">
+      <button class="sel-btn pressable" @click="qualityDialog = true">
         <AppIcon name="download" :size="14" /><span>下载</span>
       </button>
-      <button class="sel-btn close" title="退出多选" @click="exitSelection">
+      <button class="sel-btn close pressable" title="退出多选" @click="exitSelection">
         <AppIcon name="close" :size="14" />
       </button>
     </div>
@@ -519,12 +519,12 @@ async function openMv(item: { vid: string; title: string; cover: string }): Prom
     <!-- 专辑多选操作栏 -->
     <div v-if="albumSelecting" class="sel-bar">
       <span class="sel-count">已选 {{ albumSelection.length }} 张专辑</span>
-      <button class="sel-btn" @click="selectAllAlbums">
+      <button class="sel-btn pressable" @click="selectAllAlbums">
         {{ albumSelection.length === sortedAlbums.length ? '取消全选' : '全选' }}
       </button>
       <span class="sel-spacer" />
       <button
-        class="sel-btn"
+        class="sel-btn pressable"
         :disabled="!albumSelection.length || albumDownloading"
         @click="downloadSelectedAlbums"
       >
@@ -532,7 +532,7 @@ async function openMv(item: { vid: string; title: string; cover: string }): Prom
           albumDownloading ? '准备中…' : '下载'
         }}</span>
       </button>
-      <button class="sel-btn close" title="退出多选" @click="exitAlbumSelection">
+      <button class="sel-btn close pressable" title="退出多选" @click="exitAlbumSelection">
         <AppIcon name="close" :size="14" />
       </button>
     </div>

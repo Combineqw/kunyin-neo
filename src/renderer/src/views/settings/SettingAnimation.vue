@@ -131,7 +131,7 @@ async function exportPack(): Promise<void> {
     <h3>缓动曲线 <span class="hint">拖动控制点实时调整自定义动效</span></h3>
     <div class="curves">
       <div class="curve-editor">
-        <div class="curve-label"><span>标准缓动</span><button type="button" @click="setDefaultCurve('standard')">恢复默认</button></div>
+        <div class="curve-label"><span>标准缓动</span><button type="button" class="pressable" @click="setDefaultCurve('standard')">恢复默认</button></div>
         <svg class="curve" viewBox="0 0 240 120" @pointermove="onPointerMove($event, ($event.currentTarget as SVGSVGElement))" @pointerup="stopDrag" @pointerleave="stopDrag">
           <path class="grid" d="M0 0H240M0 60H240M0 120H240M60 0V120M120 0V120M180 0V120" />
           <path class="curve-line" :d="curvePath(standardPoints)" />
@@ -142,7 +142,7 @@ async function exportPack(): Promise<void> {
         <code>{{ customPack.easeStandard }}</code>
       </div>
       <div class="curve-editor">
-        <div class="curve-label"><span>弹性缓动</span><button type="button" @click="setDefaultCurve('spring')">恢复默认</button></div>
+        <div class="curve-label"><span>弹性缓动</span><button type="button" class="pressable" @click="setDefaultCurve('spring')">恢复默认</button></div>
         <svg class="curve" viewBox="0 0 240 120" @pointermove="onPointerMove($event, ($event.currentTarget as SVGSVGElement))" @pointerup="stopDrag" @pointerleave="stopDrag">
           <path class="grid" d="M0 0H240M0 60H240M0 120H240M60 0V120M120 0V120M180 0V120" />
           <path class="curve-line" :d="curvePath(springPoints)" />

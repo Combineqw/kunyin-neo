@@ -96,8 +96,8 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
           <div v-if="!lists.length" class="empty">暂无列表，先新建一个吧</div>
         </div>
 
-        <footer class="foot">
-          <button v-if="!creating" class="new-btn" @click="startCreate">
+        <footer class="foot aurora-divider">
+          <button v-if="!creating" class="new-btn pressable" @click="startCreate">
             <AppIcon name="plus" :size="14" />
             <span>新建列表</span>
           </button>

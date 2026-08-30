@@ -96,7 +96,7 @@ onUnmounted(() => {
 
     <nav class="controls" aria-label="播放控制">
       <button
-        class="control favorite"
+        class="control favorite pressable"
         :class="{ liked: state.liked }"
         :title="state.liked ? '取消收藏' : '收藏'"
         :aria-label="state.liked ? '取消收藏' : '收藏'"
@@ -105,18 +105,18 @@ onUnmounted(() => {
       >
         <AppIcon :name="state.liked ? 'heart-filled' : 'heart'" :size="17" />
       </button>
-      <button class="control" title="上一首" aria-label="上一首" @click.stop="sendCommand('prev')">
+      <button class="control pressable" title="上一首" aria-label="上一首" @click.stop="sendCommand('prev')">
         <AppIcon name="skip-back" :size="18" />
       </button>
       <button
-        class="control primary"
+        class="control primary pressable"
         :title="state.playing ? '暂停' : '播放'"
         :aria-label="state.playing ? '暂停' : '播放'"
         @click.stop="sendCommand('playpause')"
       >
         <AppIcon :name="state.playing ? 'pause' : 'play'" :size="20" />
       </button>
-      <button class="control" title="下一首" aria-label="下一首" @click.stop="sendCommand('next')">
+      <button class="control pressable" title="下一首" aria-label="下一首" @click.stop="sendCommand('next')">
         <AppIcon name="skip-forward" :size="18" />
       </button>
     </nav>

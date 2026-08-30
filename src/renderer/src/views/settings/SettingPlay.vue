@@ -499,7 +499,7 @@ function setFadeDuration(event: Event): void {
           <b>{{ settings.player.equalizerGains[index] ?? 0 }} dB</b>
         </label>
       </div>
-      <div class="srs-panel gap-top">
+      <div class="srs-panel gap-top aurora-divider">
         <BaseCheckbox
           id="setting_srs_enabled"
           :model-value="settings.player.srsEnabled"
@@ -577,7 +577,7 @@ function setFadeDuration(event: Event): void {
           @update:model-value="setSrsLimiter($event as boolean)"
         />
       </div>
-      <div class="irs-panel gap-top">
+      <div class="irs-panel gap-top aurora-divider">
         <div class="irs-heading">
           <div>
             <strong>脉冲响应卷积</strong>

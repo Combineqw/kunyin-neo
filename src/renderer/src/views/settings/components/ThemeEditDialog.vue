@@ -242,7 +242,7 @@ async function remove(): Promise<void> {
   <div v-if="modelValue" class="mask" @click.self="emit('update:modelValue', false)">
     <section class="dialog" :class="{ previewing: form.preview }" :style="dialogStyle">
       <header class="toolbar">
-        <button class="close" title="关闭" @click="emit('update:modelValue', false)">×</button>
+        <button class="close pressable" title="关闭" @click="emit('update:modelValue', false)">×</button>
       </header>
 
       <div class="body">
@@ -264,7 +264,7 @@ async function remove(): Promise<void> {
 
         <div class="background-field">
           <button
-            class="background-box"
+            class="background-box pressable"
             :class="{ selected: form.bgImage }"
             :style="{ backgroundImage: backgroundUrl }"
             @click="pickBgImage"
@@ -273,7 +273,7 @@ async function remove(): Promise<void> {
             <span v-else class="replace">更换</span>
           </button>
           <span>背景图片</span>
-          <button v-if="form.bgImage" class="clear-bg" @click="form.bgImage = ''">清除</button>
+          <button v-if="form.bgImage" class="clear-bg pressable" @click="form.bgImage = ''">清除</button>
         </div>
 
         <div class="section-title">
@@ -321,15 +321,15 @@ async function remove(): Promise<void> {
         {{ contrast.text }} · {{ contrast.hint }}
       </p>
 
-      <footer class="foot">
-        <button v-if="isEdit" class="delete" @click="remove">删除</button>
+      <footer class="foot aurora-divider">
+        <button v-if="isEdit" class="delete pressable" @click="remove">删除</button>
         <input v-model="form.name" class="name-input" maxlength="10" placeholder="主题名称" />
         <div class="options">
           <BaseCheckbox id="theme-edit-dark" v-model="form.isDark" label="暗色主题" />
           <BaseCheckbox id="theme-edit-dark-font" v-model="form.isDarkFont" label="深色字体" />
           <BaseCheckbox id="theme-edit-preview" v-model="form.preview" label="预览主题" />
         </div>
-        <button class="save" :disabled="!form.name.trim()" @click="save">保存</button>
+        <button class="save pressable" :disabled="!form.name.trim()" @click="save">保存</button>
       </footer>
     </section>
   </div>

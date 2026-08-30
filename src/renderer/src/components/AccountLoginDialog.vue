@@ -142,7 +142,7 @@ const title =
     <div class="dialog">
       <div class="head">
         <span class="title">{{ title }}登录</span>
-        <button class="close" @click="emit('close')">✕</button>
+        <button class="close pressable" @click="emit('close')">✕</button>
       </div>
 
       <!-- 扫码 -->
@@ -152,7 +152,7 @@ const title =
           <div v-else class="qr-loading">生成中…</div>
         </div>
         <p class="status">{{ statusText }}</p>
-        <button class="btn" @click="refreshQR">刷新二维码</button>
+        <button class="btn pressable" @click="refreshQR">刷新二维码</button>
       </div>
 
       <!-- kg 手动 -->
@@ -165,7 +165,7 @@ const title =
           <span>token</span>
           <input v-model="kgToken" type="text" spellcheck="false" />
         </label>
-        <button class="link" @click="advanced = !advanced">
+        <button class="link pressable pressable-subtle" @click="advanced = !advanced">
           {{ advanced ? '收起' : '高级' }} mid / dfid
         </button>
         <template v-if="advanced">
@@ -178,7 +178,7 @@ const title =
             <input v-model="kgDfid" type="text" spellcheck="false" />
           </label>
         </template>
-        <button class="btn primary" :disabled="busy" @click="saveKg">
+        <button class="btn primary pressable" :disabled="busy" @click="saveKg">
           {{ busy ? '保存中…' : '保存' }}
         </button>
       </div>

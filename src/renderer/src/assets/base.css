@@ -61,19 +61,28 @@
   --anim-dur-base: 0.35s;
   --anim-dur-slow: 0.5s;
 
-  /* 按压反馈时长（.pressable 专用，不随动效包变化：按下必须恒定瞬时，
-     否则慢速动效包下会失去"立刻凹陷"的手感）。 */
-  --anim-dur-press: 0.08s;
-  --anim-dur-press-filter: 0.25s;
-  --anim-dur-rebound: 0.34s;
+  /* ---- 按压反馈（.pressable 专用）----
+     这一套手感只由下面这两个变量决定，且刻意不复用任何会被外部改写的变量：
+     · 不用 --anim-ease-spring：它会被动效包覆盖，OriginOS 包的曲线峰值恰好是
+       1.000，过冲量归零，弹性直接消失（这正是上一版"点击没有弹性"的成因）。
+     · 不用 --anim-dur-aurora：极光是 7s 级的循环节奏，与按压手感无关，
+       共用变量会让两者互相绑死。
+     所以 --ease-bounce / --anim-dur-press 就地写死，动效包与主题都不参与。 */
+  --anim-dur-press: 0.35s;
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  /* 弹回过冲量。写死在 keyframes 里而不是靠 easeSpring 的控制点：
-     easeSpring 会被动效包覆盖，OriginOS 包的曲线峰值恰好是 1.000，
-     过冲量归零，手感直接消失。这两个变量只被 press-rebound 动画引用。
+  /* 按下瞬间的凹陷单独一档：必须恒定瞬时，否则慢速动效包下会失去"立刻凹陷"
+     的手感。它是"按下"的时长，与上面"弹回"的 --anim-dur-press 不是一回事。 */
+  --anim-dur-press-in: 0.08s;
+  --anim-dur-press-filter: 0.25s;
+
+  /* 弹回过冲量。除了交给 --ease-bounce 的曲线，还额外把峰值烘焙进 keyframes：
+     单靠曲线时过冲只有 (1 - --press-scale) × 0.098 ≈ 0.6% 的缩放，在 27px 的
+     图标按钮上折算不到 0.2px，肉眼为零。
      --press-pop-y 是垂直位移，与元件尺寸无关，小按钮上也看得见；
      scale 过冲在窄元件上折算不到 1px，光靠它不够。 */
-  --press-pop-scale: 0.035;
-  --press-pop-y: 2px;
+  --press-pop-scale: 0.05;
+  --press-pop-y: 3px;
 
   /* ---- 极光光带（.aurora-band 通用组件；各主题经 ext 覆写 c1/c3/glow） ---- */
   --aurora-c1: #f2e7fd;
@@ -383,54 +392,70 @@ svg {
 
 /* ---------- 统一按压反馈 .pressable ----------
    只动 transform / filter，走合成层不触发重排。
-   两态都必须写 transition：基础态那条负责"松手弹回"（带过冲的 spring），
+   两态都必须写 transition：基础态那条负责"松手弹回"（带过冲的 bounce），
    :active 那条负责"按下瞬间凹陷"（极短 smooth）。只写一边会导致按下有动画、
    松手瞬变（或反之），手感即失效。
    --press-lift 供带 hover 上浮的元件复合位移用（见 BaseBtn/.theme-item），
    默认 0 时不影响其它元件。 */
 .pressable {
   --press-lift: 0px;
+  /* 水平位移，供 hover 时横向滑出的元件（设置页目录项）复合用。
+     和 --press-lift 同理：元件自己写 transform 会整条覆盖掉按压的 scale，
+     把位移改喂变量后两者才能叠加。 */
+  --press-shift: 0px;
   --press-scale: 0.94;
   /* 本元件的过冲幅度倍率。窄元件（.pressable-subtle）按下深度浅，
      过冲要相应收小，否则整行会明显"跳"一下。 */
   --press-pop-k: 1;
-  transform: translateY(var(--press-lift)) scale(1);
+  transform: translate(var(--press-shift), var(--press-lift)) scale(1);
   filter: brightness(1);
   transition:
-    transform var(--anim-dur-rebound) var(--anim-ease-spring),
+    transform var(--anim-dur-press) var(--ease-bounce),
     filter var(--anim-dur-press-filter) ease;
 }
 .pressable:active:not(:disabled):not(.disabled) {
-  transform: translateY(var(--press-lift)) scale(var(--press-scale));
+  transform: translate(var(--press-shift), var(--press-lift)) scale(var(--press-scale));
   filter: brightness(0.92);
   transition:
-    transform var(--anim-dur-press) var(--anim-ease-smooth),
-    filter var(--anim-dur-press) var(--anim-ease-smooth);
+    transform var(--anim-dur-press-in) var(--anim-ease-smooth),
+    filter var(--anim-dur-press-in) var(--anim-ease-smooth);
 }
 
-/* 松手弹回：过冲烘焙在关键帧里，不受动效包的 easeSpring 影响。
-   .pressing 由 usePressFeedback 的全局委托监听器在 pointerup/cancel 时加上，
+/* 松手弹回：过冲同时来自 --ease-bounce 的曲线与烘焙在关键帧里的峰值，
+   两者都不受动效包覆盖影响（--ease-bounce 是本文件写死的常量）。
+   .press-rebound 由 usePressFeedback 的全局委托监听器在 pointerup/cancel 时加上，
    动画结束自动摘除。纯 CSS 做不到"仅在退出 :active 时播放动画"——
    没有这个类，动画会在首屏加载时对所有 .pressable 播一遍。 */
 .pressable.press-rebound:not(:disabled):not(.disabled) {
-  animation: press-rebound var(--anim-dur-rebound) var(--anim-ease-smooth);
+  animation: press-rebound var(--anim-dur-press) var(--anim-ease-smooth);
 }
+/* 过冲全部烘焙在关键帧里，动画本身走不过冲的 smooth。
+   为什么不给整条动画直接套 --ease-bounce：那条曲线自己就会过冲，叠在已经
+   过冲的关键帧上，每一段都各弹一次，收尾变成肉眼可见的抖动。
+   --ease-bounce 改由 .pressable 基础态的 transition 消费（见上），
+   两条路径都有弹性：有 JS 时走这条关键帧，animation 被停用时走 transition。 */
 @keyframes press-rebound {
   0% {
-    transform: translateY(var(--press-lift)) scale(var(--press-scale));
+    transform: translate(var(--press-shift), var(--press-lift)) scale(var(--press-scale));
   }
   /* 过冲峰值：越过静止态，视觉上"弹出来"一下 */
   42% {
-    transform: translateY(calc(var(--press-lift) - var(--press-pop-y) * var(--press-pop-k)))
+    transform: translate(
+        var(--press-shift),
+        calc(var(--press-lift) - var(--press-pop-y) * var(--press-pop-k))
+      )
       scale(calc(1 + var(--press-pop-scale) * var(--press-pop-k)));
   }
   /* 回落时的轻微下冲，收尾更像真实阻尼而不是硬停 */
   72% {
-    transform: translateY(calc(var(--press-lift) + var(--press-pop-y) * var(--press-pop-k) * 0.28))
+    transform: translate(
+        var(--press-shift),
+        calc(var(--press-lift) + var(--press-pop-y) * var(--press-pop-k) * 0.28)
+      )
       scale(calc(1 - var(--press-pop-scale) * var(--press-pop-k) * 0.22));
   }
   100% {
-    transform: translateY(var(--press-lift)) scale(1);
+    transform: translate(var(--press-shift), var(--press-lift)) scale(1);
   }
 }
 
@@ -471,10 +496,59 @@ svg {
   }
 }
 
-/* 系统级降低动效：光带停在渐变中段（保留配色，去掉流动），按压只留静态形变。
+/* ---------- 极光分隔条 .aurora-divider ----------
+   复用上面光带的整套技术栈（同一 gradient 首尾同色 + background-size 300% +
+   0%→300% 位移 + linear 匀速 + 同一 --anim-dur-aurora 节奏），只是压成 1px
+   细线并叠在宿主原有分隔线之上。首尾同色是无跳变的前提，理由见上。
+
+   为什么用 ::after 叠加而不是直接给元件加 .aurora-band：分隔线宿主大多是
+   border-top，或是 1px 高的实心条且还要承担布局。用伪元素叠加后，非极光主题
+   下把伪元素 opacity 归零即可完全退场，宿主原样式一点不动。
+
+   激活范围严格限制在 5 个 aurora_* 主题：html[data-theme^='aurora'] 属性由
+   theme/apply.ts 写入。其余 15 个主题下 opacity: 0，既不显示也不参与合成。 */
+.aurora-divider {
+  position: relative;
+}
+.aurora-divider::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* 贴宿主上边缘：宿主要么用 border-top 画线（线就在 top:0 处），要么本身是
+     1px 高的实心分隔条（同样在 top:0）。两种宿主共用这一套定位。 */
+  top: 0;
+  height: 1px;
+  /* 纯装饰，绝不能吃掉宿主的点击（菜单分隔条紧贴可点行）。 */
+  pointer-events: none;
+  /* 非极光主题：完全退场。opacity 由下面两条主题选择器抬起。 */
+  opacity: 0;
+  background-image: linear-gradient(
+    100deg,
+    var(--aurora-c1) 0%,
+    #fff 25%,
+    var(--aurora-c3) 50%,
+    #fff 75%,
+    var(--aurora-c1) 100%
+  );
+  background-size: 300% 100%;
+  background-repeat: repeat;
+  animation: aurora-flow var(--anim-dur-aurora) linear infinite;
+}
+/* 浅色 0.55；深色 0.4（深底上同一透明度显得更亮，压低一档）。 */
+html[data-theme^='aurora'] .aurora-divider::after {
+  opacity: 0.55;
+}
+html[data-theme^='aurora'].theme-dark .aurora-divider::after {
+  opacity: 0.4;
+}
+
+/* 系统级降低动效：光带与分隔条都停在渐变中段（保留配色，去掉流动），
+   按压完全禁用（不留任何形变，连按下的凹陷也去掉）。
    html.disable-animation 已由上方规则统一停用 transition/animation。 */
 @media (prefers-reduced-motion: reduce) {
-  .aurora-band {
+  .aurora-band,
+  .aurora-divider::after {
     animation: none;
     background-position: 50% 50%;
   }
@@ -483,6 +557,13 @@ svg {
   }
   .pressable.press-rebound:not(:disabled):not(.disabled) {
     animation: none;
+  }
+  /* 按压反馈整体关闭：:active 的凹陷也一并取消，否则仍会有一次瞬时形变。
+     验收要求「prefers-reduced-motion 下完全禁用」，所以这里连静态形变也不留。 */
+  .pressable:active:not(:disabled):not(.disabled) {
+    transform: translate(var(--press-shift), var(--press-lift)) scale(1);
+    filter: brightness(1);
+    transition: none;
   }
 }
 

@@ -38,7 +38,7 @@ function statusText(s: DownloadStatus): string {
   <div v-if="tasks.length" class="page">
     <div class="head">
       <span class="title">下载任务（{{ tasks.length }}）</span>
-      <button v-if="hasCompleted" class="clear" @click="download.clearCompleted()">
+      <button v-if="hasCompleted" class="clear pressable" @click="download.clearCompleted()">
         清除已完成
       </button>
     </div>
@@ -83,7 +83,7 @@ function statusText(s: DownloadStatus): string {
         <div class="ops">
           <button
             v-if="t.status === 'downloading' || t.status === 'waiting'"
-            class="op"
+            class="op pressable"
             title="暂停"
             @click="download.pause(t.taskKey)"
           >
@@ -91,7 +91,7 @@ function statusText(s: DownloadStatus): string {
           </button>
           <button
             v-else-if="t.status === 'paused'"
-            class="op"
+            class="op pressable"
             title="继续"
             @click="download.resume(t.taskKey)"
           >
@@ -99,13 +99,13 @@ function statusText(s: DownloadStatus): string {
           </button>
           <button
             v-else-if="t.status === 'failed'"
-            class="op"
+            class="op pressable"
             title="重试"
             @click="download.retry(t.taskKey)"
           >
             <AppIcon name="download" :size="16" />
           </button>
-          <button class="op" title="移除" @click="download.remove(t.taskKey)">
+          <button class="op pressable" title="移除" @click="download.remove(t.taskKey)">
             <AppIcon name="trash" :size="16" />
           </button>
         </div>

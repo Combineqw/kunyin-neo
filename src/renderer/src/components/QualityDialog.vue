@@ -91,7 +91,7 @@ function pick(id: string): void {
           </button>
         </div>
         <div class="foot">
-          <button class="cancel" @click="emit('close')">取消</button>
+          <button class="cancel pressable" @click="emit('close')">取消</button>
         </div>
       </div>
     </div>

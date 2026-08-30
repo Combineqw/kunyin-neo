@@ -28,7 +28,7 @@ const cachedCover = computed(() => coverUrl(props.cover))
 
 <template>
   <div class="detail-header">
-    <button v-if="back" class="dh-back" title="返回" @click="router.back()">
+    <button v-if="back" class="dh-back pressable" title="返回" @click="router.back()">
       <AppIcon name="arrow-left" :size="18" />
     </button>
     <div class="dh-cover" :class="{ round }">

@@ -141,7 +141,7 @@ watch(source, () => {
           <button
             v-for="(playlist, i) in playlistResults"
             :key="playlist.id"
-            class="card-row"
+            class="card-row pressable pressable-subtle"
             :class="{ 'stagger-item': i < STAGGER_LIMIT }"
             :style="i < STAGGER_LIMIT ? staggerStyle(i) : undefined"
             @click="openPlaylist(playlist.id)"
@@ -173,7 +173,7 @@ watch(source, () => {
           <button
             v-for="(a, i) in albumResults"
             :key="a.id"
-            class="card-row"
+            class="card-row pressable pressable-subtle"
             :class="{ 'stagger-item': i < STAGGER_LIMIT }"
             :style="i < STAGGER_LIMIT ? staggerStyle(i) : undefined"
             @click="openAlbum(a.id)"
@@ -201,7 +201,7 @@ watch(source, () => {
           <button
             v-for="(a, i) in artistResults"
             :key="a.id"
-            class="card-row"
+            class="card-row pressable pressable-subtle"
             :class="{ 'stagger-item': i < STAGGER_LIMIT }"
             :style="i < STAGGER_LIMIT ? staggerStyle(i) : undefined"
             @click="openArtist(a)"
@@ -234,7 +234,7 @@ watch(source, () => {
 
       <!-- 加载更多（Android 无限滚动的按钮版） -->
       <div v-if="!loading && hasNext && keyword" class="more">
-        <button class="more-btn" :disabled="loadingMore" @click="void searchStore.loadMore()">
+        <button class="more-btn pressable" :disabled="loadingMore" @click="void searchStore.loadMore()">
           {{ loadingMore ? '加载中…' : '加载更多' }}
         </button>
       </div>
@@ -264,7 +264,7 @@ watch(source, () => {
           <dt class="group-title">
             <span class="title">
               搜索历史
-              <button class="clear" title="清空搜索历史" @click="searchStore.clearHistory()">
+              <button class="clear pressable" title="清空搜索历史" @click="searchStore.clearHistory()">
                 <AppIcon name="trash" :size="15" />
               </button>
             </span>

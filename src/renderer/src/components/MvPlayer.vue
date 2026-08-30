@@ -74,7 +74,7 @@ async function downloadMv(): Promise<void> {
     <div class="mv-box">
       <div class="mv-head">
         <span class="mv-title ellipsis">{{ current.title }} - {{ current.artist }}</span>
-        <button class="mv-close" @click="mv.close()">✕</button>
+        <button class="mv-close pressable" @click="mv.close()">✕</button>
       </div>
       <div class="mv-stage">
         <video v-if="videoUrl" :src="videoUrl" class="mv-video" controls autoplay />
@@ -86,7 +86,7 @@ async function downloadMv(): Promise<void> {
         <button
           v-for="q in qualities"
           :key="q.quality"
-          class="mv-q"
+          class="mv-q pressable"
           :class="{ on: q.quality === activeQuality }"
           @click="switchQuality(q.quality)"
         >
@@ -94,7 +94,7 @@ async function downloadMv(): Promise<void> {
           }}<span v-if="q.displaySize" class="mv-q-size"> · {{ q.displaySize }}</span>
         </button>
         <span class="mv-spacer" />
-        <button class="mv-q mv-dl" :disabled="!videoUrl" @click="downloadMv">
+        <button class="mv-q mv-dl pressable" :disabled="!videoUrl" @click="downloadMv">
           {{ downloadMsg || '下载' }}
         </button>
       </div>

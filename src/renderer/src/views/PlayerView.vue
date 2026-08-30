@@ -267,6 +267,58 @@ function applyLyricFont(): void {
   lyric.setFontFamily(settings.settings.lyrics.font)
 }
 
+// 歌词引擎最近一次对齐到的时间。跳转与下方 watch(currentTime) 共用它做去重，
+// 所以必须声明在两者之前。
+let lastTime = 0
+
+// ============ 点击歌词行跳转 ============
+//
+// 时序要求有两条，且互相拉扯：「点击后进度即时跳转、高亮零迟滞」与
+// 「300ms 防抖，连续点击只执行最后一次」。纯 trailing 防抖会让单击也要等 300ms
+// 才动，违背第一条。所以取 leading + trailing：
+//   · 首次点击立即执行 —— 即时感来自这一路；
+//   · 窗口内的后续点击不逐个执行，只记住最后一次，静默 300ms 后补一次 ——
+//     连打一串行最终落在最后点的那行，中途不会把音频与歌词引擎来回打断。
+// 单击时只有 leading 一路会执行（窗口内没有后续点击，pendingSeekMs 保持 null）。
+const SEEK_DEBOUNCE_MS = 300
+let seekTimer = 0
+let pendingSeekMs: number | null = null
+let disposeLineClick: (() => void) | null = null
+
+/** 真正落地一次跳转：音频先动，歌词引擎紧跟着重对齐。 */
+function applyLyricSeek(ms: number): void {
+  player.seek(ms)
+  // 高亮零迟滞：不能依赖下方 watch(currentTime) 的 800ms 阈值——点相邻行时
+  // 差值往往不到 800ms，watcher 会判定「不是跳变」而跳过重对齐，
+  // 歌词就仍按自己的时钟走，高亮停在原处。这里显式重对齐。
+  if (hasLyric.value) {
+    if (playing.value) lyric.play(ms)
+    else lyric.seekMs(ms)
+  }
+  // 已手动对齐过，压掉 watcher 紧接着可能重复触发的那一次
+  lastTime = ms
+}
+
+function requestLyricSeek(ms: number): void {
+  if (!current.value) return
+  if (seekTimer) {
+    // 防抖窗口内：只更新目标，不执行
+    pendingSeekMs = ms
+    return
+  }
+  applyLyricSeek(ms)
+  pendingSeekMs = null
+  seekTimer = window.setTimeout(() => {
+    seekTimer = 0
+    // 窗口内有过后续点击，补执行最后一次
+    if (pendingSeekMs !== null) {
+      const target = pendingSeekMs
+      pendingSeekMs = null
+      applyLyricSeek(target)
+    }
+  }, SEEK_DEBOUNCE_MS)
+}
+
 onMounted(() => {
   syncPlayerFullscreen()
   unsubscribeFullscreen = api.window.onFullscreenChange(applyPlayerFullscreen)
@@ -274,12 +326,22 @@ onMounted(() => {
   lyricHost.value?.appendChild(lyric.element.value)
   applyAnnotationVisible()
   applyLyricFont()
+  // 点击歌词行 → 跳到该行起始时间（引擎已把歌词偏移折回音频时钟）
+  disposeLineClick = lyric.onLineClick(requestLyricSeek)
   loadLyric()
 })
 
 onUnmounted(() => {
   unsubscribeFullscreen?.()
   window.removeEventListener('resize', syncPlayerFullscreen)
+  disposeLineClick?.()
+  disposeLineClick = null
+  // 卸载时若防抖窗口还开着，补执行的那一次会打到已销毁的引擎上
+  if (seekTimer) {
+    window.clearTimeout(seekTimer)
+    seekTimer = 0
+  }
+  pendingSeekMs = null
 })
 
 watch(
@@ -301,7 +363,6 @@ watch(playing, (p) => {
 })
 
 // 歌词引擎 play(ms) 后自走；仅在跳变（seek）时重对齐，避免与音频漂移
-let lastTime = 0
 watch(currentTime, (t) => {
   if (hasLyric.value && current.value && Math.abs(t - lastTime) > 800) {
     if (playing.value) lyric.play(t)
@@ -320,7 +381,7 @@ watch(currentTime, (t) => {
       <div class="depth-blur" :style="{ backgroundImage: cover ? `url(${cover})` : undefined }" />
       <div class="scrim" />
 
-      <button class="close" title="收起" @click="router.back()">
+      <button class="close pressable" title="收起" @click="router.back()">
         <AppIcon name="chevron-down" :size="24" />
       </button>
 
@@ -372,7 +433,7 @@ watch(currentTime, (t) => {
           </div>
 
           <div class="volume">
-            <button class="vbtn" :title="muted ? '取消静音' : '静音'" @click="player.toggleMute()">
+            <button class="vbtn pressable" :title="muted ? '取消静音' : '静音'" @click="player.toggleMute()">
               <AppIcon :name="volIcon" :size="16" />
             </button>
             <div
@@ -389,14 +450,14 @@ watch(currentTime, (t) => {
           </div>
 
           <div class="actions">
-            <button class="abtn" :title="modeMeta.label" @click="cyclePlayMode">
+            <button class="abtn pressable" :title="modeMeta.label" @click="cyclePlayMode">
               <AppIcon :name="modeMeta.icon" :size="20" />
             </button>
             <button class="abtn" title="评论（开发中）" disabled>
               <AppIcon name="comment" :size="20" />
             </button>
             <button
-              class="abtn"
+              class="abtn pressable"
               :class="{ off: !lyricVisible }"
               :title="lyricVisible ? '隐藏歌词' : '显示歌词'"
               @click="toggleLyricPanel"
@@ -404,7 +465,7 @@ watch(currentTime, (t) => {
               <AppIcon name="lyric" :size="20" />
             </button>
             <button
-              class="abtn"
+              class="abtn pressable"
               :class="{ on: queueOpen }"
               :title="queueOpen ? '关闭播放队列' : '打开播放队列'"
               @click="queueOpen = !queueOpen"
@@ -413,7 +474,7 @@ watch(currentTime, (t) => {
             </button>
             <button
               v-if="hasTranslation"
-              class="abtn"
+              class="abtn pressable"
               :class="{ off: !showTrans }"
               :title="showTrans ? '隐藏翻译' : '显示翻译'"
               @click="toggleTrans"
@@ -421,27 +482,27 @@ watch(currentTime, (t) => {
               <AppIcon name="translate" :size="20" />
             </button>
             <div class="more-wrap">
-              <button class="abtn" title="更多" @click="moreOpen = !moreOpen">
+              <button class="abtn pressable" title="更多" @click="moreOpen = !moreOpen">
                 <AppIcon name="more" :size="20" />
               </button>
               <template v-if="moreOpen">
                 <div class="more-mask" @click="moreOpen = false" />
                 <div class="more-menu">
-                  <button class="mitem" :class="{ liked }" :disabled="!track" @click="likeFromMenu">
+                  <button class="mitem pressable pressable-subtle" :class="{ liked }" :disabled="!track" @click="likeFromMenu">
                     <AppIcon :name="liked ? 'heart-filled' : 'heart'" :size="16" />
                     <span>{{ liked ? '已收藏' : '收藏' }}</span>
                   </button>
-                  <button class="mitem" :disabled="!track" @click="openDownload">
+                  <button class="mitem pressable pressable-subtle" :disabled="!track" @click="openDownload">
                     <AppIcon name="download" :size="16" />
                     <span>下载</span>
                   </button>
                   <template v-if="qualityOptions.length">
-                    <div class="msep" />
+                    <div class="msep aurora-divider" />
                     <div class="mlabel">播放音质</div>
                     <button
                       v-for="q in qualityOptions"
                       :key="q"
-                      class="mitem"
+                      class="mitem pressable pressable-subtle"
                       @click="pickQuality(q)"
                     >
                       <AppIcon
@@ -472,7 +533,7 @@ watch(currentTime, (t) => {
               <b>播放队列</b>
               <small>{{ queue.length }} 首{{ player.queueSource?.name ? ` · ${player.queueSource.name}` : '' }}</small>
             </div>
-            <button class="queue-close" title="关闭播放队列" @click="queueOpen = false">
+            <button class="queue-close pressable" title="关闭播放队列" @click="queueOpen = false">
               <AppIcon name="close" :size="18" />
             </button>
           </div>
@@ -951,6 +1012,9 @@ watch(currentTime, (t) => {
 /* 主词与翻译/音译分层 */
 .lyric-host :deep([data-role='line-normal']) {
   row-gap: 14px !important;
+  /* 行可点击跳转（引擎侧已给 line-normal 开了 pointer-events: auto），
+     补一个指针提示；间奏行是纯装饰的圆点，不给手型。 */
+  cursor: pointer;
 }
 .lyric-host :deep([data-role='line-normal']) {
   transition:
