@@ -6,3 +6,16 @@ out
 *.log*
 reference
 docs
+
+# ── R2 Rust 原生化 ──
+# 测试素材不入库（体积大且属本机私有音乐）；改为提交 manifest 存底，
+# 以后对数认 manifest 不认文件夹。
+test-assets/
+
+# Rust 构建产物
+crates/aurora-native/target/
+# napi 产物（由 npm run native:build 生成）
+*.node
+
+# 原子写留下的临时文件
+*.tmp

@@ -1,0 +1,17 @@
+{
+  "name": "aurora-native",
+  "version": "0.1.0",
+  "private": true,
+  "description": "坤音 neo 原生模块（R2 Rust 原生化）· 影子阶段只读实现",
+  "main": "aurora-native.node",
+  "napi": {
+    "name": "aurora-native"
+  },
+  "scripts": {
+    "build": "napi build --platform --release",
+    "build:debug": "napi build --platform"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "2.18.4"
+  }
+}

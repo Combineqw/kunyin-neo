@@ -1,0 +1,4 @@
+# Rust 构建产物
+target/
+# napi 产物（由 npm run native:build 生成，不入库）
+*.node

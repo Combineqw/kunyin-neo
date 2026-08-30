@@ -1,0 +1,36 @@
+# aurora-native · 坤音 neo 原生模块（R2 Rust 原生化）
+#
+# 产物为 .node（Node-API 动态库），供 Node 侧 require 加载做影子对答案。
+# R2-1 只实现 scan；lyrics / settings_io 为占位，R2-2 / R2-3 填充。
+#
+# 依赖白名单（tasks/R2-1.md 规定，不得超出）：
+#   napi / napi-derive / lofty / walkdir / serde / serde_json
+[package]
+name = "aurora-native"
+version = "0.1.0"
+edition = "2021"
+# 不发布到 crates.io：仓库内部模块
+publish = false
+
+[lib]
+# cdylib 才能产出 Node 可加载的动态库
+crate-type = ["cdylib"]
+
+[dependencies]
+# napi 4 + Node-API 8：跨 Node/Electron ABI 通用，换 Electron 版本不用重编
+napi = { version = "2.16", default-features = false, features = ["napi8", "serde-json"] }
+napi-derive = "2.16"
+# 音频标签解析（对齐 Node 侧 music-metadata 的语义）
+lofty = "0.22"
+# 递归目录遍历
+walkdir = "2.5"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[build-dependencies]
+napi-build = "2"
+
+[profile.release]
+# 影子阶段以可读的 panic 信息优先，不做激进优化
+lto = true
+strip = "symbols"
