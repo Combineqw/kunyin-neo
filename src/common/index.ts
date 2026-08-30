@@ -1,0 +1,22 @@
+/**
+ * 共享层统一出口。主进程 / preload / 渲染层可 `import { ... } from '@common'`。
+ */
+export * from './constants'
+export * from './format'
+export * from './types/music'
+export * from './types/provider'
+export * from './types/recommendation'
+export * from './types/settings'
+export * from './types/library'
+export * from './types/download'
+export * from './types/ipc'
+export * from './types/equalizer'
+export * from './types/irs'
+export * from './types/animation'
+export * from './types/plugin'
+export * from './domain/equalizer'
+export * from './domain/equalizerText'
+export * from './domain/autoeq'
+export * from './domain/irs'
+export * from './domain/recommendation'
+export * from './domain/themeFile'

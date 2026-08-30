@@ -1,0 +1,2005 @@
+import type { EqualizerProfile } from "../types/equalizer";
+
+export const AUTOEQ_PROFILES: readonly EqualizerProfile[] = [
+  {
+    "format": "kunyin-eq",
+    "version": 1,
+    "name": "Beyerdynamic DT 770 Pro (250Ω)",
+    "author": "AutoEq / oratory1990",
+    "description": "AutoEq 官方 DT 770 Pro 通用测量结果，覆盖 250Ω 版本。",
+    "preampDb": -5.2,
+    "bands": [
+      {
+        "frequency": 31,
+        "gainDb": -4.1
+      },
+      {
+        "frequency": 62,
+        "gainDb": -1.4
+      },
+      {
+        "frequency": 125,
+        "gainDb": -1.8
+      },
+      {
+        "frequency": 250,
+        "gainDb": 2.6
+      },
+      {
+        "frequency": 500,
+        "gainDb": -0.4
+      },
+      {
+        "frequency": 1000,
+        "gainDb": -0.5
+      },
+      {
+        "frequency": 2000,
+        "gainDb": 0.1
+      },
+      {
+        "frequency": 4000,
+        "gainDb": 3.2
+      },
+      {
+        "frequency": 8000,
+        "gainDb": -4.1
+      },
+      {
+        "frequency": 16000,
+        "gainDb": -10.2
+      }
+    ],
+    "filters": [
+      {
+        "type": "lowshelf",
+        "frequency": 105,
+        "q": 0.7,
+        "gainDb": -3,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 139,
+        "q": 4.92,
+        "gainDb": -3.9,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 213,
+        "q": 2.46,
+        "gainDb": 3.5,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 3684,
+        "q": 2.88,
+        "gainDb": 6.8,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 6430,
+        "q": 0.97,
+        "gainDb": -4.2,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 45,
+        "q": 1.74,
+        "gainDb": -1.3,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 93,
+        "q": 3,
+        "gainDb": 3.5,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 119,
+        "q": 5.83,
+        "gainDb": -2.1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 9561,
+        "q": 1.86,
+        "gainDb": 2.3,
+        "enabled": true
+      },
+      {
+        "type": "highshelf",
+        "frequency": 10000,
+        "q": 0.7,
+        "gainDb": -5.4,
+        "enabled": true
+      }
+    ],
+    "source": "official",
+    "sourceUrl": "https://raw.githubusercontent.com/jaakkopasanen/AutoEq/master/results/oratory1990/over-ear/Beyerdynamic%20DT%20770%20Pro/README.md",
+    "checksum": "8c8240cd4f7d7a2dba1f3ff36620de39ef1998b5ae7e633b375e74bcc427dc9c"
+  },
+  {
+    "format": "kunyin-eq",
+    "version": 1,
+    "name": "Beyerdynamic DT 990 Pro",
+    "author": "AutoEq / oratory1990",
+    "description": "AutoEq 官方 oratory1990 测量结果。",
+    "preampDb": -6.8,
+    "bands": [
+      {
+        "frequency": 31,
+        "gainDb": 6
+      },
+      {
+        "frequency": 62,
+        "gainDb": 0.6
+      },
+      {
+        "frequency": 125,
+        "gainDb": -1.8
+      },
+      {
+        "frequency": 250,
+        "gainDb": -1.3
+      },
+      {
+        "frequency": 500,
+        "gainDb": 3.4
+      },
+      {
+        "frequency": 1000,
+        "gainDb": 1
+      },
+      {
+        "frequency": 2000,
+        "gainDb": 0.9
+      },
+      {
+        "frequency": 4000,
+        "gainDb": 0.3
+      },
+      {
+        "frequency": 8000,
+        "gainDb": -5.4
+      },
+      {
+        "frequency": 16000,
+        "gainDb": -12
+      }
+    ],
+    "filters": [
+      {
+        "type": "lowshelf",
+        "frequency": 105,
+        "q": 0.7,
+        "gainDb": 10.1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 64,
+        "q": 0.38,
+        "gainDb": -7.4,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 541,
+        "q": 0.52,
+        "gainDb": 3.1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 640,
+        "q": 2.47,
+        "gainDb": 0.6,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 7731,
+        "q": 1.06,
+        "gainDb": -4.6,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 4193,
+        "q": 1.51,
+        "gainDb": 1.1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 5897,
+        "q": 5.3,
+        "gainDb": -4.8,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 7136,
+        "q": 2.08,
+        "gainDb": 3.1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 9436,
+        "q": 3.53,
+        "gainDb": 2.7,
+        "enabled": true
+      },
+      {
+        "type": "highshelf",
+        "frequency": 10000,
+        "q": 0.7,
+        "gainDb": -9.8,
+        "enabled": true
+      }
+    ],
+    "source": "official",
+    "sourceUrl": "https://raw.githubusercontent.com/jaakkopasanen/AutoEq/master/results/oratory1990/over-ear/Beyerdynamic%20DT%20990%20Pro/README.md",
+    "checksum": "6e45c6b976ea1447fcc33f489c7fdf4bc76024e04a31419411dc4d405ddd1da3"
+  },
+  {
+    "format": "kunyin-eq",
+    "version": 1,
+    "name": "Sony WH-1000XM3",
+    "author": "AutoEq / oratory1990",
+    "description": "AutoEq 官方 oratory1990 测量结果。",
+    "preampDb": -5.4,
+    "bands": [
+      {
+        "frequency": 31,
+        "gainDb": -4.8
+      },
+      {
+        "frequency": 62,
+        "gainDb": -2.6
+      },
+      {
+        "frequency": 125,
+        "gainDb": -7.1
+      },
+      {
+        "frequency": 250,
+        "gainDb": -1.1
+      },
+      {
+        "frequency": 500,
+        "gainDb": -2.4
+      },
+      {
+        "frequency": 1000,
+        "gainDb": 2.3
+      },
+      {
+        "frequency": 2000,
+        "gainDb": 3.3
+      },
+      {
+        "frequency": 4000,
+        "gainDb": 3.8
+      },
+      {
+        "frequency": 8000,
+        "gainDb": -0.4
+      },
+      {
+        "frequency": 16000,
+        "gainDb": 2.4
+      }
+    ],
+    "filters": [
+      {
+        "type": "lowshelf",
+        "frequency": 105,
+        "q": 0.7,
+        "gainDb": -4.1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 143,
+        "q": 1.02,
+        "gainDb": -5.9,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 697,
+        "q": 0.92,
+        "gainDb": -2.8,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 1411,
+        "q": 1.1,
+        "gainDb": 6.2,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 4315,
+        "q": 1.98,
+        "gainDb": 4.4,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 55,
+        "q": 2.24,
+        "gainDb": 0.3,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 5637,
+        "q": 5.83,
+        "gainDb": -1.2,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 6657,
+        "q": 6,
+        "gainDb": 2.1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 9032,
+        "q": 2,
+        "gainDb": -1.5,
+        "enabled": true
+      },
+      {
+        "type": "highshelf",
+        "frequency": 10000,
+        "q": 0.7,
+        "gainDb": 1.4,
+        "enabled": true
+      }
+    ],
+    "source": "official",
+    "sourceUrl": "https://raw.githubusercontent.com/jaakkopasanen/AutoEq/master/results/oratory1990/over-ear/Sony%20WH-1000XM3/README.md",
+    "checksum": "85ce6c395042c24451d0f15fedf1f362bbb6be1fa72e2e25b8a1a877f3861ee0"
+  },
+  {
+    "format": "kunyin-eq",
+    "version": 1,
+    "name": "Sennheiser HD 599",
+    "author": "AutoEq / oratory1990",
+    "description": "AutoEq 官方 oratory1990 测量结果。",
+    "preampDb": -6.3,
+    "bands": [
+      {
+        "frequency": 31,
+        "gainDb": 6.9
+      },
+      {
+        "frequency": 62,
+        "gainDb": 3.2
+      },
+      {
+        "frequency": 125,
+        "gainDb": -2.4
+      },
+      {
+        "frequency": 250,
+        "gainDb": -3.6
+      },
+      {
+        "frequency": 500,
+        "gainDb": 0.1
+      },
+      {
+        "frequency": 1000,
+        "gainDb": 0.5
+      },
+      {
+        "frequency": 2000,
+        "gainDb": 4.8
+      },
+      {
+        "frequency": 4000,
+        "gainDb": -3.3
+      },
+      {
+        "frequency": 8000,
+        "gainDb": 3.3
+      },
+      {
+        "frequency": 16000,
+        "gainDb": 1.9
+      }
+    ],
+    "filters": [
+      {
+        "type": "lowshelf",
+        "frequency": 105,
+        "q": 0.7,
+        "gainDb": 6.1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 40,
+        "q": 3.06,
+        "gainDb": 1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 152,
+        "q": 0.59,
+        "gainDb": -4.3,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 1751,
+        "q": 1.45,
+        "gainDb": 4.4,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 4485,
+        "q": 2.72,
+        "gainDb": -1.9,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 3175,
+        "q": 4.7,
+        "gainDb": -2,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 3690,
+        "q": 4.38,
+        "gainDb": 0.7,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 5771,
+        "q": 5.56,
+        "gainDb": -2.8,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 9629,
+        "q": 1.71,
+        "gainDb": 6,
+        "enabled": true
+      },
+      {
+        "type": "highshelf",
+        "frequency": 10000,
+        "q": 0.7,
+        "gainDb": -0.7,
+        "enabled": true
+      }
+    ],
+    "source": "official",
+    "sourceUrl": "https://raw.githubusercontent.com/jaakkopasanen/AutoEq/master/results/oratory1990/over-ear/Sennheiser%20HD%20599/README.md",
+    "checksum": "b5dbb6344a58ab4d9a7a73eac7753139c34b8a9df47cfa5e790af85c965f6154"
+  },
+  {
+    "format": "kunyin-eq",
+    "version": 1,
+    "name": "Sennheiser HD 650",
+    "author": "AutoEq / oratory1990",
+    "description": "AutoEq 官方 oratory1990 测量结果。",
+    "preampDb": -6.2,
+    "bands": [
+      {
+        "frequency": 31,
+        "gainDb": 7
+      },
+      {
+        "frequency": 62,
+        "gainDb": 2.6
+      },
+      {
+        "frequency": 125,
+        "gainDb": -1.2
+      },
+      {
+        "frequency": 250,
+        "gainDb": -2.2
+      },
+      {
+        "frequency": 500,
+        "gainDb": 0.5
+      },
+      {
+        "frequency": 1000,
+        "gainDb": -1
+      },
+      {
+        "frequency": 2000,
+        "gainDb": 0.7
+      },
+      {
+        "frequency": 4000,
+        "gainDb": -1.2
+      },
+      {
+        "frequency": 8000,
+        "gainDb": 5.1
+      },
+      {
+        "frequency": 16000,
+        "gainDb": -3.6
+      }
+    ],
+    "filters": [
+      {
+        "type": "lowshelf",
+        "frequency": 105,
+        "q": 0.7,
+        "gainDb": 6.4,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 37,
+        "q": 3.96,
+        "gainDb": 0.7,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 118,
+        "q": 0.5,
+        "gainDb": -3.1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 3169,
+        "q": 3.89,
+        "gainDb": -1.7,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 8800,
+        "q": 1.42,
+        "gainDb": 5.1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 587,
+        "q": 1.19,
+        "gainDb": 0.4,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 1227,
+        "q": 2.53,
+        "gainDb": -1.2,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 2055,
+        "q": 3.23,
+        "gainDb": 1.2,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 5332,
+        "q": 5.75,
+        "gainDb": -1.1,
+        "enabled": true
+      },
+      {
+        "type": "highshelf",
+        "frequency": 10000,
+        "q": 0.7,
+        "gainDb": -2.1,
+        "enabled": true
+      }
+    ],
+    "source": "official",
+    "sourceUrl": "https://raw.githubusercontent.com/jaakkopasanen/AutoEq/master/results/oratory1990/over-ear/Sennheiser%20HD%20650/README.md",
+    "checksum": "382026d96ac1ae4e13ffd4118b5707ae2247f4f3c898ead3fcc9073209a4dc36"
+  },
+  {
+    "format": "kunyin-eq",
+    "version": 1,
+    "name": "Sennheiser HD 6XX",
+    "author": "AutoEq / oratory1990",
+    "description": "AutoEq 官方 oratory1990 测量结果。",
+    "preampDb": -6.2,
+    "bands": [
+      {
+        "frequency": 31,
+        "gainDb": 7
+      },
+      {
+        "frequency": 62,
+        "gainDb": 2.6
+      },
+      {
+        "frequency": 125,
+        "gainDb": -1.2
+      },
+      {
+        "frequency": 250,
+        "gainDb": -2.2
+      },
+      {
+        "frequency": 500,
+        "gainDb": 0.5
+      },
+      {
+        "frequency": 1000,
+        "gainDb": -1
+      },
+      {
+        "frequency": 2000,
+        "gainDb": 0.7
+      },
+      {
+        "frequency": 4000,
+        "gainDb": -1.2
+      },
+      {
+        "frequency": 8000,
+        "gainDb": 5.1
+      },
+      {
+        "frequency": 16000,
+        "gainDb": -3.6
+      }
+    ],
+    "filters": [
+      {
+        "type": "lowshelf",
+        "frequency": 105,
+        "q": 0.7,
+        "gainDb": 6.4,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 37,
+        "q": 3.96,
+        "gainDb": 0.7,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 118,
+        "q": 0.5,
+        "gainDb": -3.1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 3169,
+        "q": 3.89,
+        "gainDb": -1.7,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 8800,
+        "q": 1.42,
+        "gainDb": 5.1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 587,
+        "q": 1.19,
+        "gainDb": 0.4,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 1227,
+        "q": 2.53,
+        "gainDb": -1.2,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 2055,
+        "q": 3.23,
+        "gainDb": 1.2,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 5332,
+        "q": 5.75,
+        "gainDb": -1.1,
+        "enabled": true
+      },
+      {
+        "type": "highshelf",
+        "frequency": 10000,
+        "q": 0.7,
+        "gainDb": -2.1,
+        "enabled": true
+      }
+    ],
+    "source": "official",
+    "sourceUrl": "https://raw.githubusercontent.com/jaakkopasanen/AutoEq/master/results/oratory1990/over-ear/Sennheiser%20HD%206XX/README.md",
+    "checksum": "dac4f7ab6bd953da0dbab9408f6a8c3d28aac20c97adf31e9c9f263f524f9021"
+  },
+  {
+    "format": "kunyin-eq",
+    "version": 1,
+    "name": "Audio-Technica ATH-M50x",
+    "author": "AutoEq / oratory1990",
+    "description": "AutoEq 官方 oratory1990 测量结果。",
+    "preampDb": -3.2,
+    "bands": [
+      {
+        "frequency": 31,
+        "gainDb": 0
+      },
+      {
+        "frequency": 62,
+        "gainDb": 0.4
+      },
+      {
+        "frequency": 125,
+        "gainDb": -5.3
+      },
+      {
+        "frequency": 250,
+        "gainDb": 0.7
+      },
+      {
+        "frequency": 500,
+        "gainDb": 1.9
+      },
+      {
+        "frequency": 1000,
+        "gainDb": -1
+      },
+      {
+        "frequency": 2000,
+        "gainDb": 0.6
+      },
+      {
+        "frequency": 4000,
+        "gainDb": 0.4
+      },
+      {
+        "frequency": 8000,
+        "gainDb": 2.8
+      },
+      {
+        "frequency": 16000,
+        "gainDb": -9.3
+      }
+    ],
+    "filters": [
+      {
+        "type": "lowshelf",
+        "frequency": 105,
+        "q": 0.7,
+        "gainDb": 0.6,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 156,
+        "q": 0.73,
+        "gainDb": -5.2,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 326,
+        "q": 1.59,
+        "gainDb": 5.3,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 3483,
+        "q": 5.82,
+        "gainDb": 2.1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 7077,
+        "q": 2.22,
+        "gainDb": 2.8,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 45,
+        "q": 1.9,
+        "gainDb": -1.1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 66,
+        "q": 3.59,
+        "gainDb": 1.4,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 787,
+        "q": 1.79,
+        "gainDb": -0.5,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 1640,
+        "q": 3.41,
+        "gainDb": 0.9,
+        "enabled": true
+      },
+      {
+        "type": "highshelf",
+        "frequency": 10000,
+        "q": 0.7,
+        "gainDb": -4.1,
+        "enabled": true
+      }
+    ],
+    "source": "official",
+    "sourceUrl": "https://raw.githubusercontent.com/jaakkopasanen/AutoEq/master/results/oratory1990/over-ear/Audio-Technica%20ATH-M50x/README.md",
+    "checksum": "1af59ff0f3160e8b55ca995de823f408740587a7f1b02da83655a9031454ae24"
+  },
+  {
+    "format": "kunyin-eq",
+    "version": 1,
+    "name": "Sony WH-1000XM4",
+    "author": "AutoEq / oratory1990",
+    "description": "AutoEq 官方 oratory1990 测量结果。",
+    "preampDb": -6.2,
+    "bands": [
+      {
+        "frequency": 31,
+        "gainDb": -4.3
+      },
+      {
+        "frequency": 62,
+        "gainDb": -1.8
+      },
+      {
+        "frequency": 125,
+        "gainDb": -5.8
+      },
+      {
+        "frequency": 250,
+        "gainDb": -1.4
+      },
+      {
+        "frequency": 500,
+        "gainDb": 0.5
+      },
+      {
+        "frequency": 1000,
+        "gainDb": -0.6
+      },
+      {
+        "frequency": 2000,
+        "gainDb": 6
+      },
+      {
+        "frequency": 4000,
+        "gainDb": -0.8
+      },
+      {
+        "frequency": 8000,
+        "gainDb": 1
+      },
+      {
+        "frequency": 16000,
+        "gainDb": -2.2
+      }
+    ],
+    "filters": [
+      {
+        "type": "lowshelf",
+        "frequency": 105,
+        "q": 0.7,
+        "gainDb": -4.2,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 56,
+        "q": 1.19,
+        "gainDb": 1.2,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 143,
+        "q": 1.1,
+        "gainDb": -5.2,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 2289,
+        "q": 1.57,
+        "gainDb": 6.1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 5144,
+        "q": 6,
+        "gainDb": -3.2,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 407,
+        "q": 3.14,
+        "gainDb": 1.7,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 576,
+        "q": 3.55,
+        "gainDb": -1.2,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 1007,
+        "q": 3.41,
+        "gainDb": 1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 6715,
+        "q": 5.99,
+        "gainDb": 3,
+        "enabled": true
+      },
+      {
+        "type": "highshelf",
+        "frequency": 10000,
+        "q": 0.7,
+        "gainDb": -1,
+        "enabled": true
+      }
+    ],
+    "source": "official",
+    "sourceUrl": "https://raw.githubusercontent.com/jaakkopasanen/AutoEq/master/results/oratory1990/over-ear/Sony%20WH-1000XM4/README.md",
+    "checksum": "a99f3d4535fb90f1d67b42a5ded55cf53c5c69c43c0417bfb3edc37a1f7947f5"
+  },
+  {
+    "format": "kunyin-eq",
+    "version": 1,
+    "name": "AKG K361",
+    "author": "AutoEq / oratory1990",
+    "description": "AutoEq 官方 oratory1990 测量结果。",
+    "preampDb": -5.9,
+    "bands": [
+      {
+        "frequency": 31,
+        "gainDb": -3.5
+      },
+      {
+        "frequency": 62,
+        "gainDb": -1.1
+      },
+      {
+        "frequency": 125,
+        "gainDb": -3
+      },
+      {
+        "frequency": 250,
+        "gainDb": -0.8
+      },
+      {
+        "frequency": 500,
+        "gainDb": 0.8
+      },
+      {
+        "frequency": 1000,
+        "gainDb": -0.5
+      },
+      {
+        "frequency": 2000,
+        "gainDb": -1.5
+      },
+      {
+        "frequency": 4000,
+        "gainDb": 4.7
+      },
+      {
+        "frequency": 8000,
+        "gainDb": 0.4
+      },
+      {
+        "frequency": 16000,
+        "gainDb": -2.8
+      }
+    ],
+    "filters": [
+      {
+        "type": "lowshelf",
+        "frequency": 105,
+        "q": 0.7,
+        "gainDb": -2.3,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 42,
+        "q": 1.64,
+        "gainDb": -1.4,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 75,
+        "q": 2.02,
+        "gainDb": 1.3,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 149,
+        "q": 1.47,
+        "gainDb": -3.3,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 4019,
+        "q": 2.87,
+        "gainDb": 5.9,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 378,
+        "q": 1.79,
+        "gainDb": 0.7,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 1338,
+        "q": 2.72,
+        "gainDb": -1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 2560,
+        "q": 2.54,
+        "gainDb": -1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 7330,
+        "q": 5.94,
+        "gainDb": 2.4,
+        "enabled": true
+      },
+      {
+        "type": "highshelf",
+        "frequency": 10000,
+        "q": 0.7,
+        "gainDb": -1.2,
+        "enabled": true
+      }
+    ],
+    "source": "official",
+    "sourceUrl": "https://raw.githubusercontent.com/jaakkopasanen/AutoEq/master/results/oratory1990/over-ear/AKG%20K361/README.md",
+    "checksum": "b3867eb9a52a8bf97a428e207960959517c1376dcfbe5990eb86703624570365"
+  },
+  {
+    "format": "kunyin-eq",
+    "version": 1,
+    "name": "HIFIMAN HE400se",
+    "author": "AutoEq / oratory1990",
+    "description": "AutoEq 官方 oratory1990 测量结果。",
+    "preampDb": -6.1,
+    "bands": [
+      {
+        "frequency": 31,
+        "gainDb": 6.6
+      },
+      {
+        "frequency": 62,
+        "gainDb": 2.1
+      },
+      {
+        "frequency": 125,
+        "gainDb": 0.2
+      },
+      {
+        "frequency": 250,
+        "gainDb": -1.9
+      },
+      {
+        "frequency": 500,
+        "gainDb": -0.8
+      },
+      {
+        "frequency": 1000,
+        "gainDb": -2.4
+      },
+      {
+        "frequency": 2000,
+        "gainDb": 5.3
+      },
+      {
+        "frequency": 4000,
+        "gainDb": -0.9
+      },
+      {
+        "frequency": 8000,
+        "gainDb": 0.3
+      },
+      {
+        "frequency": 16000,
+        "gainDb": -5.6
+      }
+    ],
+    "filters": [
+      {
+        "type": "lowshelf",
+        "frequency": 105,
+        "q": 0.7,
+        "gainDb": 6.7,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 101,
+        "q": 0.32,
+        "gainDb": -2.4,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 861,
+        "q": 1.86,
+        "gainDb": -2.3,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 1619,
+        "q": 3.53,
+        "gainDb": 1.1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 1968,
+        "q": 2.37,
+        "gainDb": 5.1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 29,
+        "q": 2.63,
+        "gainDb": 0.5,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 64,
+        "q": 1.95,
+        "gainDb": -0.7,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 138,
+        "q": 1.98,
+        "gainDb": 0.7,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 251,
+        "q": 2.33,
+        "gainDb": -0.4,
+        "enabled": true
+      },
+      {
+        "type": "highshelf",
+        "frequency": 10000,
+        "q": 0.7,
+        "gainDb": -2.6,
+        "enabled": true
+      }
+    ],
+    "source": "official",
+    "sourceUrl": "https://raw.githubusercontent.com/jaakkopasanen/AutoEq/master/results/oratory1990/over-ear/HIFIMAN%20HE400se/README.md",
+    "checksum": "9bea0cec5446e1e959b2b18f268f1acbaba70068fc0b6f172f650d935e2cbd1c"
+  },
+  {
+    "format": "kunyin-eq",
+    "version": 1,
+    "name": "Beyerdynamic DT 1990 Pro",
+    "author": "AutoEq / oratory1990",
+    "description": "AutoEq 官方 DT 1990 balanced earpads 测量结果。",
+    "preampDb": -4.9,
+    "bands": [
+      {
+        "frequency": 31,
+        "gainDb": 3.3
+      },
+      {
+        "frequency": 62,
+        "gainDb": 1.1
+      },
+      {
+        "frequency": 125,
+        "gainDb": -1.7
+      },
+      {
+        "frequency": 250,
+        "gainDb": -3.6
+      },
+      {
+        "frequency": 500,
+        "gainDb": 0.3
+      },
+      {
+        "frequency": 1000,
+        "gainDb": 2.1
+      },
+      {
+        "frequency": 2000,
+        "gainDb": 1.9
+      },
+      {
+        "frequency": 4000,
+        "gainDb": 3.1
+      },
+      {
+        "frequency": 8000,
+        "gainDb": -2.7
+      },
+      {
+        "frequency": 16000,
+        "gainDb": -9.3
+      }
+    ],
+    "filters": [
+      {
+        "type": "lowshelf",
+        "frequency": 105,
+        "q": 0.7,
+        "gainDb": 3.3,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 206,
+        "q": 0.38,
+        "gainDb": -3.8,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 787,
+        "q": 0.75,
+        "gainDb": 3.3,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 2099,
+        "q": 2.08,
+        "gainDb": 2.5,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 4397,
+        "q": 4.53,
+        "gainDb": 4.2,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 54,
+        "q": 1.48,
+        "gainDb": -0.4,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 85,
+        "q": 2.98,
+        "gainDb": 0.6,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 4716,
+        "q": 5.98,
+        "gainDb": 1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 7240,
+        "q": 3.48,
+        "gainDb": -2.1,
+        "enabled": true
+      },
+      {
+        "type": "highshelf",
+        "frequency": 10000,
+        "q": 0.7,
+        "gainDb": -5.2,
+        "enabled": true
+      }
+    ],
+    "source": "official",
+    "sourceUrl": "https://raw.githubusercontent.com/jaakkopasanen/AutoEq/master/results/oratory1990/over-ear/Beyerdynamic%20DT%201990%20(balanced%20earpads)/README.md",
+    "checksum": "8f13fea51b7bd01bcf20eaafdb90ea1a6adce12c1234c577a90d25085bb3e955"
+  },
+  {
+    "format": "kunyin-eq",
+    "version": 1,
+    "name": "Sennheiser HD 58X Jubilee",
+    "author": "AutoEq / oratory1990",
+    "description": "AutoEq 官方 Sennheiser HD 58X 结果。",
+    "preampDb": -6.6,
+    "bands": [
+      {
+        "frequency": 31,
+        "gainDb": 6.6
+      },
+      {
+        "frequency": 62,
+        "gainDb": 2
+      },
+      {
+        "frequency": 125,
+        "gainDb": -1.2
+      },
+      {
+        "frequency": 250,
+        "gainDb": -2.4
+      },
+      {
+        "frequency": 500,
+        "gainDb": 0.4
+      },
+      {
+        "frequency": 1000,
+        "gainDb": -1.8
+      },
+      {
+        "frequency": 2000,
+        "gainDb": 1.2
+      },
+      {
+        "frequency": 4000,
+        "gainDb": -0.3
+      },
+      {
+        "frequency": 8000,
+        "gainDb": 4
+      },
+      {
+        "frequency": 16000,
+        "gainDb": -1
+      }
+    ],
+    "filters": [
+      {
+        "type": "lowshelf",
+        "frequency": 105,
+        "q": 0.7,
+        "gainDb": 7.7,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 87,
+        "q": 0.38,
+        "gainDb": -4.1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 1248,
+        "q": 1.99,
+        "gainDb": -1.6,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 2196,
+        "q": 2.69,
+        "gainDb": 1.9,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 9076,
+        "q": 1.64,
+        "gainDb": 5.1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 4274,
+        "q": 6,
+        "gainDb": 3,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 5351,
+        "q": 5.79,
+        "gainDb": -3.6,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 5761,
+        "q": 4.4,
+        "gainDb": -1.3,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 6663,
+        "q": 5.91,
+        "gainDb": 3.2,
+        "enabled": true
+      },
+      {
+        "type": "highshelf",
+        "frequency": 10000,
+        "q": 0.7,
+        "gainDb": -1.3,
+        "enabled": true
+      }
+    ],
+    "source": "official",
+    "sourceUrl": "https://raw.githubusercontent.com/jaakkopasanen/AutoEq/master/results/oratory1990/over-ear/Sennheiser%20HD%2058X/README.md",
+    "checksum": "d92d8ea3777297e63209fcbd710d82eceaea00200c372b6f3f9105e7ce0d045a"
+  },
+  {
+    "format": "kunyin-eq",
+    "version": 1,
+    "name": "Audio-Technica ATH-M40x",
+    "author": "AutoEq / oratory1990",
+    "description": "AutoEq 官方 oratory1990 测量结果。",
+    "preampDb": -5.7,
+    "bands": [
+      {
+        "frequency": 31,
+        "gainDb": 3.7
+      },
+      {
+        "frequency": 62,
+        "gainDb": -1.6
+      },
+      {
+        "frequency": 125,
+        "gainDb": -4.3
+      },
+      {
+        "frequency": 250,
+        "gainDb": -0.3
+      },
+      {
+        "frequency": 500,
+        "gainDb": 2.8
+      },
+      {
+        "frequency": 1000,
+        "gainDb": -0.5
+      },
+      {
+        "frequency": 2000,
+        "gainDb": -0.1
+      },
+      {
+        "frequency": 4000,
+        "gainDb": 3.3
+      },
+      {
+        "frequency": 8000,
+        "gainDb": -0.6
+      },
+      {
+        "frequency": 16000,
+        "gainDb": -12
+      }
+    ],
+    "filters": [
+      {
+        "type": "lowshelf",
+        "frequency": 105,
+        "q": 0.7,
+        "gainDb": 17.6,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 48,
+        "q": 0.29,
+        "gainDb": -16.9,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 348,
+        "q": 0.87,
+        "gainDb": 6,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 2979,
+        "q": 1.99,
+        "gainDb": 1.8,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 5150,
+        "q": 4.1,
+        "gainDb": 3.3,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 796,
+        "q": 1.67,
+        "gainDb": 0.6,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 1378,
+        "q": 2.13,
+        "gainDb": -1.4,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 2225,
+        "q": 3.7,
+        "gainDb": 0.8,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 6306,
+        "q": 5.1,
+        "gainDb": 1.6,
+        "enabled": true
+      },
+      {
+        "type": "highshelf",
+        "frequency": 10000,
+        "q": 0.7,
+        "gainDb": -6.9,
+        "enabled": true
+      }
+    ],
+    "source": "official",
+    "sourceUrl": "https://raw.githubusercontent.com/jaakkopasanen/AutoEq/master/results/oratory1990/over-ear/Audio-Technica%20ATH-M40x/README.md",
+    "checksum": "99aaf02e8502b715efd7f216bc27d8820b014ece38230729b09eb221fca54eed"
+  },
+  {
+    "format": "kunyin-eq",
+    "version": 1,
+    "name": "AKG K371",
+    "author": "AutoEq / oratory1990",
+    "description": "AutoEq 官方 oratory1990 测量结果。",
+    "preampDb": -5.7,
+    "bands": [
+      {
+        "frequency": 31,
+        "gainDb": -3
+      },
+      {
+        "frequency": 62,
+        "gainDb": 1.2
+      },
+      {
+        "frequency": 125,
+        "gainDb": -1.4
+      },
+      {
+        "frequency": 250,
+        "gainDb": -1.8
+      },
+      {
+        "frequency": 500,
+        "gainDb": 0.8
+      },
+      {
+        "frequency": 1000,
+        "gainDb": -0.8
+      },
+      {
+        "frequency": 2000,
+        "gainDb": -0.3
+      },
+      {
+        "frequency": 4000,
+        "gainDb": 3
+      },
+      {
+        "frequency": 8000,
+        "gainDb": -0.2
+      },
+      {
+        "frequency": 16000,
+        "gainDb": 4.8
+      }
+    ],
+    "filters": [
+      {
+        "type": "lowshelf",
+        "frequency": 105,
+        "q": 0.7,
+        "gainDb": -2.7,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 67,
+        "q": 1.41,
+        "gainDb": 3.1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 182,
+        "q": 1.23,
+        "gainDb": -2.3,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 1066,
+        "q": 2.57,
+        "gainDb": -0.8,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 4038,
+        "q": 3.6,
+        "gainDb": 5,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 524,
+        "q": 1.66,
+        "gainDb": 0.3,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 2048,
+        "q": 4.67,
+        "gainDb": 0.5,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 4232,
+        "q": 5.03,
+        "gainDb": 0.9,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 5564,
+        "q": 3.89,
+        "gainDb": -1.6,
+        "enabled": true
+      },
+      {
+        "type": "highshelf",
+        "frequency": 10000,
+        "q": 0.7,
+        "gainDb": 2.4,
+        "enabled": true
+      }
+    ],
+    "source": "official",
+    "sourceUrl": "https://raw.githubusercontent.com/jaakkopasanen/AutoEq/master/results/oratory1990/over-ear/AKG%20K371/README.md",
+    "checksum": "ca59ec1f3cfa3072610a1f96e43e4be57ff25a75ad631c6d48a6ae0b8a40ffde"
+  },
+  {
+    "format": "kunyin-eq",
+    "version": 1,
+    "name": "Sennheiser HD 560S",
+    "author": "AutoEq / oratory1990",
+    "description": "AutoEq 官方 oratory1990 测量结果。",
+    "preampDb": -6.7,
+    "bands": [
+      {
+        "frequency": 31,
+        "gainDb": 5.9
+      },
+      {
+        "frequency": 62,
+        "gainDb": 1.6
+      },
+      {
+        "frequency": 125,
+        "gainDb": 0
+      },
+      {
+        "frequency": 250,
+        "gainDb": -1
+      },
+      {
+        "frequency": 500,
+        "gainDb": 0.8
+      },
+      {
+        "frequency": 1000,
+        "gainDb": -1.6
+      },
+      {
+        "frequency": 2000,
+        "gainDb": 0.8
+      },
+      {
+        "frequency": 4000,
+        "gainDb": -1.3
+      },
+      {
+        "frequency": 8000,
+        "gainDb": 3.5
+      },
+      {
+        "frequency": 16000,
+        "gainDb": -8.1
+      }
+    ],
+    "filters": [
+      {
+        "type": "lowshelf",
+        "frequency": 105,
+        "q": 0.7,
+        "gainDb": 9,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 54,
+        "q": 0.48,
+        "gainDb": -5.4,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 491,
+        "q": 1.23,
+        "gainDb": 0.6,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 1148,
+        "q": 2.38,
+        "gainDb": -1.5,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 8983,
+        "q": 2.63,
+        "gainDb": 4.4,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 1937,
+        "q": 3.93,
+        "gainDb": 0.9,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 4502,
+        "q": 6,
+        "gainDb": -1.7,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 5639,
+        "q": 6,
+        "gainDb": -0.9,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 7451,
+        "q": 3.91,
+        "gainDb": 2,
+        "enabled": true
+      },
+      {
+        "type": "highshelf",
+        "frequency": 10000,
+        "q": 0.7,
+        "gainDb": -3.9,
+        "enabled": true
+      }
+    ],
+    "source": "official",
+    "sourceUrl": "https://raw.githubusercontent.com/jaakkopasanen/AutoEq/master/results/oratory1990/over-ear/Sennheiser%20HD%20560S/README.md",
+    "checksum": "0e31bd73ace1fb8ab749346264b4b2964e6edf9baacc6593cc6cd793598ac23e"
+  },
+  {
+    "format": "kunyin-eq",
+    "version": 1,
+    "name": "Sony WH-1000XM5",
+    "author": "AutoEq / oratory1990",
+    "description": "AutoEq 官方 oratory1990 测量结果。",
+    "preampDb": -6.3,
+    "bands": [
+      {
+        "frequency": 31,
+        "gainDb": -3.7
+      },
+      {
+        "frequency": 62,
+        "gainDb": -1.6
+      },
+      {
+        "frequency": 125,
+        "gainDb": -5.2
+      },
+      {
+        "frequency": 250,
+        "gainDb": -3.3
+      },
+      {
+        "frequency": 500,
+        "gainDb": 1.3
+      },
+      {
+        "frequency": 1000,
+        "gainDb": 1.8
+      },
+      {
+        "frequency": 2000,
+        "gainDb": 5.3
+      },
+      {
+        "frequency": 4000,
+        "gainDb": -2.4
+      },
+      {
+        "frequency": 8000,
+        "gainDb": 1.3
+      },
+      {
+        "frequency": 16000,
+        "gainDb": 9
+      }
+    ],
+    "filters": [
+      {
+        "type": "lowshelf",
+        "frequency": 105,
+        "q": 0.7,
+        "gainDb": -3.2,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 173,
+        "q": 0.96,
+        "gainDb": -5.6,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 1327,
+        "q": 0.58,
+        "gainDb": 3.3,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 2448,
+        "q": 2.46,
+        "gainDb": 6.9,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 3028,
+        "q": 2.03,
+        "gainDb": -5.4,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 63,
+        "q": 2.13,
+        "gainDb": 0.4,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 875,
+        "q": 4.07,
+        "gainDb": -1.2,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 1197,
+        "q": 3.28,
+        "gainDb": 1,
+        "enabled": true
+      },
+      {
+        "type": "peaking",
+        "frequency": 6110,
+        "q": 5.81,
+        "gainDb": -2.3,
+        "enabled": true
+      },
+      {
+        "type": "highshelf",
+        "frequency": 10000,
+        "q": 0.7,
+        "gainDb": 4.9,
+        "enabled": true
+      }
+    ],
+    "source": "official",
+    "sourceUrl": "https://raw.githubusercontent.com/jaakkopasanen/AutoEq/master/results/oratory1990/over-ear/Sony%20WH-1000XM5/README.md",
+    "checksum": "977f0e468be43f5a131ad31ab4fb0536d38a77dece8490e5f807f43744154955"
+  }
+]
+

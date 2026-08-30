@@ -1,0 +1,1098 @@
+<script setup lang="ts">
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
+import { QUALITY_IDS, QUALITY_NAMES, blockedQualityIds, type QualityId } from '@common'
+import AppIcon from '../components/AppIcon.vue'
+import AmllBackground from '../components/AmllBackground.vue'
+import QualityDialog from '../components/QualityDialog.vue'
+import { usePlayerStore } from '../stores/player'
+import { useLibraryStore } from '../stores/library'
+import { useLyricPlayer } from '../composables/useLyricPlayer'
+import { useApi } from '../composables/useApi'
+import { useSettingsStore } from '../stores/settings'
+import { coverUrl } from '../utils/cover'
+
+const router = useRouter()
+const player = usePlayerStore()
+const library = useLibraryStore()
+const settings = useSettingsStore()
+const api = useApi()
+const { current, queue, index, playing, currentTime, duration, volume, muted, playMode, quality } =
+  storeToRefs(player)
+
+const track = computed(() => current.value)
+const playerFullscreen = ref(false)
+let unsubscribeFullscreen: (() => void) | null = null
+
+/**
+ * Electron 在部分 Windows 环境不会稳定触发 enter-full-screen；除主进程状态外，
+ * 再用当前视口是否覆盖屏幕工作区兜底，保证播放页能拿到真实的全屏布局状态。
+ */
+function viewportCoversScreen(): boolean {
+  const tolerance = 8
+  return (
+    window.innerWidth >= window.screen.availWidth - tolerance &&
+    window.innerHeight >= window.screen.availHeight - tolerance
+  )
+}
+
+function applyPlayerFullscreen(nativeFullscreen: boolean): void {
+  playerFullscreen.value = nativeFullscreen || viewportCoversScreen()
+}
+
+function syncPlayerFullscreen(): void {
+  void api.window.fullscreen().then(applyPlayerFullscreen)
+}
+// 封面统一走主进程磁盘缓存协议（<img> 与背景渲染器同源）
+const cover = computed(() => coverUrl(track.value?.cover))
+
+const displayDuration = computed(() =>
+  duration.value > 0 ? duration.value : (track.value?.duration ?? 0)
+)
+const displayCurrent = computed(() => currentTime.value)
+const progress = computed(() =>
+  displayDuration.value > 0 ? (displayCurrent.value / displayDuration.value) * 100 : 0
+)
+
+const liked = computed(() => (current.value ? library.isFavorite(current.value) : false))
+function toggleLike(): void {
+  if (current.value) void library.toggleFavorite(current.value)
+}
+
+function fmt(ms: number): string {
+  const s = Math.floor(ms / 1000)
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
+
+// 播放模式（与 PlayerBar 同一套图标/文案）
+const PLAY_MODE_META: Record<string, { icon: string; label: string }> = {
+  listLoop: { icon: 'repeat', label: '列表循环' },
+  singleLoop: { icon: 'repeat-one', label: '单曲循环' },
+  random: { icon: 'shuffle', label: '随机播放' },
+  heartbeat: { icon: 'heartbeat', label: '心动模式' }
+}
+const modeMeta = computed(() => PLAY_MODE_META[playMode.value] ?? PLAY_MODE_META.listLoop)
+
+async function cyclePlayMode(): Promise<void> {
+  const modes = ['listLoop', 'singleLoop', 'random', 'heartbeat']
+  const next = modes[(modes.indexOf(playMode.value) + 1) % modes.length]
+  if (next !== 'heartbeat') {
+    player.cyclePlayMode()
+    return
+  }
+  const result = await player.startHeartbeatMode()
+  if (result === 'insufficient-data') {
+    if (window.confirm('喜欢的歌曲少于 20 首，推荐会偏随机。仍要开启心动模式吗？')) {
+      const retry = await player.startHeartbeatMode(true)
+      if (retry === 'no-match') window.alert('当前歌曲缺少可用于心动模式的本地推荐数据。')
+    }
+    return
+  }
+  if (result === 'disabled') window.alert('心动模式已在设置中关闭。')
+  else if (result === 'no-match') window.alert('当前歌曲缺少可用于心动模式的本地推荐数据。')
+}
+
+// ============ 进度条（点击 + 拖拽；拖拽只动预览，松手才 seek，避免歌词引擎被连续跳变打断） ============
+const progDragging = ref(false)
+const progRatio = ref(0)
+const shownProgress = computed(() => (progDragging.value ? progRatio.value * 100 : progress.value))
+const shownCurrent = computed(() =>
+  progDragging.value ? progRatio.value * displayDuration.value : displayCurrent.value
+)
+
+function ratioFromPointer(e: PointerEvent, el: HTMLElement): number {
+  const rect = el.getBoundingClientRect()
+  return Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width))
+}
+function onProgDown(e: PointerEvent): void {
+  if (!current.value || displayDuration.value <= 0) return
+  const el = e.currentTarget as HTMLElement
+  el.setPointerCapture(e.pointerId)
+  progDragging.value = true
+  progRatio.value = ratioFromPointer(e, el)
+}
+function onProgMove(e: PointerEvent): void {
+  if (!progDragging.value || e.buttons !== 1) return
+  progRatio.value = ratioFromPointer(e, e.currentTarget as HTMLElement)
+}
+function onProgUp(): void {
+  if (!progDragging.value) return
+  progDragging.value = false
+  player.seek(progRatio.value * displayDuration.value)
+}
+
+// ============ 音量条（与进度条同款轨道） ============
+const shownVolume = computed(() => (muted.value ? 0 : volume.value))
+const volIcon = computed(() => (muted.value || volume.value === 0 ? 'volume-mute' : 'volume'))
+const volDragging = ref(false)
+function onVolDown(e: PointerEvent): void {
+  const el = e.currentTarget as HTMLElement
+  el.setPointerCapture(e.pointerId)
+  volDragging.value = true
+  player.setVolume(ratioFromPointer(e, el))
+}
+function onVolMove(e: PointerEvent): void {
+  if (!volDragging.value || e.buttons !== 1) return
+  player.setVolume(ratioFromPointer(e, e.currentTarget as HTMLElement))
+}
+function onVolUp(): void {
+  volDragging.value = false
+}
+
+// ============ 歌词面板 / 翻译开关 ============
+const lyricVisible = ref(true)
+async function toggleLyricPanel(): Promise<void> {
+  lyricVisible.value = !lyricVisible.value
+  if (lyricVisible.value) {
+    // 面板 display:none 期间行高测为 0，重新可见后强制重排，避免叠行
+    await nextTick()
+    lyric.relayout()
+  }
+}
+const showTrans = computed(() => settings.settings.lyrics.showTranslation)
+function toggleTrans(): void {
+  void settings.update({ lyrics: { showTranslation: !showTrans.value } })
+}
+
+// ============ 更多菜单（收藏 / 下载 / 播放音质） ============
+const moreOpen = ref(false)
+const queueOpen = ref(false)
+const showQualityDialog = ref(false)
+
+function playQueueItem(item: (typeof queue.value)[number]): void {
+  queueOpen.value = false
+  // playItem 按歌曲身份重新定位索引，避免直接写入响应式索引造成重复项错位。
+  player.playItem(item, queue.value, { source: player.queueSource ?? undefined })
+}
+
+function queueItemLabel(item: (typeof queue.value)[number]): string {
+  return [item.title, item.artist].filter(Boolean).join(' · ')
+}
+const dialogItems = computed(() => (track.value ? [track.value] : []))
+// 当前曲可用音质（高 → 低；被屏蔽的 AI 音质不列出）
+const qualityOptions = computed<QualityId[]>(() => {
+  const t = track.value
+  if (!t) return []
+  const blocked = blockedQualityIds(settings.settings)
+  return [...QUALITY_IDS].reverse().filter((id) => t.qualities[id] && !blocked.includes(id))
+})
+function qualityLabel(id: QualityId): string {
+  return track.value?.qualities[id]?.name || QUALITY_NAMES[id]
+}
+function pickQuality(id: QualityId): void {
+  moreOpen.value = false
+  if (id !== quality.value) void player.changeQuality(id)
+}
+function openDownload(): void {
+  moreOpen.value = false
+  showQualityDialog.value = true
+}
+function likeFromMenu(): void {
+  toggleLike()
+  moreOpen.value = false
+}
+
+// 逐字歌词引擎
+const lyricHost = ref<HTMLElement>()
+const lyric = useLyricPlayer()
+const hasLyric = ref(false)
+const hasTranslation = ref(false)
+// 每次加载自增，避免异步竞态（旧请求回来覆盖新歌）
+let loadToken = 0
+
+/** 忽略 LRC 时间戳/元数据标签后，判断翻译轨是否含有实际文本。 */
+function hasLyricText(raw: string): boolean {
+  return raw.split(/\r?\n/).some(
+    (line) =>
+      line
+        .replace(/\[[^\]]*]/g, '')
+        .replace(/<[^>]*>/g, '')
+        .trim().length > 0
+  )
+}
+
+async function loadLyric(): Promise<void> {
+  const token = ++loadToken
+  hasTranslation.value = false
+  if (!current.value) {
+    lyric.clear()
+    hasLyric.value = false
+    return
+  }
+  try {
+    const plain = JSON.parse(JSON.stringify(current.value))
+    const ly = await api.player.lyric(plain)
+    if (token !== loadToken) return
+    const original = ly.char || ly.lrc
+    if (original) {
+      hasTranslation.value = hasLyricText(ly.trans)
+      // 先露出宿主（visibility 而非 display:none），再加载，避免行高测成 0 叠行
+      hasLyric.value = true
+      await nextTick()
+      if (token !== loadToken) return
+      const roman = ly.chroma || ly.roma
+      lyric.loadLyric(original, ly.trans, roman, {
+        name: plain.title,
+        singer: plain.artist ? [plain.artist] : []
+      })
+      await nextTick()
+      if (token !== loadToken) return
+      requestAnimationFrame(() => lyric.relayout())
+      if (playing.value) lyric.play(currentTime.value)
+      else lyric.seekMs(currentTime.value)
+    } else {
+      lyric.clear()
+      hasLyric.value = false
+      hasTranslation.value = false
+    }
+  } catch (e) {
+    if (token !== loadToken) return
+    console.error('[lyric] 获取失败', current.value?.type, current.value?.id, e)
+    lyric.clear()
+    hasLyric.value = false
+    hasTranslation.value = false
+  }
+}
+
+function applyAnnotationVisible(): void {
+  const ly = settings.settings.lyrics
+  lyric.setAnnotationVisible({
+    translation: ly.showTranslation,
+    romanization: ly.showRomanization
+  })
+}
+function applyLyricFont(): void {
+  // 歌词字体：空则跟随软件字体（继承 body），否则用歌词专属字体
+  lyric.setFontFamily(settings.settings.lyrics.font)
+}
+
+onMounted(() => {
+  syncPlayerFullscreen()
+  unsubscribeFullscreen = api.window.onFullscreenChange(applyPlayerFullscreen)
+  window.addEventListener('resize', syncPlayerFullscreen)
+  lyricHost.value?.appendChild(lyric.element.value)
+  applyAnnotationVisible()
+  applyLyricFont()
+  loadLyric()
+})
+
+onUnmounted(() => {
+  unsubscribeFullscreen?.()
+  window.removeEventListener('resize', syncPlayerFullscreen)
+})
+
+watch(
+  () => [settings.settings.lyrics.showTranslation, settings.settings.lyrics.showRomanization],
+  () => applyAnnotationVisible()
+)
+watch(
+  () => settings.settings.lyrics.font,
+  () => applyLyricFont()
+)
+
+// 切歌即重新拉取真实歌词
+watch(current, () => loadLyric())
+
+watch(playing, (p) => {
+  if (!hasLyric.value) return
+  if (p) lyric.play(currentTime.value)
+  else lyric.pause()
+})
+
+// 歌词引擎 play(ms) 后自走；仅在跳变（seek）时重对齐，避免与音频漂移
+let lastTime = 0
+watch(currentTime, (t) => {
+  if (hasLyric.value && current.value && Math.abs(t - lastTime) > 800) {
+    if (playing.value) lyric.play(t)
+    else lyric.seekMs(t)
+  }
+  lastTime = t
+})
+</script>
+
+<template>
+  <!-- 挂到 body：字体大小设置靠 #app 的 zoom 整体缩放实现，全屏播放器
+       （封面/控件/歌词字号）不应跟随界面字号档位变化 -->
+  <Teleport to="body">
+    <div class="player-page" :class="{ fullscreen: playerFullscreen }" :data-track-key="track ? `${track.type}:${track.id}` : 'empty'">
+      <AmllBackground :cover="cover" />
+      <div class="depth-blur" :style="{ backgroundImage: cover ? `url(${cover})` : undefined }" />
+      <div class="scrim" />
+
+      <button class="close" title="收起" @click="router.back()">
+        <AppIcon name="chevron-down" :size="24" />
+      </button>
+
+      <div class="content" :class="{ 'no-lyric-panel': !lyricVisible }">
+        <div class="left">
+          <div class="cover">
+            <Transition name="cover-shared" mode="out-in">
+              <img v-if="cover" :key="cover" :src="cover" alt="" />
+              <div v-else key="cover-empty" class="cover-empty"><AppIcon name="library" :size="40" /></div>
+            </Transition>
+          </div>
+          <div class="track-info">
+            <div class="track-title ellipsis">{{ track?.title || '未在播放' }}</div>
+            <div class="track-artist ellipsis">{{ track?.artist || '选一首歌开始' }}</div>
+          </div>
+
+          <div class="progress">
+            <div
+              class="bar"
+              @pointerdown="onProgDown"
+              @pointermove="onProgMove"
+              @pointerup="onProgUp"
+              @pointercancel="onProgUp"
+            >
+              <div class="bar-fill" :style="{ transform: `scaleX(${shownProgress / 100})` }">
+                <span class="thumb" />
+              </div>
+            </div>
+            <div class="time">
+              <span>{{ fmt(shownCurrent) }}</span>
+              <span>-{{ fmt(Math.max(0, displayDuration - shownCurrent)) }}</span>
+            </div>
+          </div>
+
+          <div class="controls">
+            <button class="tbtn pressable" title="上一首" @click="player.prev()">
+              <AppIcon name="skip-back" :size="27" />
+            </button>
+            <button
+              class="tbtn play pressable"
+              :title="playing ? '暂停' : '播放'"
+              @click="player.toggle()"
+            >
+              <AppIcon :name="playing ? 'pause' : 'play'" :size="33" />
+            </button>
+            <button class="tbtn pressable" title="下一首" @click="player.next()">
+              <AppIcon name="skip-forward" :size="27" />
+            </button>
+          </div>
+
+          <div class="volume">
+            <button class="vbtn" :title="muted ? '取消静音' : '静音'" @click="player.toggleMute()">
+              <AppIcon :name="volIcon" :size="16" />
+            </button>
+            <div
+              class="bar"
+              @pointerdown="onVolDown"
+              @pointermove="onVolMove"
+              @pointerup="onVolUp"
+              @pointercancel="onVolUp"
+            >
+              <div class="bar-fill" :style="{ transform: `scaleX(${shownVolume})` }">
+                <span class="thumb" />
+              </div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="abtn" :title="modeMeta.label" @click="cyclePlayMode">
+              <AppIcon :name="modeMeta.icon" :size="20" />
+            </button>
+            <button class="abtn" title="评论（开发中）" disabled>
+              <AppIcon name="comment" :size="20" />
+            </button>
+            <button
+              class="abtn"
+              :class="{ off: !lyricVisible }"
+              :title="lyricVisible ? '隐藏歌词' : '显示歌词'"
+              @click="toggleLyricPanel"
+            >
+              <AppIcon name="lyric" :size="20" />
+            </button>
+            <button
+              class="abtn"
+              :class="{ on: queueOpen }"
+              :title="queueOpen ? '关闭播放队列' : '打开播放队列'"
+              @click="queueOpen = !queueOpen"
+            >
+              <AppIcon name="library" :size="20" />
+            </button>
+            <button
+              v-if="hasTranslation"
+              class="abtn"
+              :class="{ off: !showTrans }"
+              :title="showTrans ? '隐藏翻译' : '显示翻译'"
+              @click="toggleTrans"
+            >
+              <AppIcon name="translate" :size="20" />
+            </button>
+            <div class="more-wrap">
+              <button class="abtn" title="更多" @click="moreOpen = !moreOpen">
+                <AppIcon name="more" :size="20" />
+              </button>
+              <template v-if="moreOpen">
+                <div class="more-mask" @click="moreOpen = false" />
+                <div class="more-menu">
+                  <button class="mitem" :class="{ liked }" :disabled="!track" @click="likeFromMenu">
+                    <AppIcon :name="liked ? 'heart-filled' : 'heart'" :size="16" />
+                    <span>{{ liked ? '已收藏' : '收藏' }}</span>
+                  </button>
+                  <button class="mitem" :disabled="!track" @click="openDownload">
+                    <AppIcon name="download" :size="16" />
+                    <span>下载</span>
+                  </button>
+                  <template v-if="qualityOptions.length">
+                    <div class="msep" />
+                    <div class="mlabel">播放音质</div>
+                    <button
+                      v-for="q in qualityOptions"
+                      :key="q"
+                      class="mitem"
+                      @click="pickQuality(q)"
+                    >
+                      <AppIcon
+                        name="check"
+                        :size="14"
+                        class="qcheck"
+                        :class="{ on: q === quality }"
+                      />
+                      <span>{{ qualityLabel(q) }}</span>
+                    </button>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <div v-show="lyricVisible" class="right">
+          <div ref="lyricHost" class="lyric-host" :class="{ hidden: !hasLyric }" />
+          <div v-if="!hasLyric" class="no-lyric">纯音乐，请欣赏</div>
+        </div>
+      </div>
+
+      <Transition name="queue-drawer">
+        <aside v-if="queueOpen" class="queue-drawer" aria-label="播放队列">
+          <div class="queue-head">
+            <div>
+              <b>播放队列</b>
+              <small>{{ queue.length }} 首{{ player.queueSource?.name ? ` · ${player.queueSource.name}` : '' }}</small>
+            </div>
+            <button class="queue-close" title="关闭播放队列" @click="queueOpen = false">
+              <AppIcon name="close" :size="18" />
+            </button>
+          </div>
+          <div class="queue-list scroll">
+            <button
+              v-for="(item, queueIndex) in queue"
+              :key="`${item.type}:${item.id}:${queueIndex}`"
+              class="queue-item pressable pressable-subtle"
+              :class="{ current: queueIndex === index }"
+              @click="playQueueItem(item)"
+            >
+              <span class="queue-index">{{ queueIndex === index ? '正在播放' : queueIndex + 1 }}</span>
+              <span class="queue-copy">
+                <b class="ellipsis">{{ item.title }}</b>
+                <small class="ellipsis">{{ queueItemLabel(item) }}</small>
+              </span>
+            </button>
+            <div v-if="!queue.length" class="queue-empty">暂无播放队列</div>
+          </div>
+        </aside>
+      </Transition>
+
+      <QualityDialog
+        v-if="showQualityDialog"
+        :items="dialogItems"
+        @close="showQualityDialog = false"
+      />
+    </div>
+  </Teleport>
+</template>
+
+<style scoped>
+.player-page {
+  --player-panel-width: 240px;
+  --player-cover-size: 240px;
+  animation: player-page-in var(--anim-dur-base) var(--anim-ease-standard) both;
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  overflow: hidden;
+  border-radius: 10px;
+  color: #fff;
+  /* 网格渐变画布按音量留出 ~5% 透明度，给个深色底，
+     免得主题背景图从缝隙里透出来；渲染失败时也退化成深色而非主题图 */
+  background: #101013;
+}
+@keyframes player-page-in {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.depth-blur {
+  position: absolute;
+  inset: -8%;
+  z-index: 0;
+  opacity: 0.22;
+  filter: blur(34px) saturate(1.12);
+  background-position: center;
+  background-size: cover;
+  transform: scale(1.08);
+  transition: opacity var(--anim-dur-base) var(--anim-ease-smooth), filter var(--anim-dur-slow) var(--anim-ease-smooth);
+  pointer-events: none;
+}
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.26) 0%,
+    rgba(0, 0, 0, 0.08) 42%,
+    rgba(0, 0, 0, 0.44) 100%
+  );
+}
+.close {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+  transition: none;
+}
+.close:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  height: 100%;
+  padding: 0 48px;
+  gap: 48px;
+}
+/* 歌词面板隐藏时，左栏居中 */
+.content.no-lyric-panel {
+  justify-content: center;
+}
+
+/* 左栏：占左侧 42% 区域，内容（封面/信息/进度/控制，统一 240 宽）在区域内居中 */
+.left {
+  flex: none;
+  width: 42%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+.cover {
+  width: var(--player-cover-size);
+  height: var(--player-cover-size);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+}
+.cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cover-shared-enter-active,
+.cover-shared-leave-active {
+  transition: opacity var(--anim-dur-base) var(--anim-ease-smooth), transform var(--anim-dur-base) var(--anim-ease-standard);
+}
+.cover-shared-enter-from {
+  opacity: 0;
+  transform: scale(0.92);
+}
+.cover-shared-leave-to {
+  opacity: 0;
+  transform: scale(1.04);
+}
+.cover-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.1);
+}
+.track-info {
+  width: var(--player-panel-width);
+  text-align: left;
+}
+.track-title {
+  font-size: 21px;
+  font-weight: 700;
+}
+.track-artist {
+  margin-top: 3px;
+  font-size: 14.5px;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.progress {
+  width: var(--player-panel-width);
+}
+.bar {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.32);
+  cursor: pointer;
+  touch-action: none;
+}
+.bar-fill {
+  position: relative;
+  height: 100%;
+  border-radius: 999px;
+  transform-origin: left center;
+  background: #fff;
+  transition: transform var(--anim-dur-fast) linear;
+}
+.thumb {
+  position: absolute;
+  right: -5px;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #fff;
+  transform: translateY(-50%);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+.time {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 7px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.62);
+  font-variant-numeric: tabular-nums;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 38px;
+}
+.tbtn {
+  display: flex;
+  color: #fff;
+  opacity: 0.92;
+  transition: opacity var(--anim-dur-fast) var(--anim-ease-smooth);
+}
+.tbtn:hover {
+  opacity: 1;
+}
+.play {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+}
+
+/* 音量条：图标 + 轨道（轨道样式与进度条一致） */
+.volume {
+  width: var(--player-panel-width);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.vbtn {
+  display: flex;
+  color: #fff;
+  opacity: 0.75;
+  transition: opacity 0.2s ease;
+}
+.vbtn:hover {
+  opacity: 1;
+}
+.volume .bar {
+  flex: 1;
+}
+
+.actions {
+  width: var(--player-panel-width);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.abtn {
+  display: flex;
+  color: #fff;
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+}
+.abtn:hover {
+  opacity: 1;
+}
+.abtn.off {
+  opacity: 0.42;
+}
+.abtn.on {
+  color: #fff;
+}
+.abtn:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+/* 更多菜单：收藏/下载/播放音质 */
+.more-wrap {
+  position: relative;
+  display: flex;
+}
+.more-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+}
+.more-menu {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  right: 0;
+  z-index: 2;
+  min-width: 176px;
+  padding: 6px;
+  border-radius: 10px;
+  background: rgba(34, 34, 36, 0.92);
+  backdrop-filter: blur(24px);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
+}
+.mitem {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.92);
+  transition: none;
+}
+.mitem:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+.mitem:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.mitem.liked {
+  color: #ff5c7a;
+  animation: favorite-pulse var(--anim-dur-base) var(--anim-ease-spring) both;
+}
+@keyframes favorite-pulse {
+  0% {
+    opacity: 0.72;
+    transform: scale(0.92);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.msep {
+  height: 1px;
+  margin: 5px 8px;
+  background: rgba(255, 255, 255, 0.14);
+}
+.mlabel {
+  padding: 4px 10px 2px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+.qcheck {
+  opacity: 0;
+}
+.qcheck.on {
+  opacity: 1;
+}
+
+/* 播放队列：独立于歌词与音频图，只读消费 player store */
+.queue-drawer {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(360px, 34vw);
+  padding: 28px 18px 20px;
+  color: #fff;
+  background: rgba(20, 20, 24, 0.86);
+  backdrop-filter: blur(24px);
+}
+.queue-drawer-enter-active,
+.queue-drawer-leave-active {
+  transition:
+    transform var(--anim-dur-base) var(--anim-ease-standard),
+    opacity var(--anim-dur-fast) var(--anim-ease-smooth);
+}
+.queue-drawer-enter-from,
+.queue-drawer-leave-to {
+  opacity: 0;
+  transform: translate3d(100%, 0, 0);
+}
+.queue-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px 16px;
+}
+.queue-head b,
+.queue-head small,
+.queue-copy b,
+.queue-copy small {
+  display: block;
+}
+.queue-head b {
+  font-size: 17px;
+}
+.queue-head small {
+  margin-top: 5px;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 11px;
+}
+.queue-close {
+  display: flex;
+  padding: 5px;
+  color: rgba(255, 255, 255, 0.72);
+  transition: opacity var(--anim-dur-fast) var(--anim-ease-smooth);
+}
+.queue-close:hover {
+  opacity: 1;
+}
+.queue-list {
+  flex: 1;
+  min-height: 0;
+  padding-right: 2px;
+}
+.queue-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 8px;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.82);
+  text-align: left;
+  transition: background-color var(--anim-dur-fast) var(--anim-ease-smooth);
+}
+.queue-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+.queue-item.current {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.14);
+}
+.queue-index {
+  flex: none;
+  width: 54px;
+  color: rgba(255, 255, 255, 0.46);
+  font-size: 10px;
+  text-align: center;
+}
+.queue-item.current .queue-index {
+  color: #fff;
+}
+.queue-copy {
+  min-width: 0;
+  flex: 1;
+}
+.queue-copy b {
+  font-size: 12px;
+  font-weight: 600;
+}
+.queue-copy small {
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 11px;
+}
+.queue-empty {
+  padding: 30px 8px;
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 12px;
+  text-align: center;
+}
+
+/* 右：逐字歌词引擎挂载点 */
+.right {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.lyric-host {
+  width: 100%;
+  height: 100%;
+}
+/* visibility:hidden 保留布局尺寸，避免 display:none 导致行高测 0 叠字 */
+.lyric-host.hidden {
+  visibility: hidden;
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+}
+/* 主词与翻译/音译分层 */
+.lyric-host :deep([data-role='line-normal']) {
+  row-gap: 14px !important;
+}
+.lyric-host :deep([data-role='line-normal']) {
+  transition:
+    transform var(--anim-dur-base) var(--anim-ease-standard),
+    opacity var(--anim-dur-base) var(--anim-ease-smooth);
+}
+.lyric-host :deep([data-role='line-normal'].active),
+.lyric-host :deep([data-role='line-normal'][aria-current='true']) {
+  opacity: 1;
+  transform: scale(1.04);
+}
+.lyric-host :deep([data-role='line-normal']:not(.active):not([aria-current='true'])) {
+  opacity: 0.62;
+  transform: scale(0.98);
+}
+/*
+ * 逐字音译的溢出与行高问题已在引擎侧修掉（annotation-row 改 width:max-content + min-height:auto，
+ * 见 src/renderer/src/lyric/.../syllable/index.module.scss 的 [vendor patch]），
+ * 这里只保留纯外观项。切勿再压 line-height——引擎按 span.clientHeight 生成擦除 mask，
+ * 盒子矮一截就会把 g/p/y 的下降部连同 mask 一起切掉。
+ */
+.lyric-host :deep([data-role='line-normal-text-word-roman']) {
+  white-space: nowrap;
+  pointer-events: none;
+  font-weight: 400 !important;
+}
+.lyric-host :deep([data-role='line-normal-annotation-translation']),
+.lyric-host :deep([data-role='line-normal-annotation-romanization']) {
+  display: block !important;
+  position: relative !important;
+  line-height: 1.35;
+  margin: 0;
+  font-weight: 400 !important;
+}
+.no-lyric {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 20px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/*
+ * 播放页 Teleport 到 body，不在 #app 内；全屏圆角和尺度必须在这里单独处理。
+ * 窗口模式继续使用上面的 240px 紧凑布局，全屏才按视口有限放大，避免低分辨率溢出。
+ */
+.player-page.fullscreen {
+  --player-panel-width: clamp(300px, 19vw, 380px);
+  --player-cover-size: clamp(280px, min(19vw, 31vh), 380px);
+  border-radius: 0;
+}
+
+.player-page.fullscreen .content {
+  padding-inline: clamp(56px, 4vw, 96px);
+  gap: clamp(56px, 5vw, 112px);
+}
+
+.player-page.fullscreen .left {
+  width: clamp(420px, 32vw, 560px);
+  max-width: none;
+  gap: clamp(18px, 1.6vh, 24px);
+}
+
+/* 歌词隐藏后几何中心略显右重，做一档随视口变化的光学左移补偿。 */
+.player-page.fullscreen .content.no-lyric-panel .left {
+  transform: translateX(clamp(-28px, -1vw, -16px));
+}
+
+.player-page.fullscreen .track-title {
+  font-size: clamp(23px, 1.25vw, 28px);
+}
+
+.player-page.fullscreen .track-artist {
+  margin-top: 5px;
+  font-size: clamp(15px, 0.82vw, 18px);
+}
+
+.player-page.fullscreen .bar {
+  height: 7px;
+}
+
+.player-page.fullscreen .thumb {
+  right: -7px;
+  width: 15px;
+  height: 15px;
+}
+
+.player-page.fullscreen .time {
+  margin-top: 9px;
+  font-size: 13px;
+}
+
+.player-page.fullscreen .controls {
+  gap: clamp(42px, 3vw, 58px);
+}
+
+.player-page.fullscreen .tbtn {
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+}
+
+.player-page.fullscreen .tbtn:not(.play) :deep(.app-icon) {
+  width: 34px;
+  height: 34px;
+}
+
+.player-page.fullscreen .play {
+  width: 72px;
+  height: 72px;
+}
+
+.player-page.fullscreen .play :deep(.app-icon) {
+  width: 43px;
+  height: 43px;
+}
+
+.player-page.fullscreen .volume {
+  gap: 14px;
+}
+
+.player-page.fullscreen .vbtn :deep(.app-icon) {
+  width: 22px;
+  height: 22px;
+}
+
+.player-page.fullscreen .actions :deep(.app-icon) {
+  width: 25px;
+  height: 25px;
+}
+
+.player-page.fullscreen .close {
+  top: 26px;
+  right: 30px;
+  width: 48px;
+  height: 48px;
+}
+
+.player-page.fullscreen .close :deep(.app-icon) {
+  width: 28px;
+  height: 28px;
+}
+</style>

@@ -1,0 +1,548 @@
+/* 全局基础层。语义变量与视觉移植自 lx-music-desktop（Apache-2.0, © lyswhut）。
+   --color-primary-* 与字色梯度由主题引擎（theme/apply）运行期注入 :root，此处仅定义语义映射与静态基础。 */
+
+:root {
+  /* ---- 语义色（值经主题引擎注入的梯度解析） ---- */
+  --color-app-background: var(--color-primary-light-600-alpha-700);
+  --color-main-background: rgba(255, 255, 255, 1);
+  --color-content-background: var(--color-primary-light-1000);
+  --color-nav-font: var(--color-primary);
+
+  --color-font: var(--color-850);
+  --color-font-label: var(--color-450);
+  --color-primary-font: var(--color-primary);
+  --color-primary-font-hover: var(--color-primary-alpha-300);
+  --color-primary-font-active: var(--color-primary-dark-100-alpha-200);
+
+  --color-primary-background: var(--color-primary-light-400-alpha-700);
+  --color-primary-background-hover: var(--color-primary-light-300-alpha-800);
+  --color-primary-background-active: var(--color-primary-light-100-alpha-800);
+
+  --color-button-font: var(--color-primary-alpha-100);
+  --color-button-font-selected: var(--color-primary-dark-100-alpha-100);
+  --color-button-background: var(--color-primary-light-400-alpha-700);
+  --color-button-background-selected: var(--color-primary-alpha-600);
+  --color-button-background-hover: var(--color-primary-light-300-alpha-600);
+  --color-button-background-active: var(--color-primary-light-100-alpha-600);
+
+  /* 语义边框色。浅色下沿用原 alpha-900（≈10% 主色，极淡）；
+     深色下由 html.theme-dark 抬到 alpha-400，否则实测仅 1.15:1，肉眼完全看不见。 */
+  --color-border: var(--color-primary-alpha-900);
+  --color-list-header-border-bottom: 1px solid var(--color-border);
+  --color-badge-primary: var(--color-primary);
+  --color-badge-secondary: #4baed5;
+  --color-badge-tertiary: #e7aa36;
+
+  /* 窗口控制按钮 hover 底色（LX） */
+  --color-btn-hide: #3bc2b2;
+  --color-btn-min: #85c43b;
+  --color-btn-close: #fab4a0;
+
+  --background-image: none;
+  --background-image-position: center;
+  --background-image-size: cover;
+
+  /* ---- 尺寸 / 圆角 / 过渡 ---- */
+  --width-aside: 64px;
+  --height-toolbar: 54px;
+  --height-player: 66px;
+  --radius-border: 4px;
+  --form-radius: 3px;
+  --radius-progress: 5px;
+  --transition-fast: 0.3s ease;
+  --transition-normal: 0.4s ease;
+  --transition-slow: 0.6s ease;
+
+  /* 动效基建：运行时由 animation/apply.ts 写入；预设由 data-anim-pack 覆盖。 */
+  --anim-ease-standard: cubic-bezier(0.32, 0.72, 0, 1);
+  --anim-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --anim-ease-smooth: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --anim-dur-fast: 0.2s;
+  --anim-dur-base: 0.35s;
+  --anim-dur-slow: 0.5s;
+
+  /* 按压反馈时长（.pressable 专用，不随动效包变化：按下必须恒定瞬时，
+     否则慢速动效包下会失去"立刻凹陷"的手感）。 */
+  --anim-dur-press: 0.08s;
+  --anim-dur-press-filter: 0.25s;
+  --anim-dur-rebound: 0.34s;
+
+  /* 弹回过冲量。写死在 keyframes 里而不是靠 easeSpring 的控制点：
+     easeSpring 会被动效包覆盖，OriginOS 包的曲线峰值恰好是 1.000，
+     过冲量归零，手感直接消失。这两个变量只被 press-rebound 动画引用。
+     --press-pop-y 是垂直位移，与元件尺寸无关，小按钮上也看得见；
+     scale 过冲在窄元件上折算不到 1px，光靠它不够。 */
+  --press-pop-scale: 0.035;
+  --press-pop-y: 2px;
+
+  /* ---- 极光光带（.aurora-band 通用组件；各主题经 ext 覆写 c1/c3/glow） ---- */
+  --aurora-c1: #f2e7fd;
+  --aurora-c3: #e3f6fd;
+  --aurora-glow: rgba(242, 231, 253, 0.5);
+  --anim-dur-aurora: 7s;
+}
+
+/* ================= 深色模式修正 =================
+   .theme-dark 由 theme/apply.ts 按 theme.isDark 挂到 <html>（auto 模式下系统切深色
+   同样会挂），此前全项目没有任何一条规则消费它——深色主题一直在直接套用浅色数值。
+   下面按实测对比度逐项修正。数值来自对 createFontColors/RGB_*_Shade 的真实派生复算：
+   深色主区实际底色 = rgba(19,19,19,0.9) 压在 --color-primary-light-1000 上 ≈ #151515，
+   背景图不透明像素处最坏为 ≈ #2b2b2b（black 主题的月亮）。
+   选择器统一用 html.theme-dark 前缀：特异性 (0,2,1) 高于组件 scoped 的 .x[data-v-*]
+   (0,2,0)，因此无需 !important 即可覆盖 scoped 样式。 */
+html.theme-dark {
+  /* 次要文本/占位符/提示语：--color-450 实测仅 3.76~4.34:1（多种真实底色下均不足
+     4.5），上移到 --color-550 = 最小达标步阶（5.80 平面 / 4.52 最坏）。 */
+  --color-font-label: var(--color-550);
+  /* 边框：alpha-900(10%) 在深底上 1.15:1 等于不可见，抬到 alpha-400(60%) ≈ 3:1
+     满足 WCAG 1.4.11 非文本对比度。 */
+  --color-border: var(--color-primary-alpha-400);
+  /* 深底上纯黑投影不可能产生层次（#151515 对纯黑上限仅 1.15:1），
+     浮层改用"描边 + 更强投影"表达高度，见下方 ring 规则。 */
+  --color-ring: var(--color-primary-alpha-500);
+  --color-shadow-floating: rgba(0, 0, 0, 0.55);
+}
+
+/* 浮层层次：弹窗 / 菜单 / 下拉 / 悬浮条 / toast。
+   深色下加 1px 描边 ring 勾出边界，投影加深补足纵深。 */
+html.theme-dark .mask > .dialog,
+html.theme-dark .overlay > .card,
+html.theme-dark .ctx-menu,
+html.theme-dark .dropdown,
+html.theme-dark .vol-pop,
+html.theme-dark .more-menu,
+html.theme-dark .batch-bar,
+html.theme-dark .confirm-card,
+html.theme-dark .toast,
+html.theme-dark .mv-box {
+  border: 1px solid var(--color-ring);
+  box-shadow: 0 10px 34px var(--color-shadow-floating);
+}
+
+/* 侧栏与主区之间的接缝：深色下原 4px 黑投影不可见，边框已被抬亮，这里补一条分隔线。 */
+html.theme-dark .area-main {
+  border-left: 1px solid var(--color-border);
+}
+
+/* 深色下 .aurora-band 提高外发光可见度（浅色主题用 :root 默认值即可）。 */
+html.theme-dark .aurora-band.aurora-glow {
+  box-shadow: 0 0 16px var(--aurora-glow);
+}
+
+/* 主搜索框占位符：--color-button-font 实测 3.93:1，hover 态更差（2.72:1）。 */
+html.theme-dark .search-input::placeholder {
+  color: var(--color-550);
+}
+
+/* 选中行底色是全局最亮的面内表面（≈#434343），次要文字即使抬到 550 也只有 3.44:1。 */
+html.theme-dark .song-row.selected .extra,
+html.theme-dark .song-row.selected .album,
+html.theme-dark .song-row.selected .duration {
+  color: var(--color-750);
+}
+
+/* 主题选中角标：浅色下是"近白底 + 主色勾"，深色主题主色偏亮 → 2.62:1。
+   深色下反转为深底浅勾。 */
+html.theme-dark .theme-item .check {
+  color: var(--color-1000);
+  background: rgba(20, 20, 20, 0.92);
+  box-shadow: 0 0 0 1px var(--color-ring);
+}
+
+/* 禁用态：容器 opacity 0.4~0.5 叠加后低至 1.79:1，深色下抬高不透明度下限，
+   仍明显弱于可用态但至少可读（WCAG 对禁用控件免除，此处按可用性口径处理）。 */
+html.theme-dark .btn:disabled,
+html.theme-dark .selection:disabled,
+html.theme-dark .ctx-row.disabled,
+html.theme-dark .act:disabled,
+html.theme-dark .abtn:disabled,
+html.theme-dark .checkbox .container.disabled {
+  opacity: 0.68;
+}
+
+html[data-anim-pack='ios'] {
+  --anim-ease-standard: cubic-bezier(0.32, 0.72, 0, 1);
+  --anim-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --anim-ease-smooth: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --anim-dur-fast: 0.2s;
+  --anim-dur-base: 0.35s;
+  --anim-dur-slow: 0.5s;
+}
+
+html[data-anim-pack='originos'] {
+  --anim-ease-standard: cubic-bezier(0.36, 0, 0.66, -0.56);
+  --anim-ease-spring: cubic-bezier(0.22, 0.9, 0.36, 1);
+  --anim-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --anim-dur-fast: 0.16s;
+  --anim-dur-base: 0.28s;
+  --anim-dur-slow: 0.42s;
+}
+
+html[data-anim-pack='hyperos4'] {
+  --anim-ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --anim-ease-spring: cubic-bezier(0.22, 1.38, 0.36, 1);
+  --anim-ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+  --anim-dur-fast: 0.24s;
+  --anim-dur-base: 0.42s;
+  --anim-dur-slow: 0.62s;
+}
+
+/* ---------- 字体栈（按 OS class + 语言，移植自 lx reset.less） ---------- */
+/* --app-font 由设置注入；未设置或字体不存在时由后续系统字体稳定接管。 */
+.windows {
+  font-family: var(--app-font, 'Segoe UI'), 'Segoe WPC', sans-serif;
+}
+.windows:lang(zh-Hans) {
+  font-family: var(--app-font, 'Microsoft YaHei'), 'Microsoft YaHei UI', 'Segoe UI', sans-serif;
+}
+.mac {
+  font-family: var(--app-font, '-apple-system'), BlinkMacSystemFont, sans-serif;
+}
+.mac:lang(zh-Hans) {
+  font-family:
+    var(--app-font, 'PingFang SC'),
+    -apple-system,
+    BlinkMacSystemFont,
+    'Hiragino Sans GB',
+    sans-serif;
+}
+.linux {
+  font-family: var(--app-font, 'Ubuntu'), system-ui, 'Droid Sans', sans-serif;
+}
+.linux:lang(zh-Hans) {
+  font-family:
+    var(--app-font, 'Source Han Sans SC'),
+    system-ui,
+    'Noto Sans CJK SC',
+    'Droid Sans',
+    sans-serif;
+}
+
+/* ---------- reset ---------- */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-user-drag: none;
+}
+
+html {
+  font-size: 16px;
+}
+html,
+body {
+  height: 100%;
+}
+body {
+  line-height: 1.2;
+  color: var(--color-font);
+  overflow: hidden;
+  overscroll-behavior: contain;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+/* #app = LX #root：主题背景图 + 内容底色（侧栏 app-background 半透明时透出的底）。
+   字体大小档位经 --app-zoom（=fontSize/16）整体缩放。Chromium 128+ 标准化了 zoom：
+   百分比已按有效 zoom 解析（100% 即精确填满视口），不要再用 calc(100%/zoom) 反向
+   补偿——那是老内核 hack，如今会双重缩小，右/底露出窗口白底。 */
+#app {
+  width: 100%;
+  height: 100%;
+  zoom: var(--app-zoom, 1);
+  background: var(--background-image) var(--background-image-position) no-repeat;
+  background-size: var(--background-image-size);
+  background-color: var(--color-content-background);
+  /* 主窗口使用透明 BrowserWindow：圆角在内容层裁切，保留圆角但不带 Windows DWM 蓝边/阴影。 */
+  border-radius: 10px;
+  overflow: hidden;
+  transition: none;
+}
+
+/* 全屏不保留透明窗口的内容圆角，避免四角露出桌面。 */
+html.fullscreen #app {
+  border-radius: 0;
+}
+
+/* 对齐 lx-music-desktop 的 disableAnimation：设置关闭后停用所有界面动效。 */
+html.disable-animation *,
+html.disable-animation *::before,
+html.disable-animation *::after {
+  transition: none !important;
+  animation: none !important;
+  scroll-behavior: auto !important;
+}
+
+/* 弹出层默认/随机入场动画，由 usePopupAnimation 在节点出现时选择。 */
+.popup-enter-zoom {
+  animation: popup-zoom-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.popup-enter-slide {
+  animation: popup-slide-in 0.34s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.popup-enter-flip {
+  backface-visibility: hidden;
+  animation: popup-flip-in 0.4s ease-out both;
+}
+.popup-enter-drop {
+  animation: popup-drop-in 0.38s cubic-bezier(0.18, 0.89, 0.32, 1.28) both;
+}
+
+@keyframes popup-zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes popup-slide-in {
+  from {
+    opacity: 0;
+    transform: translate3d(38px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes popup-flip-in {
+  from {
+    opacity: 0;
+    transform: perspective(480px) rotateX(28deg) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(480px) rotateX(0) scale(1);
+  }
+}
+
+@keyframes popup-drop-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -34px, 0) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+ul,
+ol {
+  list-style: none;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: var(--color-font);
+  background: none;
+  border: none;
+  outline: none;
+}
+button {
+  cursor: pointer;
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-font-label);
+}
+img {
+  -webkit-user-drag: none;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+svg {
+  transition: none;
+}
+
+::selection {
+  color: var(--color-primary-dark-500-alpha-200);
+  background: var(--color-primary-light-100-alpha-500);
+}
+
+/* ---------- 交互 ---------- */
+.hover {
+  cursor: pointer;
+}
+.hover:hover {
+  color: var(--color-primary-font-hover);
+}
+.hover:active {
+  color: var(--color-primary-font-active);
+}
+
+/* ---------- 统一按压反馈 .pressable ----------
+   只动 transform / filter，走合成层不触发重排。
+   两态都必须写 transition：基础态那条负责"松手弹回"（带过冲的 spring），
+   :active 那条负责"按下瞬间凹陷"（极短 smooth）。只写一边会导致按下有动画、
+   松手瞬变（或反之），手感即失效。
+   --press-lift 供带 hover 上浮的元件复合位移用（见 BaseBtn/.theme-item），
+   默认 0 时不影响其它元件。 */
+.pressable {
+  --press-lift: 0px;
+  --press-scale: 0.94;
+  /* 本元件的过冲幅度倍率。窄元件（.pressable-subtle）按下深度浅，
+     过冲要相应收小，否则整行会明显"跳"一下。 */
+  --press-pop-k: 1;
+  transform: translateY(var(--press-lift)) scale(1);
+  filter: brightness(1);
+  transition:
+    transform var(--anim-dur-rebound) var(--anim-ease-spring),
+    filter var(--anim-dur-press-filter) ease;
+}
+.pressable:active:not(:disabled):not(.disabled) {
+  transform: translateY(var(--press-lift)) scale(var(--press-scale));
+  filter: brightness(0.92);
+  transition:
+    transform var(--anim-dur-press) var(--anim-ease-smooth),
+    filter var(--anim-dur-press) var(--anim-ease-smooth);
+}
+
+/* 松手弹回：过冲烘焙在关键帧里，不受动效包的 easeSpring 影响。
+   .pressing 由 usePressFeedback 的全局委托监听器在 pointerup/cancel 时加上，
+   动画结束自动摘除。纯 CSS 做不到"仅在退出 :active 时播放动画"——
+   没有这个类，动画会在首屏加载时对所有 .pressable 播一遍。 */
+.pressable.press-rebound:not(:disabled):not(.disabled) {
+  animation: press-rebound var(--anim-dur-rebound) var(--anim-ease-smooth);
+}
+@keyframes press-rebound {
+  0% {
+    transform: translateY(var(--press-lift)) scale(var(--press-scale));
+  }
+  /* 过冲峰值：越过静止态，视觉上"弹出来"一下 */
+  42% {
+    transform: translateY(calc(var(--press-lift) - var(--press-pop-y) * var(--press-pop-k)))
+      scale(calc(1 + var(--press-pop-scale) * var(--press-pop-k)));
+  }
+  /* 回落时的轻微下冲，收尾更像真实阻尼而不是硬停 */
+  72% {
+    transform: translateY(calc(var(--press-lift) + var(--press-pop-y) * var(--press-pop-k) * 0.28))
+      scale(calc(1 - var(--press-pop-scale) * var(--press-pop-k) * 0.22));
+  }
+  100% {
+    transform: translateY(var(--press-lift)) scale(1);
+  }
+}
+
+/* 整行/整条的宽元件（歌曲行、菜单项）用 0.94 会横向位移过大显得脱框，
+   这里给一档更浅的深度；过冲同步收小。 */
+.pressable.pressable-subtle {
+  --press-scale: 0.985;
+  --press-pop-k: 0.5;
+}
+
+/* ---------- 极光通用光带 .aurora-band ----------
+   渐变首尾同色（--aurora-c1），配合 background-size:300% 与 0%→300% 的位移，
+   循环端点色彩连续，无跳变。必须 linear：ease 会在每次循环端点前后减速，
+   视觉上就是"卡一下"。只动 background-position，不触发重排/重绘布局。 */
+.aurora-band {
+  background-image: linear-gradient(
+    100deg,
+    var(--aurora-c1) 0%,
+    #fff 25%,
+    var(--aurora-c3) 50%,
+    #fff 75%,
+    var(--aurora-c1) 100%
+  );
+  background-size: 300% 100%;
+  background-repeat: repeat;
+  animation: aurora-flow var(--anim-dur-aurora) linear infinite;
+}
+/* 可选外发光：静态属性，不参与动画。 */
+.aurora-band.aurora-glow {
+  box-shadow: 0 0 12px var(--aurora-glow);
+}
+@keyframes aurora-flow {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 300% 50%;
+  }
+}
+
+/* 系统级降低动效：光带停在渐变中段（保留配色，去掉流动），按压只留静态形变。
+   html.disable-animation 已由上方规则统一停用 transition/animation。 */
+@media (prefers-reduced-motion: reduce) {
+  .aurora-band {
+    animation: none;
+    background-position: 50% 50%;
+  }
+  .pressable {
+    transition: none;
+  }
+  .pressable.press-rebound:not(:disabled):not(.disabled) {
+    animation: none;
+  }
+}
+
+/* ---------- 滚动条（LX 品牌色） ---------- */
+.scroll {
+  overflow: auto;
+}
+.scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+  background-color: transparent;
+}
+.scroll::-webkit-scrollbar-track {
+  background-color: var(--color-primary-light-100-alpha-800);
+  border-radius: 3px;
+}
+.scroll::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background-color: var(--color-primary-alpha-600);
+  transition: none;
+}
+.scroll::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-primary-alpha-400);
+}
+
+/* ---------- 工具类 ---------- */
+.ellipsis {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.ellipsis-2 {
+  display: -webkit-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.nobreak {
+  white-space: nowrap;
+}
+.drag {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* ---------- 页面通用排版 ---------- */
+.page {
+  padding: 20px 25px;
+}
+.page-title {
+  margin-bottom: 16px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-font);
+}
+.hint {
+  padding: 15px 0;
+  color: var(--color-font-label);
+  font-size: 13px;
+}

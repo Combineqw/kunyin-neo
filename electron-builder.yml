@@ -1,0 +1,86 @@
+appId: com.ikunshare.sound
+productName: 坤音neo
+directories:
+  buildResources: build
+# 只保留中英文 locale，其余 53 个 Chromium 语言包(~42M)不打包
+electronLanguages:
+  - zh-CN
+  - en-US
+afterPack: scripts/afterPack.js
+# 打包后主进程以 process.resourcesPath/assets/icons 读取窗口、托盘与缩略图图标。
+# 因此不能只依赖 app 内的源码资源，需显式复制至安装目录的 resources/assets/icons。
+extraResources:
+  - from: resources/icons
+    to: assets/icons
+  - from: resources/autoeq
+    to: assets/autoeq
+files:
+  # 白名单式收集：只打包编译产物、清单与生产依赖；项目内其余内容（src/.git/历史构建目录等）一律不收。
+  - 'out/**'
+  - 'package.json'
+  - 'node_modules/**'
+  # better-sqlite3 瘦身：源码与本地 node-gyp 产物运行时都不加载（只用 prebuilds/ 下的 N-API 二进制）
+  - '!node_modules/better-sqlite3/deps/**'
+  - '!node_modules/better-sqlite3/src/**'
+  - '!node_modules/better-sqlite3/build/**'
+  # musl 版用不上：Electron 官方发行版依赖 glibc
+  - '!node_modules/better-sqlite3/prebuilds/linuxmusl-*.node'
+win:
+  executableName: kunyin-desktop
+  icon: resources/icons/icon.ico
+  # 各平台只留自己的预编译二进制；.node 由 electron-builder 自动 unpack 到 app.asar.unpacked。
+  # 保留同平台 arm64 版本，换架构构建时不会重现「找不到原生模块」（issue #1）。
+  files:
+    - '!node_modules/better-sqlite3/prebuilds/{darwin,linux}-*.node'
+nsis:
+  artifactName: ${name}-${version}-setup.${ext}
+  # 安装向导的用户协议页（内容为 MIT License，见 build/license.txt）
+  license: build/license.txt
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  # 向导式安装：允许用户选择安装目录（非一键安装）
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  # 按用户安装，免管理员权限（默认 false，显式声明）
+  perMachine: false
+  installerIcon: resources/icons/icon.ico
+  uninstallerIcon: resources/icons/icon.ico
+  installerLanguages:
+    - zh_CN
+    - en_US
+mac:
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
+    - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
+  notarize: false
+  icon: resources/icons/icon.icns
+  files:
+    - '!node_modules/better-sqlite3/prebuilds/{linux,win32}-*.node'
+dmg:
+  artifactName: ${name}-${version}.${ext}
+linux:
+  target:
+    - AppImage
+    - snap
+    - deb
+  maintainer: ikunshare
+  category: AudioVideo
+  icon: resources/icons
+  files:
+    - '!node_modules/better-sqlite3/prebuilds/{darwin,win32}-*.node'
+appImage:
+  artifactName: ${name}-${version}.${ext}
+npmRebuild: false
+# 自动更新：electron-updater 从 GitHub Releases 拉取 latest*.yml
+# 发布时由 CI（.github/workflows/release.yml）以 --publish always 上传安装包与更新元数据。
+publish:
+  provider: github
+  owner: ikunshare
+  repo: kunyin-desktop
+  # 直接发布为正式 Release（默认是 draft，draft 不会被 autoUpdater 检索到）
+  releaseType: release
+electronDownload:
+  mirror: https://npmmirror.com/mirrors/electron/
