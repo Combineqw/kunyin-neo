@@ -30,7 +30,21 @@ win:
   icon: resources/icons/icon.ico
   # 各平台只留自己的预编译二进制；.node 由 electron-builder 自动 unpack 到 app.asar.unpacked。
   # 保留同平台 arm64 版本，换架构构建时不会重现「找不到原生模块」（issue #1）。
+  #
+  # ⚠ 平台级 files 会「替换」而非「合并」顶层 files（electron-builder 语义）。
+  # 早先此处只写排除项，顶层白名单被整段覆盖，退回默认「几乎全收」：
+  # test-assets(2540MB) + crates(189MB) + tools(83MB) 被打进 app.asar，
+  # asar 涨到 2844MB，makensis（32 位）对 2.6GB 的 7z 建 mmap 失败，
+  # 打包报 ERR_ELECTRON_BUILDER_CANNOT_EXECUTE。
+  # 故这里必须把顶层白名单原样重列一遍，再追加平台排除项。
   files:
+    - 'out/**'
+    - 'package.json'
+    - 'node_modules/**'
+    - '!node_modules/better-sqlite3/deps/**'
+    - '!node_modules/better-sqlite3/src/**'
+    - '!node_modules/better-sqlite3/build/**'
+    - '!node_modules/better-sqlite3/prebuilds/linuxmusl-*.node'
     - '!node_modules/better-sqlite3/prebuilds/{darwin,linux}-*.node'
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
@@ -57,7 +71,15 @@ mac:
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
   icon: resources/icons/icon.icns
+  # 同 win：平台级 files 替换顶层，须原样重列白名单（详见 win.files 注释）
   files:
+    - 'out/**'
+    - 'package.json'
+    - 'node_modules/**'
+    - '!node_modules/better-sqlite3/deps/**'
+    - '!node_modules/better-sqlite3/src/**'
+    - '!node_modules/better-sqlite3/build/**'
+    - '!node_modules/better-sqlite3/prebuilds/linuxmusl-*.node'
     - '!node_modules/better-sqlite3/prebuilds/{linux,win32}-*.node'
 dmg:
   artifactName: ${name}-${version}.${ext}
@@ -69,7 +91,15 @@ linux:
   maintainer: ikunshare
   category: AudioVideo
   icon: resources/icons
+  # 同 win：平台级 files 替换顶层，须原样重列白名单（详见 win.files 注释）
   files:
+    - 'out/**'
+    - 'package.json'
+    - 'node_modules/**'
+    - '!node_modules/better-sqlite3/deps/**'
+    - '!node_modules/better-sqlite3/src/**'
+    - '!node_modules/better-sqlite3/build/**'
+    - '!node_modules/better-sqlite3/prebuilds/linuxmusl-*.node'
     - '!node_modules/better-sqlite3/prebuilds/{darwin,win32}-*.node'
 appImage:
   artifactName: ${name}-${version}.${ext}
