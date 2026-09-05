@@ -19,6 +19,7 @@
 import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
 import { statSync } from 'node:fs'
+import { AUDIO_EXTENSIONS, parseLocalSong } from '../src/main/modules/local-music/core.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '..')
@@ -92,19 +93,6 @@ export function setByPath(root, keyPath, value) {
 
 // ───────────────────────── scan（R2-1） ─────────────────────────
 
-/** 与 Node 端 AUDIO_EXTENSIONS 保持一致 */
-const AUDIO_EXTENSIONS = ['mp3', 'flac', 'wav', 'm4a', 'aac', 'ogg', 'opus', 'wma', 'ape']
-
-/** 文件名回退解析，复刻主进程 parseFileName */
-function parseFileNameNode(filePath, path) {
-  const base = path.basename(filePath, path.extname(filePath)).trim()
-  const sep = base.indexOf(' - ')
-  if (sep > 0) {
-    return { artist: base.slice(0, sep).trim(), title: base.slice(sep + 3).trim() }
-  }
-  return { title: base, artist: '' }
-}
-
 /** 递归收集音频文件，按路径排序（与 Rust 侧一致，保证配对稳定） */
 async function walkAudioFiles(root, fs, path) {
   const out = []
@@ -139,40 +127,15 @@ export const modules = [
     fields: ['title', 'artist', 'album', 'duration', 'path'],
     describe: (item) => item?.path ?? '(未知文件)',
 
-    /**
-     * Node 侧实现。
-     *
-     * 刻意不 import 主进程的 local-music/index.ts —— 它引入了 electron 的 dialog，
-     * 纯 Node 下加载会失败。这里复刻 parseLocalSong 的字段解析语义，
-     * 并使用同一个 music-metadata 依赖，确保比对的是同一套 Node 语义。
-     * 字段契约见 PROJECT_STATUS.md，改动需同步那张表。
-     */
+    /** Node 侧与生产端共用 local-music/core.ts 的纯逻辑实现。 */
     async runNode(input) {
       const fs = await import('node:fs/promises')
       const path = await import('node:path')
-      const mm = await import('music-metadata')
       const files = await walkAudioFiles(input, fs, path)
       const out = []
       for (const filePath of files) {
-        const fallback = parseFileNameNode(filePath, path)
-        let title = fallback.title
-        let artist = fallback.artist
-        let album = ''
-        let duration = 0
-        try {
-          const meta = await mm.parseFile(filePath, { duration: true, skipCovers: true })
-          if (meta.common.title?.trim()) title = meta.common.title.trim()
-          const artists = meta.common.artists?.length
-            ? meta.common.artists
-            : [meta.common.artist ?? '']
-          const joined = artists.map((s) => (s ?? '').trim()).filter(Boolean).join('、')
-          if (joined) artist = joined
-          album = meta.common.album?.trim() ?? ''
-          duration = Math.round((meta.format.duration ?? 0) * 1000)
-        } catch {
-          // 标签读取失败：回退文件名 + 时长 0（与主进程 parseLocalSong 一致）
-        }
-        out.push({ title, artist, album, duration, path: filePath })
+        const item = await parseLocalSong(filePath)
+        out.push({ title: item.title, artist: item.artist, album: item.album, duration: item.duration, path: filePath })
       }
       return out
     },
