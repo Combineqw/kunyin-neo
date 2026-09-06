@@ -1,171 +1,137 @@
-<p align="center"><a href="https://github.com/ikunshare/kunyin-desktop"><img width="200" src="https://raw.githubusercontent.com/ikunshare/kunyin-desktop/main/resources/icons/icon.png" alt="kunyin logo"></a></p>
+# 坤音 neo · kunyin-neo
 
 <p align="center">
-  <h1 align="center">坤音 KunYin Desktop</h1>
+  <img src="./resources/icons/icon.png" width="120" alt="坤音 neo 图标">
 </p>
 
-<p align="center">
-  <a href="https://github.com/ikunshare/kunyin-desktop/releases"><img src="https://img.shields.io/github/v/release/ikunshare/kunyin-desktop" alt="Release version"></a>
-  <a href="https://github.com/ikunshare/kunyin-desktop/actions/workflows/release.yml"><img src="https://github.com/ikunshare/kunyin-desktop/actions/workflows/release.yml/badge.svg" alt="Build status"></a>
-  <a href="https://github.com/ikunshare/kunyin-desktop/blob/main/LICENSE"><img src="https://img.shields.io/github/license/ikunshare/kunyin-desktop" alt="License"></a>
-  <a href="https://electronjs.org/releases/stable"><img src="https://img.shields.io/github/package-json/dependency-version/ikunshare/kunyin-desktop/dev/electron/main" alt="Electron version"></a>
-</p>
+**多平台在线音乐 + 面向发烧友的本地曲库。**
 
-<p align="center">聚合多平台音源的桌面音乐播放器</p>
+坤音 neo 基于 KunYin Desktop 持续演进，保留在线搜索、播放、歌单和歌词能力，逐步补齐本地音乐管理、音量均衡与桌面体验。当前客户端使用 Electron + Vue 3 + TypeScript，Rust 模块处于影子比对阶段，真机体验验收仍待完成。
 
-## 说明
+- 项目仓库：[Combineqw/kunyin-neo](https://github.com/Combineqw/kunyin-neo)
+- 项目所有者：[南风知我意 (@Combineqw)](https://github.com/Combineqw)
+- 协议：[MIT License](./LICENSE)
 
-坤音（KunYin）是一个基于 Electron + Vue 3 + TypeScript 开发的桌面音乐播放器，聚合了多个在线音乐源，提供统一的多端一致的搜索、播放、歌单与下载体验。
+## 项目来自哪里
 
-本项目代码为纯AI生成，介意不要使用。
+本项目衍生自 [ikunshare/kunyin-desktop](https://github.com/ikunshare/kunyin-desktop)，感谢原作者 **ikunshare** 及上游贡献者提供基础播放器与功能实现。
 
-所用技术栈：
+上游提供了 Electron 桌面框架、多音源搜索播放、歌词、歌单、本地导入和主题等基础能力。本仓库以 `eef16b5` 为本地改动对照基线，独立维护后续修改，并保留原项目的 MIT 许可证和版权声明。
 
-- Electron 39+
-- Vue 3
-- TypeScript
-- electron-vite / electron-builder
+## 作者与协作
 
-已支持的运行平台：
+**Codex · 清言 · Claude · [南风知我意 (@Combineqw)](https://github.com/Combineqw)**
 
-- Windows 10 及以上
-- macOS
-- Linux
+南风知我意是项目所有者与维护者，负责方向、需求和最终验收；Codex、清言、Claude 为 AI 协作署名。上述署名用于本分支的维护与协作，上游原作归属见“项目来自哪里”及许可证。
 
-已支持的在线音源：
+## 现有基础功能
 
-- 网易云音乐（`wy`）
-- QQ 音乐（`qq`）
-- QQ 音乐云（`qqc`，搜索走自建后端缓存）
-- 酷狗音乐（`kg`）
-- 酷我音乐（`kw`）
-- JOOX（`joox`）
+以下能力继承自上游，在本分支持续维护：
 
-> 移动端（Android）项目：<https://github.com/ikunshare/kunyin>
+- **在线音乐**：聚合网易云音乐、QQ 音乐、QQ 音乐云、酷狗、酷我和 JOOX 等来源，提供歌曲、专辑与歌手搜索。
+- **播放与歌单**：多档音质播放和下载、收藏、最近播放、自建歌单、在线歌单与专辑浏览。
+- **歌词**：逐行、逐字、翻译与音译歌词，以及桌面歌词悬浮窗。
+- **本地音乐**：导入本地音频、解析标签，读取失败时回退文件名。
+- **桌面设置**：多主题、字体与窗口设置、代理设置，以及歌单同步和导入导出。
 
-## 主要功能
+在线功能的可用性取决于对应来源、账号权限与网络情况。
 
-- 多音源聚合搜索（单曲 / 专辑 / 歌手）
-- 在线歌单 / 专辑 / 歌手页，登录后的「我的歌单」
-- 多档音质播放与下载（128K / 320K / 无损 / Hi-Res / 臻品等）
-- 歌词展示：逐行 / 逐字 / 翻译 / 音译，桌面歌词悬浮窗
-- 本地音乐导入、收藏（我喜欢）、最近播放、自建歌单
-- 卡密激活、平台账号登录（QQ / 网易云 / 酷狗）
-- LX 数据同步（多端歌单 / 收藏同步）
-- 备份与恢复、LX 歌单导入导出
-- 代理设置、多主题、字体 / 窗口尺寸自定义
-- 内置自动更新（`electron-updater`）
+## 本分支已做的修改
 
-## 下载
+| 方向          | 已完成内容                                                           | 当前状态                                        |
+| ------------- | -------------------------------------------------------------------- | ----------------------------------------------- |
+| 桌面交互      | 极光分隔条、点击弹性回弹、歌词点击跳转                               | 实现已提交，真机体验仍待验收                    |
+| Rust 扫描模块 | 音频目录扫描、元数据解析，补充跳过文件、解析失败和遍历错误计数       | 影子比对阶段，尚未替换生产实现                  |
+| Rust 歌词模块 | LRC 行级解析与 Node 语义比对                                         | 影子比对阶段                                    |
+| Rust 设置模块 | 设置读取、序列化和沙箱回环测试，真实文件由哈希校验保护               | 影子比对阶段                                    |
+| 同源测试      | 将本地音乐纯逻辑抽到 `core.ts`，生产入口与 shadow 扫描共用源码       | 已完成，消除扫描模块的复刻副本漂移              |
+| 回归样本      | 固化扫描 8 条、歌词 15 条、设置回环 10 条边界用例                    | 存档记录为 33/33 PASS；用例生成与执行比对需区分 |
+| 打包修复      | 修正平台级 `files` 覆盖顶层白名单，排除测试素材、Rust 工程和工具目录 | 历史 asar 从 2844.5 MB 降至 22.2 MB             |
+| 工程存档      | 提交项目记忆 `MEMORY.md`，保留演进路线与决策依据                     | v4.4 已入库；版本变更由项目所有者发起           |
 
-软件安装包请到 [GitHub Releases](https://github.com/ikunshare/kunyin-desktop/releases) 下载：
+2026-09-04 的 Windows 安装包记录为 **97,099,765 字节**（按 1024 换算约 **92.6 MiB**）。这是指定历史构建的记录，后续构建需重新核验，不能据此推断当前机器的性能或体验。
 
-- Windows：`kunyin-desktop-<version>-setup.exe`
-- macOS：`kunyin-desktop-<version>.dmg`
-- Linux：`kunyin-desktop-<version>.AppImage` / `.deb`
+Rust 模块的测试 PASS 也不等于整机验收通过。三引擎接入（R2-4）、扫描进度岛与动效地基批仍待真机验收数据齐全并由所有者确认后开展。
 
-目前本项目的官方发布渠道只有 [GitHub Releases](https://github.com/ikunshare/kunyin-desktop/releases)，其他渠道均为第三方转载，与本项目无关。
+## 规划功能
 
-## 源码使用方法
+以下均为规划，完成后才会移入已实现列表。
 
-### 环境要求
+### 功能路线
 
-- Node.js **20.19+ 或 22.12+**（vite 7 的要求，20.5 / 22.11 这类版本不行）
-- npm
+按 **F1 → F1.5 → F3' → F2 → F4'** 的顺序推进：
 
-Windows 上想省事可以什么都不装:本目录 `tools\node\` 里放了一份官方免安装版
-Node v22.23.2（win-x64),双击 `build-kunyin.cmd` 会自动用它,不写注册表、
-不改系统 PATH、不需要管理员。本机已有合规版本时优先用本机的。
+| 顺序 | 功能                | 计划内容                                                   |
+| ---- | ------------------- | ---------------------------------------------------------- |
+| F1   | 本地音乐自动补全    | 按标签补封面、歌词和专辑名，缓存歌词，支持可取消的批量任务 |
+| F1.5 | ReplayGain 音量均衡 | 分析并保存曲目增益，减少切歌时的响度差异                   |
+| F3'  | 曲库管家            | 清理 `KUNYIN__` 文件名，提供预览与撤销；补充查重和损坏检测 |
+| F2   | 聚合搜索增强        | 在线来源并发搜索、先回先显、来源标记和过期搜索作废         |
+| F4'  | WASAPI 独占评估     | 先评估收益与实现成本，再决定是否实现；不作为现有能力承诺   |
 
-    校验：node-v22.23.2-win-x64.zip
-    sha256 1177b4137ba5adaa56354ae40f1080c7450e8ae09cecb47da459d1c52ac99f97
-    与 https://nodejs.org/dist/v22.23.2/SHASUMS256.txt 一致
+### 性能、架构与体验
 
-不需要这份附带的 Node,直接删掉 `tools\node\` 即可,脚本会回退到本机安装的版本。
+- **曲库基建**：增量扫描、SQLite FTS5、虚拟滚动与缓存，围绕大型曲库逐步验证。
+- **在线体验**：封面缓存、歌单虚拟滚动和下一首预加载。
+- **桌面体验**：扫描进度岛、封面取色、玻璃与光照、统一动效 tokens、极光返工及失焦暂停。
+- **架构演进**：先在 Electron 中逐步接入 Rust 核心，随后维护并行 Tauri 壳，经功能对等和测试后再决定发布渠道切换。
 
-### 安装依赖
+性能目标需要基准与真机数据支持；不预先承诺内存下降幅度或具体完成时间。
+
+## 获取与运行
+
+本仓库目前尚未发布 Release 安装包，可从源码运行。后续发布入口为 [本仓库 Releases](https://github.com/Combineqw/kunyin-neo/releases)。
+
+当前 `electron-builder.yml` 的发布目标仍指向上游 `ikunshare/kunyin-desktop`，本分支的自动更新渠道尚未完成切换；现有客户端的更新提示不能作为本仓库发布的依据。
+
+### 开发环境
+
+- 推荐 **Node.js 22.18+**（22.x LTS）及 npm；影子脚本直接导入 TypeScript，使用支持默认类型擦除的 Node 版本。
+- 开发客户端使用 Electron 39、Vue 3、TypeScript、electron-vite 和 electron-builder。
+- 构建 Rust 影子模块另需 Rust/Cargo、napi-rs 构建依赖及对应平台编译工具；仅运行当前 Electron 客户端无需接入 Rust 引擎。
 
 ```bash
+git clone https://github.com/Combineqw/kunyin-neo.git
+cd kunyin-neo
 npm install
-```
-
-### 开发调试
-
-```bash
 npm run dev
 ```
 
-### 类型检查 / 代码检查
+### 检查与构建
 
 ```bash
-npm run typecheck
-npm run lint
-```
+# ESLint、类型检查、核心域、主题对比度和动效约束
+npm run verify
 
-### 打包构建
+# 编译应用
+npm run build
 
-```bash
-# Windows
+# Windows 安装包
 npm run build:win
-
-# macOS
-npm run build:mac
-
-# Linux
-npm run build:linux
 ```
 
-构建产物输出在 `dist/` 目录。
+Windows 也可使用根目录的 `build-kunyin.cmd` / `build-kunyin.ps1`。仓库附带的 `tools/node/` 是 Windows x64 构建工具，不随应用打包。构建产物位于 `dist/`。
 
-## 软件内更新与发布流程
+macOS / Linux 构建入口分别为 `npm run build:mac` 和 `npm run build:linux`；本分支的跨平台体验需分别验证。
 
-本项目的自动更新基于 [electron-updater](https://www.electron.build/auto-update) + GitHub Releases：
+`npm run native:compare` 用于 Node/Rust 影子比对，需先准备本机对应的原生模块产物及测试素材。扫描和歌词的边界样本可通过 `node scripts/boundary-fixtures.mjs` 生成；该命令只生成样本，不代表比对测试已经执行或通过。
 
-- 发布配置见 `electron-builder.yml` 的 `publish`（`provider: github`）。
-- 打包时 electron-builder 会自动生成各平台的更新元数据 `latest.yml`（Windows）、`latest-mac.yml`（macOS）、`latest-linux.yml`（Linux），并随安装包一起上传到 Release。
-- 用户端在「设置 → 关于 → 软件更新」点击「检查更新」即可发现新版本并自动下载、重启安装；启动时也会静默检查一次。
+## 数据目录
 
-### 发布一个新版本
+| 系统    | 默认目录                                                        |
+| ------- | --------------------------------------------------------------- |
+| Windows | `%APPDATA%/kunyin-desktop`                                      |
+| macOS   | `~/Library/Application Support/kunyin-desktop`                  |
+| Linux   | `$XDG_CONFIG_HOME/kunyin-desktop` 或 `~/.config/kunyin-desktop` |
 
-1. 修改 `package.json` 中的 `version`（遵循语义化版本，且不要带 `v` 前缀）。
-2. 提交改动并打上 `v` 前缀的标签（标签须与 `version` 一致，例如 `version: 1.0.4` → 标签 `v1.0.4`）：
+## 仓库权限与反馈
 
-   ```bash
-   git add .
-   git commit -m "chore: release 1.0.4"
-   git tag v1.0.4
-   git push origin main --tags
-   ```
+仓库公开可读，**写入权限由项目所有者控制**，普通访客无法直接推送或修改本仓库。欢迎通过 [Issues](https://github.com/Combineqw/kunyin-neo/issues) 反馈问题；Pull Request 只是变更提案，是否合并由所有者决定。
 
-3. 推送标签后，[Release 工作流](.github/workflows/release.yml) 会自动：
-   - 创建正式 Release 并自动生成更新日志（`gh release create --generate-notes`）；
-   - 在 Windows / macOS / Linux 三平台并行构建，并以 `--publish always` 上传安装包与 `latest*.yml`。
+公开代码仍按 MIT 许可证提供，允许他人在遵守许可证的前提下克隆、fork 和修改自己的副本。这与本仓库的写入权限是两回事。
 
-4. 用户即可在客户端内收到更新提示。
+## 许可与致谢
 
-> 说明：标签 `vX.Y.Z` 必须与 `package.json` 的 `version` 严格一致，否则 electron-builder 无法正确发布到对应标签。如需重跑发布，请先删除已存在的同名 Release（`create-release` 步骤已做幂等判断，但已发布资产不会自动覆盖）。
+本项目沿用 [MIT License](./LICENSE)，保留 **Copyright (c) 2026 ikunshare** 及上游版权声明。感谢 KunYin Desktop、Electron、Vue、Rust 及所用开源依赖的贡献者。
 
-## 数据存储目录
-
-默认情况下，软件数据存储在：
-
-- Windows：`%APPDATA%/kunyin-desktop`
-- macOS：`~/Library/Application Support/kunyin-desktop`
-- Linux：`$XDG_CONFIG_HOME/kunyin-desktop` 或 `~/.config/kunyin-desktop`
-
-## 免责声明
-
-本项目仅供技术学习与交流使用，不提供任何音频文件的存储与分发能力。所有在线音源数据均从其公开接口拉取，本项目不对数据的合法性、准确性负责。
-
-**请尊重版权，支持正版。** 使用本项目产生的任何直接或间接后果由使用者自行承担。
-
-## 贡献
-
-欢迎提交 Issue 与 PR。贡献前请先阅读「源码使用方法」搭建开发环境，并：
-
-- 新增功能建议先开 Issue 说明，确认后再提交 PR；
-- 修复 bug 的 PR 请附上复现方式与修复说明。
-
-## 项目协议
-
-本项目基于 [MIT License](./LICENSE) 开源，Copyright (c) 2026 ikunshare。
+请尊重音乐与封面的版权，使用具有合法访问权限的内容。
