@@ -246,3 +246,47 @@
 3. 仍锁：三引擎接入 → 扫描进度岛 → 地基批（极光返工含
    C4 / 取色 / 色彩总线 / 玻璃基础 / M1 tokens 成文）
    ——等验收过
+
+◆ 工单5 客观采集与授权链追加（2026-09-06）
+
+#16 客观数
+- SHA 核对一致：d0da5315861423a4f07b69c0c0aecc2342f497dd3db67d223e59c67bf4b44055。
+  实际安装包 kunyin-desktop-1.0.7-setup.exe，97099765 B，
+  用户已确认采用该文件；NSIS /S 退出码 0，安装版本 1.0.7.0。
+- 系统查询当前显示模式 2560×1440、165 Hz（RTX 2070 SUPER）；
+  此为系统刷新率，不是应用帧率。
+- 历史内存 A 双口径（依次 Working Set / Private Bytes）：
+  正式包 608.00 / 290.15 MiB，dev 449.70 / 223.14 MiB。
+  均为失焦至少 30 秒后 Get-Process 全应用进程求和的一次快照，
+  非 30 秒均值；Working Set 可重复计共享页，Private Bytes
+  非任务管理器专用工作集。1 MiB = 1048576 B。
+
+#17 B 数值与采集方式
+- dev B（CDP 自动）：2026-09-06 13:54:41（UTC+08），失焦
+  30.534 秒，4 进程；Working Set 426.58 MiB（447299584 B），
+  Private Bytes 209.00 MiB（219152384 B）。沿用 A 的采集脚本。
+- 临时 npm run dev -- --remoteDebuggingPort 9222，由脚手架
+  传为 Electron --remote-debugging-port=9222；Node v24.19.0
+  内置 WebSocket 经 Runtime.evaluate 执行
+  document.getAnimations().forEach(a => a.pause())。
+  全程免 GUI DevTools；临时脚本不入仓，采样前断开 WebSocket。
+- 人鱼姬设置页；暂停前后动画列表均为空，实际暂停数量 0。
+  标注“CSS 暂停近似，rAF 未覆盖”；只证明命令执行及本轮内存
+  读数，不证明动画暂停收益。B 与历史 A 非同一启动轮次，且带
+  调试端口，不计算 A−B。用户确认失焦，窗口保持打开未最小化。
+- CDP 首试成功；临时 dev 已关闭，调试与渲染服务端口已释放。
+  终稿与详细证据见 kunyin-neo-acceptance-report.md。
+
+#18 授权链记录
+- 仓库公开和 README 重写均由 codex 按用户原话授权执行：
+  “公开仓库但是不允许其他人修改，readme你自己写一份新的，包含修改功能，项目来自，规划功能，作者写你，清言，Claude，我”。
+  随后用户补充：“按我github id来，南风知我意”。
+- 后续 Public 授权覆盖工单3 Private 要求；普通访客无直接推送
+  权限，MIT 仍允许修改自己的副本。人类作者为南风知我意
+  (@Combineqw)，与 Codex、清言、Claude 并列协作署名。
+- README 提交 fdabcc24699847a5ca1968502929a4fb5f5bd01f，
+  仅 README.md，+85/-119；该提交已推送，为本单提交前 origin
+  顶端，包含前两笔 b06947f / 73d1151；本单新提交另行回执。
+- 工单5授权本次 CDP 补采、报告终稿及 #16/#17/#18 追加提交。
+  以上仅客观数与授权记账，不构成验收通过。用户主观项待自跑；
+  R2-4、扫描进度岛、地基批仍锁，判定权仍在用户。
