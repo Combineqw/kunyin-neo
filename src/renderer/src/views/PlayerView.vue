@@ -380,8 +380,9 @@ watch(currentTime, (t) => {
       <AmllBackground :cover="cover" />
       <div class="depth-blur" :style="{ backgroundImage: cover ? `url(${cover})` : undefined }" />
       <div class="scrim" />
+      <div class="window-drag-region" aria-hidden="true" />
 
-      <button class="close pressable" title="收起" @click="router.back()">
+      <button class="close no-drag pressable" title="收起" @click="router.back()">
         <AppIcon name="chevron-down" :size="24" />
       </button>
 
@@ -611,12 +612,23 @@ watch(currentTime, (t) => {
     rgba(0, 0, 0, 0.08) 42%,
     rgba(0, 0, 0, 0.44) 100%
   );
+  pointer-events: none;
+}
+.window-drag-region {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  right: 72px;
+  height: 64px;
+  -webkit-app-region: drag;
+  pointer-events: auto;
 }
 .close {
   position: absolute;
   top: 20px;
   right: 24px;
-  z-index: 3;
+  z-index: 4;
   display: flex;
   align-items: center;
   justify-content: center;

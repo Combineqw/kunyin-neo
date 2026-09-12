@@ -46,6 +46,23 @@ const LOCAL_MIME: Record<string, string> = {
   '.ape': 'audio/x-ape'
 }
 
+/** 部分 CDN 会把 FLAC 错标为 audio/mpeg；远程 URL 后缀比上游 Content-Type 更可信。 */
+const REMOTE_MIME: Record<string, string> = {
+  ...LOCAL_MIME,
+  '.mflac': 'audio/flac',
+  '.mgg': 'audio/mpeg'
+}
+
+function mimeFromUrl(url: string): string | undefined {
+  try {
+    const pathname = new URL(url).pathname.toLowerCase()
+    const dot = pathname.lastIndexOf('.')
+    return dot >= 0 ? REMOTE_MIME[pathname.slice(dot)] : undefined
+  } catch {
+    return undefined
+  }
+}
+
 /** 本地文件响应：fs.createReadStream + 手工 206 Range（seek 全靠它） */
 function serveLocalFile(filePath: string, range: string | null): Response {
   let size: number
@@ -309,7 +326,10 @@ export function installAudioProtocol(): void {
     out.set('Accept-Ranges', 'bytes')
     out.set(
       'Content-Type',
-      spec.contentType ?? upstream.headers.get('content-type') ?? 'audio/mpeg'
+      spec.contentType ??
+        mimeFromUrl(spec.url) ??
+        upstream.headers.get('content-type') ??
+        'audio/mpeg'
     )
     const cl = upstream.headers.get('content-length')
     const cr = upstream.headers.get('content-range')
