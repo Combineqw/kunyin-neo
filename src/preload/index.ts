@@ -50,6 +50,7 @@ const api: WindowApi = {
       }
     },
     setSize: (width, height) => ipcRenderer.invoke(IpcChannels.WINDOW_SET_SIZE, width, height),
+    moveBy: (deltaX, deltaY) => ipcRenderer.send(IpcChannels.WINDOW_MOVE_BY, deltaX, deltaY),
     ready: () => ipcRenderer.send(IpcChannels.WINDOW_READY)
   },
   settings: {

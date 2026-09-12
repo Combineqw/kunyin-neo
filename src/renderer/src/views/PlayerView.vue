@@ -25,6 +25,40 @@ const track = computed(() => current.value)
 const playerFullscreen = ref(false)
 let unsubscribeFullscreen: (() => void) | null = null
 
+let windowDrag: { pointerId: number; lastX: number; lastY: number } | null = null
+
+function isWindowDragBlocked(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    !!target.closest(
+      'button, input, select, textarea, .window-no-drag, [data-role="line-normal"]'
+    )
+  )
+}
+
+function onWindowDragDown(event: PointerEvent): void {
+  if (playerFullscreen.value || event.button !== 0 || isWindowDragBlocked(event.target)) return
+  const currentTarget = event.currentTarget
+  if (!(currentTarget instanceof HTMLElement)) return
+  windowDrag = { pointerId: event.pointerId, lastX: event.screenX, lastY: event.screenY }
+  currentTarget.setPointerCapture(event.pointerId)
+  event.preventDefault()
+}
+
+function onWindowDragMove(event: PointerEvent): void {
+  if (!windowDrag || windowDrag.pointerId !== event.pointerId) return
+  const deltaX = event.screenX - windowDrag.lastX
+  const deltaY = event.screenY - windowDrag.lastY
+  windowDrag.lastX = event.screenX
+  windowDrag.lastY = event.screenY
+  if (deltaX || deltaY) api.window.moveBy(deltaX, deltaY)
+}
+
+function onWindowDragUp(event: PointerEvent): void {
+  if (!windowDrag || windowDrag.pointerId !== event.pointerId) return
+  windowDrag = null
+}
+
 /**
  * Electron 在部分 Windows 环境不会稳定触发 enter-full-screen；除主进程状态外，
  * 再用当前视口是否覆盖屏幕工作区兜底，保证播放页能拿到真实的全屏布局状态。
@@ -376,11 +410,18 @@ watch(currentTime, (t) => {
   <!-- 挂到 body：字体大小设置靠 #app 的 zoom 整体缩放实现，全屏播放器
        （封面/控件/歌词字号）不应跟随界面字号档位变化 -->
   <Teleport to="body">
-    <div class="player-page" :class="{ fullscreen: playerFullscreen }" :data-track-key="track ? `${track.type}:${track.id}` : 'empty'">
+    <div
+      class="player-page"
+      :class="{ fullscreen: playerFullscreen }"
+      :data-track-key="track ? `${track.type}:${track.id}` : 'empty'"
+      @pointerdown="onWindowDragDown"
+      @pointermove="onWindowDragMove"
+      @pointerup="onWindowDragUp"
+      @pointercancel="onWindowDragUp"
+    >
       <AmllBackground :cover="cover" />
       <div class="depth-blur" :style="{ backgroundImage: cover ? `url(${cover})` : undefined }" />
       <div class="scrim" />
-      <div class="window-drag-region" aria-hidden="true" />
 
       <button class="close no-drag pressable" title="收起" @click="router.back()">
         <AppIcon name="chevron-down" :size="24" />
@@ -399,7 +440,7 @@ watch(currentTime, (t) => {
             <div class="track-artist ellipsis">{{ track?.artist || '选一首歌开始' }}</div>
           </div>
 
-          <div class="progress">
+          <div class="progress window-no-drag">
             <div
               class="bar"
               @pointerdown="onProgDown"
@@ -417,7 +458,7 @@ watch(currentTime, (t) => {
             </div>
           </div>
 
-          <div class="controls">
+          <div class="controls window-no-drag">
             <button class="tbtn pressable" title="上一首" @click="player.prev()">
               <AppIcon name="skip-back" :size="27" />
             </button>
@@ -433,7 +474,7 @@ watch(currentTime, (t) => {
             </button>
           </div>
 
-          <div class="volume">
+          <div class="volume window-no-drag">
             <button class="vbtn pressable" :title="muted ? '取消静音' : '静音'" @click="player.toggleMute()">
               <AppIcon :name="volIcon" :size="16" />
             </button>
@@ -450,7 +491,7 @@ watch(currentTime, (t) => {
             </div>
           </div>
 
-          <div class="actions">
+          <div class="actions window-no-drag">
             <button class="abtn pressable" :title="modeMeta.label" @click="cyclePlayMode">
               <AppIcon :name="modeMeta.icon" :size="20" />
             </button>
@@ -528,7 +569,7 @@ watch(currentTime, (t) => {
       </div>
 
       <Transition name="queue-drawer">
-        <aside v-if="queueOpen" class="queue-drawer" aria-label="播放队列">
+        <aside v-if="queueOpen" class="queue-drawer window-no-drag" aria-label="播放队列">
           <div class="queue-head">
             <div>
               <b>播放队列</b>
@@ -613,16 +654,6 @@ watch(currentTime, (t) => {
     rgba(0, 0, 0, 0.44) 100%
   );
   pointer-events: none;
-}
-.window-drag-region {
-  position: absolute;
-  z-index: 3;
-  top: 0;
-  left: 0;
-  right: 72px;
-  height: 64px;
-  -webkit-app-region: drag;
-  pointer-events: auto;
 }
 .close {
   position: absolute;

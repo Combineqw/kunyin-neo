@@ -51,6 +51,7 @@ export const IpcChannels = {
   WINDOW_FULLSCREEN: 'window:fullscreen',
   WINDOW_FULLSCREEN_CHANGED: 'window:fullscreen-changed',
   WINDOW_SET_SIZE: 'window:setSize',
+  WINDOW_MOVE_BY: 'window:moveBy',
   WINDOW_READY: 'window:ready', // 渲染 → 主：UI 首帧已绘制，可显示窗口
 
   // 设置
@@ -405,6 +406,8 @@ export interface WindowApi {
     onFullscreenChange(cb: (fullscreen: boolean) => void): Unsubscribe
     /** 按档位尺寸调整窗口（设置页窗口尺寸选择） */
     setSize(width: number, height: number): Promise<void>
+    /** 移动无边框窗口（播放器页拖拽空白区域） */
+    moveBy(deltaX: number, deltaY: number): void
     /** 通知主进程 UI 首帧已绘制完成，可以显示窗口（防启动闪裸背景图） */
     ready(): void
   }

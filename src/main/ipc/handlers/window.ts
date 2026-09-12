@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { BrowserWindow, ipcMain } from 'electron'
 import { IpcChannels } from '@common'
 import { handle } from '../helpers'
 import { getMainWindow, showMainWindow } from '../../windows/main'
@@ -27,6 +27,13 @@ export function registerWindowHandlers(): void {
     win.setResizable(true)
     win.setBounds({ width, height })
     win.setResizable(false)
+  })
+  ipcMain.on(IpcChannels.WINDOW_MOVE_BY, (event, deltaX: number, deltaY: number) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win || win.isDestroyed() || win.isFullScreen()) return
+    if (!Number.isFinite(deltaX) || !Number.isFinite(deltaY)) return
+    const [x, y] = win.getPosition()
+    win.setPosition(x + Math.round(deltaX), y + Math.round(deltaY), false)
   })
   // 渲染层 UI 首帧绘制完成后上报，此时显示窗口（避免启动闪过裸背景图）
   ipcMain.on(IpcChannels.WINDOW_READY, () => showMainWindow())
