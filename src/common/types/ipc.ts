@@ -103,6 +103,7 @@ export const IpcChannels = {
   LIBRARY_SORT_SONGS: 'library:sortSongs',
   LIBRARY_REPLACE_SONGS: 'library:replaceSongs',
   LIBRARY_ADD_LOCAL_SONGS: 'library:addLocalSongs',
+  LIBRARY_SCAN_LOCAL_DIRECTORY: 'library:scanLocalDirectory',
   LIBRARY_GET_REDIRECT: 'library:getRedirect',
   LIBRARY_SET_REDIRECT: 'library:setRedirect',
   LIBRARY_CLEAR_REDIRECT: 'library:clearRedirect',
@@ -499,6 +500,8 @@ export interface WindowApi {
     replaceSongs(playlistId: number, items: MusicItem[]): Promise<void>
     /** 弹文件选择框导入本地歌曲到歌单；返回 null 表示取消 */
     addLocalSongs(playlistId: number): Promise<{ added: number; skipped: number } | null>
+    /** 选择目录并用 Rust 扫描引擎递归导入音频；返回 null 表示取消 */
+    scanLocalDirectory(playlistId: number): Promise<{ added: number; skipped: number } | null>
     /** 查询歌曲的歌词/封面重定向目标（无则 null） */
     getRedirect(item: MusicItem): Promise<MusicItem | null>
     /** 设置歌词/封面重定向：item 的歌词与封面改用 target 的 */

@@ -11,7 +11,7 @@ import {
 } from '@common'
 import { handle, sendToRenderer } from '../helpers'
 import * as library from '../../store/library'
-import { parseLocalSong, pickLocalSongs } from '../../modules/local-music'
+import { parseLocalSong, pickLocalDirectory, pickLocalSongs, scanLocalSongs } from '../../modules/local-music'
 
 let wired = false
 
@@ -103,6 +103,24 @@ export function registerLibraryHandlers(): void {
         }
       }
       return { added, skipped }
+    }
+  )
+  handle(
+    IpcChannels.LIBRARY_SCAN_LOCAL_DIRECTORY,
+    async (playlistId: number): Promise<{ added: number; skipped: number } | null> => {
+      const directory = await pickLocalDirectory()
+      if (!directory) return null
+      const before = new Set(library.queryPlaylistSongs(playlistId).map((m) => `${m.id}_${m.type}`))
+      const scan = await scanLocalSongs(directory)
+      const tracks = scan.items
+      let added = 0
+      for (const item of tracks) {
+        if (before.has(`${item.id}_${item.type}`)) continue
+        library.addToPlaylist(playlistId, item)
+        before.add(`${item.id}_${item.type}`)
+        added++
+      }
+      return { added, skipped: scan.skipped + tracks.length - added }
     }
   )
 }

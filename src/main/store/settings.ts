@@ -6,6 +6,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { DEFAULT_SETTINGS, type AppSettings, type DeepPartial } from '@common'
 import { appDataPath } from '../core/paths'
+import { nativeReadSettings } from '../native/bridge'
 
 let cache: AppSettings | null = null
 
@@ -36,7 +37,8 @@ function deepMerge(base: unknown, patch: unknown): unknown {
 
 function load(): AppSettings {
   try {
-    const raw = readFileSync(filePath(), 'utf-8')
+    const path = filePath()
+    const raw = nativeReadSettings(path) ?? readFileSync(path, 'utf-8')
     const parsed = JSON.parse(raw) as Partial<AppSettings>
     const merged = deepMerge(DEFAULT_SETTINGS, parsed) as AppSettings
     // 已移除的桌面歌词描边字段不再带入运行时或后续持久化文件。

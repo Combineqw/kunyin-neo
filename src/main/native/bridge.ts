@@ -1,0 +1,88 @@
+import { createRequire } from 'node:module'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
+
+type NativeBinding = {
+  scanDirectory(dir: string): string
+  scanLyrics(dir: string): string
+  readSettings(path: string): string
+}
+
+export type NativeScanTrack = {
+  title: string
+  artist: string
+  album: string
+  duration: number
+  path: string
+}
+
+export type NativeScanResult = {
+  tracks: NativeScanTrack[]
+  skippedNonAudio: number
+  parseFailed: number
+  walkErrors: number
+}
+
+export type NativeLyricLine = {
+  start: number
+  end: number
+  text: string
+}
+
+export type NativeLyricFile = {
+  path: string
+  lines: NativeLyricLine[]
+}
+
+const require = createRequire(import.meta.url)
+let binding: NativeBinding | null | undefined
+
+function nativeCandidates(): string[] {
+  const file = 'aurora-native.win32-x64-msvc.node'
+  return [
+    join(process.resourcesPath, 'assets', file),
+    join(process.cwd(), 'crates', 'aurora-native', file),
+    join(__dirname, '..', '..', 'crates', 'aurora-native', file)
+  ]
+}
+
+function loadBinding(): NativeBinding | null {
+  if (binding !== undefined) return binding
+  for (const candidate of nativeCandidates()) {
+    if (!existsSync(candidate)) continue
+    try {
+      binding = require(candidate) as NativeBinding
+      return binding
+    } catch {
+      // A stale or incompatible binary must not prevent the Node fallback.
+    }
+  }
+  binding = null
+  return null
+}
+
+export function nativeReadSettings(path: string): string | null {
+  try {
+    return loadBinding()?.readSettings(path) ?? null
+  } catch {
+    return null
+  }
+}
+
+export function nativeScanDirectory(path: string): NativeScanResult | null {
+  try {
+    const raw = loadBinding()?.scanDirectory(path)
+    return raw ? (JSON.parse(raw) as NativeScanResult) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeScanLyrics(path: string): NativeLyricFile[] | null {
+  try {
+    const raw = loadBinding()?.scanLyrics(path)
+    return raw ? (JSON.parse(raw) as NativeLyricFile[]) : null
+  } catch {
+    return null
+  }
+}

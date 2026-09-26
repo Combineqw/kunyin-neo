@@ -127,6 +127,8 @@ const api: WindowApi = {
       ipcRenderer.invoke(IpcChannels.LIBRARY_REPLACE_SONGS, playlistId, items.map(toPlain)),
     addLocalSongs: (playlistId) =>
       ipcRenderer.invoke(IpcChannels.LIBRARY_ADD_LOCAL_SONGS, playlistId),
+    scanLocalDirectory: (playlistId) =>
+      ipcRenderer.invoke(IpcChannels.LIBRARY_SCAN_LOCAL_DIRECTORY, playlistId),
     getRedirect: (item) => ipcRenderer.invoke(IpcChannels.LIBRARY_GET_REDIRECT, toPlain(item)),
     setRedirect: (item, target) =>
       ipcRenderer.invoke(IpcChannels.LIBRARY_SET_REDIRECT, toPlain(item), toPlain(target)),

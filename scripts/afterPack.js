@@ -11,6 +11,31 @@ const { execFileSync } = require('child_process')
  * 这里改用子进程调用 PowerShell Remove-Item（原生二进制，不受 Node fs 垫片拦截）。
  */
 exports.default = async function (context) {
+  // The native artifact is intentionally git-ignored. Copy it when a local
+  // Rust build prepared one, while allowing clean CI packages to use Node
+  // fallbacks instead of failing electron-builder during file collection.
+  if (context.electronPlatformName === 'win32' && context.arch === 1) {
+    const nativeSource = path.join(
+      context.packager.projectDir,
+      'crates',
+      'aurora-native',
+      'aurora-native.win32-x64-msvc.node'
+    )
+    const nativeTarget = path.join(
+      context.appOutDir,
+      'resources',
+      'assets',
+      'aurora-native.win32-x64-msvc.node'
+    )
+    if (fs.existsSync(nativeSource)) {
+      fs.mkdirSync(path.dirname(nativeTarget), { recursive: true })
+      fs.copyFileSync(nativeSource, nativeTarget)
+      console.log('[afterPack] 已复制 aurora-native.win32-x64-msvc.node')
+    } else {
+      console.warn('[afterPack] 未找到 Rust 原生模块，使用 Node 回退')
+    }
+  }
+
   const licenseFile = path.join(context.appOutDir, 'LICENSES.chromium.html')
   if (!fs.existsSync(licenseFile)) return
   try {

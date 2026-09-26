@@ -1,8 +1,8 @@
-【kunyin-neo 项目记忆 v4.7 — 2026-09-26】
+【kunyin-neo 项目记忆 v4.8 — 2026-09-27】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
-  v4.7 M0 收尾记档：2026-09-26）
+  v4.7 M0 收尾记档：2026-09-26；v4.8 M1 接入记档：2026-09-27）
 
 ◆ 项目身份
 - kunyin-neo，fork 自 github.com/ikunshare/kunyin-desktop
@@ -368,3 +368,28 @@
 - R2-4 解封依据：用户 2026-09-26 原话授权“全计划跑完 + 新增四季极光主题
   + 远期 Rust 原生化，全权委托”。后续里程碑仍按 M1 → M7 顺序推进，
   每段独立提交、回归、推送和升版；验收结论留给用户。
+
+◆ M1 三引擎接入（2026-09-27，事实与回执）
+- 设置读路径：`src/main/store/settings.ts` 优先调用 Rust `readSettings`，
+  native 模块不可用时回退 Node `readFileSync`；既有迁移、合并、钳制与原子写保持不变。
+- 本地曲库扫描：新增 Rust 优先的目录扫描 IPC、preload 契约和歌单右键入口；
+  Rust 结果映射为 `LocalMusicItem`，跳过非音频/解析失败/遍历错误计入返回统计；
+  native 不可用时递归回退既有 Node `music-metadata` 解析。扫描仍是同步 Rust 调用，
+  长任务进度与取消留待 M2。
+- 歌词边界：生产 `PLAYER_LYRIC` 继续由 Node 负责边车编码、缓存、Provider 和增强
+  LRC；Rust `scanLyrics` 仅保留影子对照，未直接替换生产路径，避免丢失翻译、逐字
+  时序和 GB18030 行为。
+- 影子回归：scan 58/58、lyrics 4677/4677、settings_io 1551/1551，均 0 mismatch；
+  当前运行均 PASS，未触碰真实文件。
+- 工程检查：`npm run typecheck`、定向 lint、`npm test` 均通过；`npm run native:compare`
+  通过。未跟踪 `work/` 脚本不纳入正式 lint。
+- Windows 构建：`npm run build:win` 退出码 0；安装器 97,562,099 B，SHA-256
+  `26ECB812E3F94F27D6C9A2F725B0C255A19DFCDDD60577CE4344F4B52616932F`；
+  解包主程序 1.0.7.0，SHA-256 `482CCFE9C6E406106540884C34841619C285EDBA56A4DC98866AB9821559538B`；
+  `resources/assets/aurora-native.win32-x64-msvc.node` 1,459,712 B，SHA-256
+  `A279140364970F086EABD567AE9940396F91DDBA8C8CDBB16FB52E845C69C3F5`。
+- 原生二进制按既有 `.gitignore` 保持未跟踪；干净检出构建前需执行
+  `npm run native:build`，本次未提交本机 `.node`、`target/`、`work/`。
+- 可复现打包：移除 `electron-builder.yml` 对被忽略 `.node` 的静态引用，改由
+  `scripts/afterPack.js` 在 Windows x64 本机构建产物存在时复制到
+  `resources/assets`；干净 CI 无该文件时记录警告并使用 Node 回退，不阻断打包。
