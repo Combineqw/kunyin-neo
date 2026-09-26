@@ -21,11 +21,6 @@ const isWinPlatform = process.platform === 'win32'
 
 /** 找到 cargo 所在目录：优先系统 PATH，其次 rustup 默认位置 */
 function resolveCargoBin() {
-  const probe = spawnSync(process.platform === 'win32' ? 'where' : 'which', ['cargo'], {
-    encoding: 'utf8',
-  })
-  if (probe.status === 0) return null // 已在 PATH 中，无需注入
-
   const candidates = [
     join(homedir(), '.cargo', 'bin'),
     process.env.CARGO_HOME ? join(process.env.CARGO_HOME, 'bin') : null,
@@ -35,6 +30,12 @@ function resolveCargoBin() {
     const exe = join(dir, process.platform === 'win32' ? 'cargo.exe' : 'cargo')
     if (existsSync(exe)) return dir
   }
+
+  const probe = spawnSync(process.platform === 'win32' ? 'where' : 'which', ['cargo'], {
+    encoding: 'utf8',
+  })
+  if (probe.status === 0) return null // 已在 PATH 中，无需注入
+
   return undefined // 明确表示「装都没装」，与 null（已在 PATH）区分
 }
 
