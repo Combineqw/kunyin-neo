@@ -212,3 +212,9 @@ pub fn scan_dir(root: &Path) -> Result<ScanResult> {
 pub fn scan_dir_json(root: &Path) -> Result<String> {
     Ok(serde_json::to_string(&scan_dir(root)?)?)
 }
+
+/// Parse one already-filtered audio path. The incremental desktop scanner uses
+/// this entry point so each file can yield to the Electron event loop.
+pub fn parse_track_json(path: &Path) -> Result<String> {
+    Ok(serde_json::to_string(&parse_track(path))?)
+}

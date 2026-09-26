@@ -244,6 +244,60 @@ export function addToPlaylist(playlistId: number, item: MusicItem): void {
   }
 }
 
+/** Add a completed scan in one transaction and emit one change notification. */
+export function addToPlaylistBatch(
+  playlistId: number,
+  items: MusicItem[]
+): { added: number; skipped: number } {
+  if (!items.length) return { added: 0, skipped: 0 }
+  const d = getDb()
+  const existing = new Set(
+    (
+      d
+        .prepare(`SELECT song_id, source FROM ${TABLE_PLAYLIST_SONGS} WHERE playlist_id = ?`)
+        .all(playlistId) as { song_id: number; source: string }[]
+    ).map((row) => `${row.song_id}_${row.source}`)
+  )
+  const insert = d.prepare(
+    `INSERT OR IGNORE INTO ${TABLE_PLAYLIST_SONGS}
+      (playlist_id, song_id, source, added_at, position) VALUES (?, ?, ?, ?, ?)`
+  )
+  const maxRow = d
+    .prepare(`SELECT MAX(position) AS m FROM ${TABLE_PLAYLIST_SONGS} WHERE playlist_id = ?`)
+    .get(playlistId) as { m: number | null }
+  let position = (maxRow.m ?? -1) + 1
+  let added = 0
+  let skipped = 0
+  const addedItems: MusicItem[] = []
+  const tx = d.transaction(() => {
+    for (const item of items) {
+      const key = songKey(item)
+      if (existing.has(key)) {
+        skipped++
+        continue
+      }
+      upsertSong(item)
+      const info = insert.run(playlistId, item.id, item.type, Date.now(), position++)
+      if (info.changes > 0) {
+        existing.add(key)
+        added++
+        addedItems.push(item)
+      } else {
+        skipped++
+      }
+    }
+  })
+  tx()
+  if (added > 0) {
+    if (playlistId === favoritesIdCache) {
+      for (const item of addedItems) favoriteKeys.add(songKey(item))
+      invalidateDailyRecommendations()
+    }
+    notifyChange()
+  }
+  return { added, skipped }
+}
+
 /** 头插：已存在则先删，其余整体后移 1，再插到 position=0。 */
 function addToPlaylistAtHead(playlistId: number, item: MusicItem): void {
   const d = getDb()

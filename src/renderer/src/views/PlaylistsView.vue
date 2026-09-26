@@ -361,7 +361,7 @@ const menuItems = computed<MenuItem[]>(() => {
     { key: 'sort', label: '排序歌曲', icon: 'sort', divider: true },
     { key: 'duplicate', label: '重复歌曲', icon: 'copy' },
     { key: 'addLocal', label: '添加本地歌曲', icon: 'folder' },
-    { key: 'scanLocalDirectory', label: '扫描音乐文件夹（Rust）', icon: 'folder' },
+    { key: 'scanLocalDirectory', label: '扫描音乐文件夹', icon: 'folder' },
     { key: 'addById', label: '通过 ID / MID 添加歌曲', icon: 'plus' },
     { key: 'update', label: '更新', icon: 'refresh', divider: true, disabled: !remote },
     { key: 'detail', label: '歌单详情页', icon: 'library', disabled: !remote },
@@ -432,7 +432,7 @@ async function addLocalSongs(p: LocalPlaylist): Promise<void> {
 async function scanLocalDirectory(p: LocalPlaylist): Promise<void> {
   const result = await api.library.scanLocalDirectory(p.id).catch(() => null)
   if (!result) return
-  showToast(`扫描完成：已添加 ${result.added} 首${result.skipped ? `（跳过 ${result.skipped} 首）` : ''}`)
+  showToast('已开始扫描本地音乐')
 }
 
 // ============ 更新（远端绑定歌单重新拉取整单替换） ============
@@ -744,7 +744,10 @@ onUnmounted(() => {
         <div v-if="showQueueHint" class="queue-hint">
           <AppIcon name="headphone" :size="13" />
           <span class="qh-text ellipsis">
-            正在播放「{{ player.queueSource?.name || '其他列表' }}」的队列（{{ player.queue.length }} 首）——点歌或「播放全部」将切换到本列表
+            正在播放「{{ player.queueSource?.name || '其他列表' }}」的队列（{{
+              player.queue.length
+            }}
+            首）——点歌或「播放全部」将切换到本列表
           </span>
         </div>
 
@@ -783,7 +786,11 @@ onUnmounted(() => {
             <button class="batch-btn pressable" @click="addDialog = true">
               <AppIcon name="plus" :size="14" /><span>添加到列表</span>
             </button>
-            <button v-if="selection.kind === 'local'" class="batch-btn pressable" @click="removeSelected">
+            <button
+              v-if="selection.kind === 'local'"
+              class="batch-btn pressable"
+              @click="removeSelected"
+            >
               <AppIcon name="trash" :size="14" /><span>移除</span>
             </button>
             <button class="batch-btn pressable" @click="downloadSelected">

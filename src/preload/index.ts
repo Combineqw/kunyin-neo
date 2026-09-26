@@ -14,6 +14,7 @@ import {
   type MediaCommand,
   type MiniPlayerCommand,
   type MiniPlayerState,
+  type LibraryScanProgress,
   type QQQRStatusEvent,
   type SyncStatusSnapshot,
   type UpdaterEvent,
@@ -56,7 +57,8 @@ const api: WindowApi = {
   settings: {
     get: () => ipcRenderer.invoke(IpcChannels.SETTINGS_GET),
     set: (patch) => ipcRenderer.invoke(IpcChannels.SETTINGS_SET, toPlain(patch)),
-    setSync: (patch) => ipcRenderer.sendSync(IpcChannels.SETTINGS_SET_SYNC, toPlain(patch)) as AppSettings,
+    setSync: (patch) =>
+      ipcRenderer.sendSync(IpcChannels.SETTINGS_SET_SYNC, toPlain(patch)) as AppSettings,
     onChange: (cb) => {
       const listener = (_e: Electron.IpcRendererEvent, settings: AppSettings): void => cb(settings)
       ipcRenderer.on(IpcChannels.SETTINGS_CHANGED, listener)
@@ -129,6 +131,13 @@ const api: WindowApi = {
       ipcRenderer.invoke(IpcChannels.LIBRARY_ADD_LOCAL_SONGS, playlistId),
     scanLocalDirectory: (playlistId) =>
       ipcRenderer.invoke(IpcChannels.LIBRARY_SCAN_LOCAL_DIRECTORY, playlistId),
+    cancelScan: (taskId) => ipcRenderer.invoke(IpcChannels.LIBRARY_CANCEL_SCAN, taskId),
+    onScanProgress: (cb) => {
+      const listener = (_e: Electron.IpcRendererEvent, progress: LibraryScanProgress): void =>
+        cb(progress)
+      ipcRenderer.on(IpcChannels.LIBRARY_SCAN_PROGRESS, listener)
+      return () => ipcRenderer.off(IpcChannels.LIBRARY_SCAN_PROGRESS, listener)
+    },
     getRedirect: (item) => ipcRenderer.invoke(IpcChannels.LIBRARY_GET_REDIRECT, toPlain(item)),
     setRedirect: (item, target) =>
       ipcRenderer.invoke(IpcChannels.LIBRARY_SET_REDIRECT, toPlain(item), toPlain(target)),
@@ -241,8 +250,7 @@ const api: WindowApi = {
   },
   equalizer: {
     importProfile: () => ipcRenderer.invoke(IpcChannels.EQ_IMPORT_FILE),
-    exportProfile: (profile) =>
-      ipcRenderer.invoke(IpcChannels.EQ_EXPORT_FILE, toPlain(profile))
+    exportProfile: (profile) => ipcRenderer.invoke(IpcChannels.EQ_EXPORT_FILE, toPlain(profile))
   },
   animation: {
     importPack: () => ipcRenderer.invoke(IpcChannels.ANIMATION_IMPORT_FILE),

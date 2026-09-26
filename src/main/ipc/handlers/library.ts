@@ -4,16 +4,29 @@
  */
 import {
   IpcChannels,
+  type LibraryScanProgress,
   type LocalPlaylist,
   type MusicItem,
   type PlaylistSortField,
   type PlaylistSortOrder
 } from '@common'
+import { randomUUID } from 'node:crypto'
 import { handle, sendToRenderer } from '../helpers'
 import * as library from '../../store/library'
-import { parseLocalSong, pickLocalDirectory, pickLocalSongs, scanLocalSongs } from '../../modules/local-music'
+import {
+  parseLocalSong,
+  pickLocalDirectory,
+  pickLocalSongs,
+  scanLocalSongsProgressive,
+  type LocalScanProgress
+} from '../../modules/local-music'
 
 let wired = false
+const activeScans = new Map<string, { playlistId: number; controller: AbortController }>()
+
+function emitScanProgress(progress: LibraryScanProgress): void {
+  sendToRenderer(IpcChannels.LIBRARY_SCAN_PROGRESS, progress)
+}
 
 export function registerLibraryHandlers(): void {
   library.initLibrary()
@@ -107,20 +120,94 @@ export function registerLibraryHandlers(): void {
   )
   handle(
     IpcChannels.LIBRARY_SCAN_LOCAL_DIRECTORY,
-    async (playlistId: number): Promise<{ added: number; skipped: number } | null> => {
+    async (playlistId: number): Promise<{ taskId: string } | null> => {
+      const activeEntry = activeScans.entries().next().value as
+        [string, { playlistId: number; controller: AbortController }] | undefined
+      if (activeEntry) return { taskId: activeEntry[0] }
       const directory = await pickLocalDirectory()
       if (!directory) return null
-      const before = new Set(library.queryPlaylistSongs(playlistId).map((m) => `${m.id}_${m.type}`))
-      const scan = await scanLocalSongs(directory)
-      const tracks = scan.items
-      let added = 0
-      for (const item of tracks) {
-        if (before.has(`${item.id}_${item.type}`)) continue
-        library.addToPlaylist(playlistId, item)
-        before.add(`${item.id}_${item.type}`)
-        added++
-      }
-      return { added, skipped: scan.skipped + tracks.length - added }
+
+      const taskId = randomUUID()
+      const controller = new AbortController()
+      activeScans.set(taskId, { playlistId, controller })
+      void runScan(taskId, playlistId, directory, controller)
+      return { taskId }
     }
   )
+  handle(IpcChannels.LIBRARY_CANCEL_SCAN, (taskId: string): boolean => {
+    const task = activeScans.get(taskId)
+    if (!task) return false
+    task.controller.abort()
+    return true
+  })
+}
+
+async function runScan(
+  taskId: string,
+  playlistId: number,
+  directory: string,
+  controller: AbortController
+): Promise<void> {
+  let lastProgressAt = 0
+  const forward = (progress: LocalScanProgress): void => {
+    const now = Date.now()
+    if (progress.done < progress.total && now - lastProgressAt < 80) return
+    lastProgressAt = now
+    emitScanProgress({ taskId, ...progress, added: 0 })
+  }
+  emitScanProgress({ taskId, phase: 'collecting', done: 0, total: 0, added: 0, skipped: 0 })
+  try {
+    const scan = await scanLocalSongsProgressive(directory, controller.signal, forward)
+    if (scan.cancelled || controller.signal.aborted) {
+      emitScanProgress({
+        taskId,
+        phase: 'cancelled',
+        done: 0,
+        total: 0,
+        added: 0,
+        skipped: scan.skipped
+      })
+      return
+    }
+    emitScanProgress({
+      taskId,
+      phase: 'committing',
+      done: scan.items.length,
+      total: scan.items.length,
+      added: 0,
+      skipped: scan.skipped
+    })
+    if (controller.signal.aborted) {
+      emitScanProgress({
+        taskId,
+        phase: 'cancelled',
+        done: 0,
+        total: 0,
+        added: 0,
+        skipped: scan.skipped
+      })
+      return
+    }
+    const result = library.addToPlaylistBatch(playlistId, scan.items)
+    emitScanProgress({
+      taskId,
+      phase: 'done',
+      done: scan.items.length,
+      total: scan.items.length,
+      added: result.added,
+      skipped: scan.skipped + result.skipped
+    })
+  } catch (error) {
+    emitScanProgress({
+      taskId,
+      phase: 'error',
+      done: 0,
+      total: 0,
+      added: 0,
+      skipped: 0,
+      error: error instanceof Error ? error.message : String(error)
+    })
+  } finally {
+    activeScans.delete(taskId)
+  }
 }

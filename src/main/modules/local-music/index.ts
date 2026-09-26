@@ -8,17 +8,26 @@
  */
 import { dialog } from 'electron'
 import { readdir } from 'node:fs/promises'
+import { setImmediate } from 'node:timers/promises'
 import { basename, extname, join } from 'node:path'
 import type { LocalMusicItem } from '../../../common/types/music'
 import { getMainWindow } from '../../windows/main'
 import { AUDIO_EXTENSIONS, localSongId, parseLocalSong } from './core'
-import { nativeScanDirectory } from '../../native/bridge'
+import { nativeParseTrack, nativeScanDirectory } from '../../native/bridge'
 
 export { AUDIO_EXTENSIONS, localSongId, parseFileName, parseLocalSong } from './core'
 
 export type LocalScanResult = {
   items: LocalMusicItem[]
   skipped: number
+}
+
+export type LocalScanProgress = {
+  phase: 'collecting' | 'scanning'
+  done: number
+  total: number
+  skipped: number
+  currentPath?: string
 }
 
 /** 弹多选文件框；取消返回 null */
@@ -79,12 +88,30 @@ export async function scanLocalSongs(directory: string): Promise<LocalScanResult
         await visit(path)
         continue
       }
-      if (!entry.isFile() || !AUDIO_EXTENSIONS.includes(extname(entry.name).slice(1).toLowerCase())) {
+      if (
+        !entry.isFile() ||
+        !AUDIO_EXTENSIONS.includes(extname(entry.name).slice(1).toLowerCase())
+      ) {
         if (entry.isFile()) skipped++
         continue
       }
       try {
-        out.push(await parseLocalSong(path))
+        const track = nativeParseTrack(path)
+        if (track) {
+          out.push({
+            type: 'local',
+            id: localSongId(track.path),
+            title: track.title || basename(track.path),
+            artist: track.artist,
+            album: track.album,
+            cover: '',
+            duration: track.duration,
+            qualities: {},
+            filePath: track.path
+          })
+        } else {
+          out.push(await parseLocalSong(path))
+        }
       } catch {
         // One unreadable file must not abort the directory import.
         skipped++
@@ -93,4 +120,72 @@ export async function scanLocalSongs(directory: string): Promise<LocalScanResult
   }
   await visit(directory)
   return { items: out, skipped }
+}
+
+/**
+ * Incremental directory scan used by the progress island. The whole-directory
+ * native API is intentionally not used here; each native parse yields between
+ * files so IPC cancel requests remain responsive.
+ */
+export async function scanLocalSongsProgressive(
+  directory: string,
+  signal: AbortSignal,
+  onProgress: (progress: LocalScanProgress) => void
+): Promise<LocalScanResult & { cancelled: boolean }> {
+  const files: string[] = []
+  let skipped = 0
+  const visit = async (dir: string): Promise<boolean> => {
+    if (signal.aborted) return false
+    let entries
+    try {
+      entries = await readdir(dir, { withFileTypes: true })
+    } catch {
+      skipped++
+      return true
+    }
+    for (const entry of entries) {
+      if (signal.aborted) return false
+      const path = join(dir, entry.name)
+      if (entry.isDirectory()) {
+        if (!(await visit(path))) return false
+      } else if (entry.isFile()) {
+        if (AUDIO_EXTENSIONS.includes(extname(entry.name).slice(1).toLowerCase())) files.push(path)
+        else skipped++
+      }
+      await setImmediate()
+    }
+    return true
+  }
+
+  if (!(await visit(directory))) return { items: [], skipped, cancelled: true }
+  onProgress({ phase: 'scanning', done: 0, total: files.length, skipped })
+
+  const items: LocalMusicItem[] = []
+  for (let i = 0; i < files.length; i++) {
+    if (signal.aborted) return { items: [], skipped, cancelled: true }
+    const path = files[i]
+    try {
+      const track = nativeParseTrack(path)
+      if (track) {
+        items.push({
+          type: 'local',
+          id: localSongId(track.path),
+          title: track.title || basename(track.path),
+          artist: track.artist,
+          album: track.album,
+          cover: '',
+          duration: track.duration,
+          qualities: {},
+          filePath: track.path
+        })
+      } else {
+        items.push(await parseLocalSong(path))
+      }
+    } catch {
+      skipped++
+    }
+    onProgress({ phase: 'scanning', done: i + 1, total: files.length, skipped, currentPath: path })
+    await setImmediate()
+  }
+  return { items, skipped, cancelled: false }
 }

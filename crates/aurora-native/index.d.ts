@@ -13,6 +13,8 @@
  * 由 Rust 侧的 serde 契约唯一决定，不受 napi 自动转换的命名习惯影响。
  */
 export declare function scanDirectory(dir: string): string
+/** Parse one audio file and return the same track object used by scanDirectory. */
+export declare function parseTrack(path: string): string
 /**
  * 递归扫描目录下所有 .lrc，返回 JSON 数组字符串。
  *

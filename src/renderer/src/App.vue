@@ -16,6 +16,7 @@ import { usePopupAnimation } from './composables/usePopupAnimation'
 import { useApi } from './composables/useApi'
 import { currentBackgroundImageUrl } from './theme/apply'
 import MvPlayer from './components/MvPlayer.vue'
+import ScanProgressIsland from './components/ScanProgressIsland.vue'
 
 const api = useApi()
 const router = useRouter()
@@ -125,4 +126,5 @@ onUnmounted(() => {
 <template>
   <RouterView />
   <MvPlayer />
+  <ScanProgressIsland />
 </template>

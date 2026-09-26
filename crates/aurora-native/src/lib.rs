@@ -35,6 +35,12 @@ pub fn scan_directory(dir: String) -> napi::Result<String> {
     Ok(json)
 }
 
+/// Parse one audio file and return the same track object used by scanDirectory.
+#[napi]
+pub fn parse_track(path: String) -> napi::Result<String> {
+    Ok(scan::parse_track_json(Path::new(&path))?)
+}
+
 /// 递归扫描目录下所有 .lrc，返回 JSON 数组字符串。
 ///
 /// 每项：path + lines[]，每行 start / end（毫秒）/ text。

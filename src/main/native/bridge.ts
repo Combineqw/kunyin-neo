@@ -4,6 +4,7 @@ import { join } from 'node:path'
 
 type NativeBinding = {
   scanDirectory(dir: string): string
+  parseTrack(path: string): string
   scanLyrics(dir: string): string
   readSettings(path: string): string
 }
@@ -73,6 +74,15 @@ export function nativeScanDirectory(path: string): NativeScanResult | null {
   try {
     const raw = loadBinding()?.scanDirectory(path)
     return raw ? (JSON.parse(raw) as NativeScanResult) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeParseTrack(path: string): NativeScanTrack | null {
+  try {
+    const raw = loadBinding()?.parseTrack(path)
+    return raw ? (JSON.parse(raw) as NativeScanTrack) : null
   } catch {
     return null
   }

@@ -5,7 +5,13 @@ import AppAside from '../components/AppAside.vue'
 import AppToolbar from '../components/AppToolbar.vue'
 import PlayerBar from '../components/PlayerBar.vue'
 
-const KEEP_ALIVE = ['SearchView', 'RecommendationsView', 'PlaylistsView', 'DownloadView', 'SettingsView']
+const KEEP_ALIVE = [
+  'SearchView',
+  'RecommendationsView',
+  'PlaylistsView',
+  'DownloadView',
+  'SettingsView'
+]
 const route = useRoute()
 const wipeKey = ref('')
 let wipeTimer: number | undefined

@@ -104,6 +104,8 @@ export const IpcChannels = {
   LIBRARY_REPLACE_SONGS: 'library:replaceSongs',
   LIBRARY_ADD_LOCAL_SONGS: 'library:addLocalSongs',
   LIBRARY_SCAN_LOCAL_DIRECTORY: 'library:scanLocalDirectory',
+  LIBRARY_CANCEL_SCAN: 'library:cancelScan',
+  LIBRARY_SCAN_PROGRESS: 'library:scanProgress',
   LIBRARY_GET_REDIRECT: 'library:getRedirect',
   LIBRARY_SET_REDIRECT: 'library:setRedirect',
   LIBRARY_CLEAR_REDIRECT: 'library:clearRedirect',
@@ -231,6 +233,24 @@ export type DeepPartial<T> = T extends object ? { [K in keyof T]?: DeepPartial<T
 
 /** 取消订阅 */
 export type Unsubscribe = () => void
+
+export type LibraryScanPhase =
+  'collecting' | 'scanning' | 'committing' | 'done' | 'cancelled' | 'error'
+
+export interface LibraryScanProgress {
+  taskId: string
+  phase: LibraryScanPhase
+  done: number
+  total: number
+  added: number
+  skipped: number
+  currentPath?: string
+  error?: string
+}
+
+export interface LibraryScanStart {
+  taskId: string
+}
 
 /** 播放会话结束时写入本地推荐行为表的载荷。 */
 export interface PlayEventPayload {
@@ -461,7 +481,12 @@ export interface WindowApi {
 
   recommendation: {
     songs(limit?: number): Promise<RecommendationSong[]>
-    daily(force?: boolean): Promise<{ generatedAt: number; entries: import('./recommendation').DailyRecommendationEntry[] }>
+    daily(
+      force?: boolean
+    ): Promise<{
+      generatedAt: number
+      entries: import('./recommendation').DailyRecommendationEntry[]
+    }>
   }
 
   auth: {
@@ -500,8 +525,12 @@ export interface WindowApi {
     replaceSongs(playlistId: number, items: MusicItem[]): Promise<void>
     /** 弹文件选择框导入本地歌曲到歌单；返回 null 表示取消 */
     addLocalSongs(playlistId: number): Promise<{ added: number; skipped: number } | null>
-    /** 选择目录并用 Rust 扫描引擎递归导入音频；返回 null 表示取消 */
-    scanLocalDirectory(playlistId: number): Promise<{ added: number; skipped: number } | null>
+    /** 选择目录并启动可取消的增量扫描；返回 null 表示取消选择 */
+    scanLocalDirectory(playlistId: number): Promise<LibraryScanStart | null>
+    /** 请求取消扫描任务；返回是否找到活动任务 */
+    cancelScan(taskId: string): Promise<boolean>
+    /** 订阅扫描任务进度 */
+    onScanProgress(cb: (progress: LibraryScanProgress) => void): Unsubscribe
     /** 查询歌曲的歌词/封面重定向目标（无则 null） */
     getRedirect(item: MusicItem): Promise<MusicItem | null>
     /** 设置歌词/封面重定向：item 的歌词与封面改用 target 的 */
