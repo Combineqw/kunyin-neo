@@ -1,7 +1,8 @@
-【kunyin-neo 项目记忆 v4.4 — 2026-09-05】
+【kunyin-neo 项目记忆 v4.7 — 2026-09-26】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
-  v4.4 交接修订：执行侧 dsh → codex，2026-09-05）
+  v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
+  v4.7 M0 收尾记档：2026-09-26）
 
 ◆ 项目身份
 - kunyin-neo，fork 自 github.com/ikunshare/kunyin-desktop
@@ -316,3 +317,54 @@
   提交推送；后续用户授权在其基础上追加上述同轮配对四项，提交
   范围仍仅报告与 MEMORY.md。用户确认“+57 −1”没有另一版本，
   现作废处理，按当前可见草稿定稿。
+
+追加行（2026-09-12，采集侧原始数据）：
+- 封面查重：同曲切回重复请求 = 未采到（页面停在设置页，未发生歌曲点击，
+  无 URL 证据）；跨曲共用 = 未采到（同上）。原始监听日志留在
+  `work/cover-cdp-events.jsonl`，脚本留在 `work/cover-cdp-listener.mjs`，
+  均未跟踪、未提交。
+- getAnimations：播放+动效可见时 length = 未采到；设置页空闲采样
+  `document.getAnimations().length = 0`，不作为播放动效样本。
+- git 核验：4b6458 内 MEMORY.md 实际版本 = v4.4；工作区 = 改动（未跟踪
+  `PROJECT_STATUS.md` 与本次 `work/` 采集目录，且本地有未推送提交）。
+
+追加行（2026-09-12，采集侧原始数据，本轮 CDP）：
+- 封面查重：共记录 27 次 `Image` 请求，19 个唯一 URL。同曲切回重复请求 = 有；`https://p4.music.126.net/3mi073axgjg-g-79ObwwEQ==/109951171836582062.jpg` 在「最佳损友 / 陈奕迅」下于 14:54:55.187/.199/.201 以及切走「富士山下」后回切于 14:55:14.434/.437/.441 各请求 3 次；跨曲共用 = 本轮无法确认，「葡萄成熟时」和「富士山下」时段未捕获可归属请求，初始搜索批量的 19 次请求均标注为「未在播放」。
+- getAnimations：播放操作期间采到 `#/player` 页面 14:54:56 的 `length = 13`；同轮每秒采样见到 0、1、2、3、4、12、13 等值，仅记数据不作判定。
+- git 核验：`git log --oneline -5` 顶端为 `1c79e35` （下一为 `e4c147e`）；`git show 4b6458:MEMORY.md | head -n 5` 显示实际版本为 v4.4，与工单预期 v4.6 不同；工作区为改动（`MEMORY.md` 已修改，`PROJECT_STATUS.md` 与 `work/` 未跟踪）。
+- 进程处置：本轮采集后已关闭 dev 与 CDP 监听器，9222/5173 端口均已释放；原始日志留在 `work/cover-cdp-events.jsonl`。
+
+◆ M0 收尾闭环记档（2026-09-26，事实与回执）
+- 版本疑点钉死：`git show 4b6458:MEMORY.md | head -n 5` 的档头实际为
+  v4.4；本文件在本次记档升为 v4.7。历史审查材料中的 v4.5/v4.6
+  不是 4b6458 中的实际档头。
+- 本地收拢链：`git log 4b6458..1c79e35` 包含 `e4c147e`（按 URL 后缀
+  修正音频 MIME，并补歌词页顶部拖动区）与 `1c79e35`（window:moveBy
+  IPC、preload 暴露及歌词页 Pointer Events 拖动，交互控件排除拖动）。
+  本次未使用 force push。
+- 新构建：`npm run build:win` 退出码 0；安装器
+  `kunyin-desktop-1.0.7-setup.exe` = 97,105,491 B，SHA-256
+  `5961AB2CE94153094DD1480A070BA68CD852F1A9447AE913A89E6918ECA253AA`；
+  `dist/win-unpacked/kunyin-desktop.exe` 版本 1.0.7.0，211,232,768 B，
+  SHA-256 `CB0B6D2524840F4DA97ED7DB81206A5DED4BA499B1026E832856EF08B6DB90F1`。
+- 安装复核：SHA 在安装前核对为上述值；NSIS `/S` 加独立安装目录探针
+  退出码 0，安装目录主程序存在，版本 1.0.7.0，主程序 SHA 与解包产物一致。
+  早先默认目录探针曾返回退出码 2，未作为成功依据；清理后独立目录
+  复核结果为本条记录的有效结果。
+- 镜像与工程检查：`npm ping --registry=https://registry.npmmirror.com`
+  返回 `PONG`；镜像源 `npm install --ignore-scripts` 与 `npm ci
+  --ignore-scripts` 均完成。正式源码范围的 lint（排除未跟踪 `work/`）、
+  typecheck、core/theme/animation 三组测试均通过；未跟踪 CDP 脚本未纳入
+  正式代码，也未提交。
+- 影子回归：当前 `test-assets` 口径为 scan 58 首、lyrics 4677 行、
+  settings_io 1551 项，三表均 0 mismatch；历史存档素材为 scan 51 首、
+  settings 1584 项，另有早期 2454 首记录。两组数据集与计数口径分开保留，
+  不混报；Rust 相对 Node 的当前 shadow 运行结果未见性能倒退。
+- 客观采集沿用既有账：系统查询 165 Hz；正式包 A 608.00/290.15 MiB、
+  dev A 449.70/223.14 MiB；跨轮 dev B 426.58/209.00 MiB；同轮配对
+  A 426.46/203.87 MiB、B 426.93/204.02 MiB。封面监听账为 27 次
+  Image 请求、19 个唯一 URL，同曲切回出现重复 URL；跨曲共用本轮无法确认；
+  播放页采到 `document.getAnimations().length = 13`，只记事实不作判定。
+- R2-4 解封依据：用户 2026-09-26 原话授权“全计划跑完 + 新增四季极光主题
+  + 远期 Rust 原生化，全权委托”。后续里程碑仍按 M1 → M7 顺序推进，
+  每段独立提交、回归、推送和升版；验收结论留给用户。
