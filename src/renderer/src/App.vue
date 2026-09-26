@@ -25,6 +25,7 @@ const library = useLibraryStore()
 const download = useDownloadStore()
 const player = usePlayerStore()
 const unsubs: (() => void)[] = []
+const WINDOW_INACTIVE_CLASS = 'window-inactive'
 
 // 系统媒体控制（Web MediaSession → SMTC），全程有效
 useMediaSession()
@@ -40,6 +41,13 @@ usePopupAnimation(
 
 function applyFullscreenState(fullscreen: boolean): void {
   document.documentElement.classList.toggle('fullscreen', fullscreen)
+}
+
+function syncWindowActivity(): void {
+  document.documentElement.classList.toggle(
+    WINDOW_INACTIVE_CLASS,
+    document.hidden || !document.hasFocus()
+  )
 }
 
 function onKeydown(event: KeyboardEvent): void {
@@ -103,6 +111,10 @@ function notifyWindowReady(): void {
 
 onMounted(() => {
   window.addEventListener('keydown', onKeydown)
+  window.addEventListener('blur', syncWindowActivity)
+  window.addEventListener('focus', syncWindowActivity)
+  document.addEventListener('visibilitychange', syncWindowActivity)
+  syncWindowActivity()
   unsubs.push(api.window.onFullscreenChange(applyFullscreenState))
   void api.window.fullscreen().then(applyFullscreenState)
   void library.refresh()
@@ -119,6 +131,10 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeydown)
+  window.removeEventListener('blur', syncWindowActivity)
+  window.removeEventListener('focus', syncWindowActivity)
+  document.removeEventListener('visibilitychange', syncWindowActivity)
+  document.documentElement.classList.remove(WINDOW_INACTIVE_CLASS)
   unsubs.forEach((u) => u())
 })
 </script>

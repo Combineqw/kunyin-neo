@@ -1,9 +1,9 @@
-【kunyin-neo 项目记忆 v4.9 — 2026-09-27】
+【kunyin-neo 项目记忆 v5.0 — 2026-09-27】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
   v4.7 M0 收尾记档：2026-09-26；v4.8 M1 接入记档：2026-09-27；
-  v4.9 M2 进度岛记档：2026-09-27）
+  v4.9 M2 进度岛记档：2026-09-27；v5.0 M3 地基批记档：2026-09-27）
 
 ◆ 项目身份
 - kunyin-neo，fork 自 github.com/ikunshare/kunyin-desktop
@@ -412,4 +412,26 @@
   解包主程序版本 1.0.7，SHA-256
   `CC6A2D7F566DB57DDEDB9FB3BE484F49C1833B29874BC65EFBB775AB3BFBA837`；
   静默安装退出码 0，独立目录主程序 SHA 一致；安装目录原生模块存在，SHA-256
+  `BAF2F84BE13E13B2026FCEB88DC09942728BA33F104A41FE70C1697E0A5CBCB3`。
+
+◆ M3 地基批（2026-09-27，事实与回执）
+- C4 失焦暂停已接线：`App.vue` 按 `blur`、`focus`、`visibilitychange` 维护
+  `html.window-inactive`；`AmllBackground` 同步调用 MeshGradientRenderer 的
+  `pause()` / `resume()`。歌词 rAF 未暂停，仍由音频时钟驱动。CSS 极光光带和分隔条
+  在 `window-inactive` 下使用 `animation-play-state: paused`。
+- 封面色彩管线新增纯数据边界：RGBA 固定降采样 64×64，使用
+  `@material/material-color-utilities@0.4.0` 的 Celebi quantize、Score 和 HCT；
+  输出中性明暗角色、彩色主角色、glow 和 onPrimary。低色度/空数据彩色角色回退
+  `#4F8CF7`，不替用户作观感或验收判断。
+- 玻璃基础加入 `thin/regular/thick` 三档 token/class：模糊 20/40/60px，饱和度
+  1.4/1.6/1.8；不支持 `backdrop-filter` 或设置 `prefers-reduced-transparency` 时
+  回退为实色主区背景。
+- 回归：`npm run typecheck`、定向 ESLint、`npm test`（含 M3 地基接线检查）和
+  `npm run build` 均退出码 0。影子三表沿用 M2 结果：scan 58/58、lyrics 4677/4677、
+  settings_io 1551/1551，0 mismatch。
+- Windows 构建与安装：`electron-builder --win` 退出码 0；安装器 97,765,778 B，
+  SHA-256 `EFE2E491C343D86C5CD5D99B0DD3B0E1E2783E08F52E3BFD1B65B52C4D3C894A`；
+  解包主程序及静默安装目录主程序 SHA-256 均为
+  `625A230BCB82B35AF10AF39D51BF06A24324EEE78E0C3549BB0D5EB7AC90FB8F`；
+  静默安装退出码 0；安装目录原生模块存在，SHA-256
   `BAF2F84BE13E13B2026FCEB88DC09942728BA33F104A41FE70C1697E0A5CBCB3`。

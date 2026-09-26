@@ -17,6 +17,12 @@ let renderer: MeshGradientRenderer | null = null
 // 每次换封面自增，避免异步竞态（旧图回来覆盖新封面）
 let applyToken = 0
 
+function syncRendererActivity(): void {
+  if (!renderer) return
+  if (document.hidden || !document.hasFocus()) renderer.pause()
+  else renderer.resume()
+}
+
 async function applyCover(src?: string): Promise<void> {
   const token = ++applyToken
   const r = renderer
@@ -49,6 +55,10 @@ onMounted(() => {
   // 没有音频频谱数据，给默认活跃度（AMLL 文档建议无数据时传 1.0）
   r.setLowFreqVolume(1)
   renderer = r
+  window.addEventListener('blur', syncRendererActivity)
+  window.addEventListener('focus', syncRendererActivity)
+  document.addEventListener('visibilitychange', syncRendererActivity)
+  syncRendererActivity()
   void applyCover(props.cover)
 })
 
@@ -59,6 +69,9 @@ watch(
 
 onBeforeUnmount(() => {
   applyToken++
+  window.removeEventListener('blur', syncRendererActivity)
+  window.removeEventListener('focus', syncRendererActivity)
+  document.removeEventListener('visibilitychange', syncRendererActivity)
   renderer?.dispose()
   renderer = null
 })

@@ -16,7 +16,8 @@
     "test:core": "node scripts/run-core-domain-tests.mjs",
     "test:theme": "node scripts/run-theme-contrast-tests.mjs",
     "test:animation": "node scripts/animation-constraint-tests.mjs",
-    "test": "npm run test:core && npm run test:theme && npm run test:animation",
+    "test:m3": "node scripts/m3-foundation-tests.mjs",
+    "test": "npm run test:core && npm run test:theme && npm run test:animation && npm run test:m3",
     "verify": "npm run lint:gate && npm run typecheck && npm run test",
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
@@ -33,6 +34,7 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
+    "@material/material-color-utilities": "^0.4.0",
     "better-sqlite3": "^13.0.1",
     "electron-updater": "^6.3.9",
     "gl-matrix": "^4.0.0-beta.2",

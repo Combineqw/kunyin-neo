@@ -89,6 +89,22 @@
   --aurora-c3: #e3f6fd;
   --aurora-glow: rgba(242, 231, 253, 0.5);
   --anim-dur-aurora: 7s;
+
+  /* ---- 玻璃基础（M3 色彩总线） ----
+     三档只改变材质厚度；组件使用 .glass-surface 选择档位，不直接写透明度。
+     背景变量先给出可用的纯色/半透明降级，支持 backdrop-filter 时再叠加模糊。 */
+  --glass-thin-background: color-mix(in srgb, var(--color-main-background) 62%, transparent);
+  --glass-regular-background: color-mix(in srgb, var(--color-main-background) 76%, transparent);
+  --glass-thick-background: color-mix(in srgb, var(--color-main-background) 90%, transparent);
+  --glass-thin-blur: 20px;
+  --glass-regular-blur: 40px;
+  --glass-thick-blur: 60px;
+  --glass-thin-saturation: 1.4;
+  --glass-regular-saturation: 1.6;
+  --glass-thick-saturation: 1.8;
+  --glass-border: color-mix(in srgb, var(--color-font) 16%, transparent);
+  --glass-highlight: color-mix(in srgb, white 44%, transparent);
+  --glass-shadow: 0 14px 36px rgba(0, 0, 0, 0.16);
 }
 
 /* ================= 深色模式修正 =================
@@ -110,6 +126,46 @@ html.theme-dark {
      浮层改用"描边 + 更强投影"表达高度，见下方 ring 规则。 */
   --color-ring: var(--color-primary-alpha-500);
   --color-shadow-floating: rgba(0, 0, 0, 0.55);
+}
+
+/* 玻璃基础类：保持语义变量与组件结构解耦，先能在不支持透明模糊的环境工作。 */
+.glass-surface {
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  background: var(--glass-regular-background);
+}
+.glass-thin {
+  background: var(--glass-thin-background);
+}
+.glass-regular {
+  background: var(--glass-regular-background);
+}
+.glass-thick {
+  background: var(--glass-thick-background);
+}
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-thin {
+    backdrop-filter: blur(var(--glass-thin-blur)) saturate(var(--glass-thin-saturation));
+    -webkit-backdrop-filter: blur(var(--glass-thin-blur)) saturate(var(--glass-thin-saturation));
+  }
+  .glass-regular {
+    backdrop-filter: blur(var(--glass-regular-blur)) saturate(var(--glass-regular-saturation));
+    -webkit-backdrop-filter: blur(var(--glass-regular-blur)) saturate(var(--glass-regular-saturation));
+  }
+  .glass-thick {
+    backdrop-filter: blur(var(--glass-thick-blur)) saturate(var(--glass-thick-saturation));
+    -webkit-backdrop-filter: blur(var(--glass-thick-blur)) saturate(var(--glass-thick-saturation));
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass-surface,
+  .glass-thin,
+  .glass-regular,
+  .glass-thick {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--color-main-background);
+  }
 }
 
 /* 浮层层次：弹窗 / 菜单 / 下拉 / 悬浮条 / toast。
@@ -136,6 +192,12 @@ html.theme-dark .area-main {
 /* 深色下 .aurora-band 提高外发光可见度（浅色主题用 :root 默认值即可）。 */
 html.theme-dark .aurora-band.aurora-glow {
   box-shadow: 0 0 16px var(--aurora-glow);
+}
+
+/* 后台窗口冻结极光时间轴；播放器的 WebGL 背景由 AmllBackground 同步暂停。 */
+html.window-inactive .aurora-band,
+html.window-inactive .aurora-divider::after {
+  animation-play-state: paused;
 }
 
 /* 主搜索框占位符：--color-button-font 实测 3.93:1，hover 态更差（2.72:1）。 */
