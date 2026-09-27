@@ -15,6 +15,12 @@ export type NativeScanTrack = {
   album: string
   duration: number
   path: string
+  replayGain?: {
+    trackDb?: number
+    albumDb?: number
+    trackPeak?: number
+    albumPeak?: number
+  }
 }
 
 export type NativeScanResult = {

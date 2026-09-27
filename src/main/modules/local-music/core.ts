@@ -27,6 +27,7 @@ export async function parseLocalSong(filePath: string): Promise<LocalMusicItem> 
   let artist = fallback.artist
   let album = ''
   let duration = 0
+  let replayGain: LocalMusicItem['replayGain']
   try {
     // music-metadata 为 ESM-only 包，主进程 CJS 侧用动态 import 加载
     const mm = await import('music-metadata')
@@ -37,6 +38,15 @@ export async function parseLocalSong(filePath: string): Promise<LocalMusicItem> 
     if (joined) artist = joined
     album = meta.common.album?.trim() ?? ''
     duration = Math.round((meta.format.duration ?? 0) * 1000)
+    const parsed = {
+      trackDb: meta.common.replaygain_track_gain?.dB,
+      albumDb: meta.common.replaygain_album_gain?.dB,
+      trackPeak: meta.common.replaygain_track_peak?.ratio,
+      albumPeak: meta.common.replaygain_album_peak?.ratio
+    }
+    if (Object.values(parsed).some((value) => typeof value === 'number' && Number.isFinite(value))) {
+      replayGain = parsed
+    }
   } catch {
     /* 无标签/不支持的容器：回退文件名 + 时长 0（播放时 <audio> 会读到真实时长） */
   }
@@ -49,6 +59,7 @@ export async function parseLocalSong(filePath: string): Promise<LocalMusicItem> 
     cover: '',
     duration,
     qualities: {},
+    ...(replayGain ? { replayGain } : {}),
     filePath
   }
 }

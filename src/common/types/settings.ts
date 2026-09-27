@@ -159,6 +159,14 @@ export interface AppSettings {
     fadeEnabled: boolean
     /** 淡入淡出时长，单位 ms */
     fadeDurationMs: number
+    /** 播放时应用本地曲目 ReplayGain 标签。 */
+    replayGainEnabled: boolean
+    /** 优先使用单曲增益或专辑增益；缺失时回退另一种。 */
+    replayGainMode: 'track' | 'album'
+    /** ReplayGain 前置增益，单位 dB。 */
+    replayGainPreampDb: number
+    /** 正增益上限，单位 dB；峰值标签仍会进一步限制削波风险。 */
+    replayGainMaxDb: number
     /** 独立迷你播放器悬浮窗开关 */
     miniPlayerEnabled: boolean
     /** 迷你播放器窗口左上角位置（null 表示默认右下角） */
@@ -396,6 +404,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
     irsProfileId: '',
     fadeEnabled: true,
     fadeDurationMs: 300,
+    replayGainEnabled: false,
+    replayGainMode: 'track',
+    replayGainPreampDb: 0,
+    replayGainMaxDb: 6,
     miniPlayerEnabled: false,
     miniPlayerX: null,
     miniPlayerY: null,

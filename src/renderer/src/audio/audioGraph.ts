@@ -51,6 +51,8 @@ export interface AudioGraphState {
   irsWetPercent: number
   irsDryPercent: number
   irsBufferDurationMs: number
+  /** 当前曲目 ReplayGain 增益，单位 dB。 */
+  replayGainDb: number
   outputGain: number
 }
 
@@ -67,6 +69,8 @@ export interface AudioGraphController {
   setEqualizerProfile(preampDb: number | undefined, filters: readonly EqualizerFilter[]): void
   setSrsSettings(settings: SrsAudioSettings): void
   setIrsSettings(settings: IrsAudioSettings): void
+  /** 应用当前曲目的 ReplayGain；调用方负责按设置和曲目元数据解析 dB。 */
+  setReplayGain(db: number): void
   decodeIrs(data: ArrayBuffer): Promise<AudioBuffer>
   setIrsBuffer(buffer: AudioBuffer | null): void
   hasIrsBuffer(): boolean
@@ -98,6 +102,11 @@ function clampGain(gain: number): number {
 
 function clampPreamp(gain: number | undefined): number {
   return Math.max(-24, Math.min(24, Number.isFinite(gain) ? (gain as number) : 0))
+}
+
+function clampReplayGain(db: number): number {
+  const value = Number.isFinite(db) ? db : 0
+  return Math.max(-18, Math.min(12, value))
 }
 
 function dbToLinearGain(db: number): number {
@@ -166,6 +175,7 @@ class WebAudioGraph implements AudioGraphController {
   private readonly irsConvolver: ConvolverNode
   private readonly irsWet: GainNode
   private readonly irsMerger: GainNode
+  private readonly replayGain: GainNode
   private readonly output: GainNode
   private readonly bandGains = EQ_FREQUENCIES.map(() => 0)
   private profileFilters: EqualizerFilter[] = filtersFromBands(this.bandGains)
@@ -182,6 +192,7 @@ class WebAudioGraph implements AudioGraphController {
   }
   private irs: IrsAudioSettings = { enabled: false, wetPercent: 50 }
   private irsBuffer: AudioBuffer | null = null
+  private replayGainDb = 0
 
   constructor(element: HTMLMediaElement) {
     this.context = new AudioContext()
@@ -213,6 +224,7 @@ class WebAudioGraph implements AudioGraphController {
     this.irsConvolver = this.context.createConvolver()
     this.irsWet = this.context.createGain()
     this.irsMerger = this.context.createGain()
+    this.replayGain = this.context.createGain()
     this.output = this.context.createGain()
     this.output.gain.value = 1
     this.analyser = this.context.createAnalyser()
@@ -275,6 +287,11 @@ class WebAudioGraph implements AudioGraphController {
       wetPercent: clampPercent(settings.wetPercent)
     }
     this.applyIrs()
+  }
+
+  setReplayGain(db: number): void {
+    this.replayGainDb = clampReplayGain(db)
+    this.applyReplayGain()
   }
 
   /**
@@ -382,6 +399,7 @@ class WebAudioGraph implements AudioGraphController {
       irsWetPercent: this.irs.wetPercent,
       irsDryPercent: 100 - this.irs.wetPercent,
       irsBufferDurationMs: this.irsBuffer ? this.irsBuffer.duration * 1000 : 0,
+      replayGainDb: this.replayGainDb,
       outputGain: this.output.gain.value
     }
   }
@@ -410,6 +428,7 @@ class WebAudioGraph implements AudioGraphController {
     this.irsConvolver.disconnect()
     this.irsWet.disconnect()
     this.irsMerger.disconnect()
+    this.replayGain.disconnect()
     this.filters = this.profileFilters.map((description) => {
       const filter = this.context.createBiquadFilter()
       filter.type = description.type
@@ -450,11 +469,13 @@ class WebAudioGraph implements AudioGraphController {
     this.irsConvolver.connect(this.irsWet)
     this.irsDry.connect(this.irsMerger)
     this.irsWet.connect(this.irsMerger)
-    this.irsMerger.connect(this.output)
+    this.irsMerger.connect(this.replayGain)
+    this.replayGain.connect(this.output)
     this.applyEqualizer()
     this.applySrs()
     this.irsConvolver.buffer = this.irsBuffer
     this.applyIrs()
+    this.applyReplayGain()
   }
 
   private applyEqualizer(): void {
@@ -505,6 +526,14 @@ class WebAudioGraph implements AudioGraphController {
     const dry = active ? 1 - wet : 1
     this.irsDry.gain.setTargetAtTime(dry, now, 0.02)
     this.irsWet.gain.setTargetAtTime(wet, now, 0.02)
+  }
+
+  private applyReplayGain(): void {
+    this.replayGain.gain.setTargetAtTime(
+      dbToLinearGain(this.replayGainDb),
+      this.context.currentTime,
+      0.02
+    )
   }
 
   private holdOutput(now: number): void {

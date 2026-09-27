@@ -69,8 +69,8 @@ async function readEmbeddedTags(filePath: string): Promise<EmbeddedLocalTags | n
           .map((entry) =>
             typeof entry === 'string'
               ? entry
-              : typeof entry?.plainLyrics === 'string'
-                ? entry.plainLyrics
+              : typeof (entry as { plainLyrics?: unknown })?.plainLyrics === 'string'
+                ? (entry as unknown as { plainLyrics: string }).plainLyrics
                 : ''
           )
           .filter(Boolean)

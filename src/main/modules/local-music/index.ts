@@ -63,6 +63,7 @@ export async function scanLocalSongs(directory: string): Promise<LocalScanResult
         cover: '',
         duration: track.duration,
         qualities: {},
+        ...(track.replayGain ? { replayGain: track.replayGain } : {}),
         filePath: track.path
       })),
       skipped: result.skippedNonAudio + result.parseFailed + result.walkErrors
@@ -107,6 +108,7 @@ export async function scanLocalSongs(directory: string): Promise<LocalScanResult
             cover: '',
             duration: track.duration,
             qualities: {},
+            ...(track.replayGain ? { replayGain: track.replayGain } : {}),
             filePath: track.path
           })
         } else {
@@ -176,6 +178,7 @@ export async function scanLocalSongsProgressive(
           cover: '',
           duration: track.duration,
           qualities: {},
+          ...(track.replayGain ? { replayGain: track.replayGain } : {}),
           filePath: track.path
         })
       } else {

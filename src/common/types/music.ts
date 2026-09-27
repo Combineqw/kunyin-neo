@@ -34,6 +34,14 @@ export interface Singer {
   extra?: string
 }
 
+/** ReplayGain 标签；数值单位为 dB，峰值为线性振幅比。 */
+export interface ReplayGainInfo {
+  trackDb?: number
+  albumDb?: number
+  trackPeak?: number
+  albumPeak?: number
+}
+
 /**
  * 取跳歌手页要用的 id：QQ 的歌手接口只认 singerMid（存在 extra），其余源用数值 id。
  * 返回 null 表示该歌手无法定位（菜单里就不该给入口）。
@@ -54,6 +62,8 @@ export interface BaseMusicItem {
   /** 时长（毫秒） */
   duration: number
   qualities: Record<string, Quality>
+  /** 本地文件标签中的 ReplayGain；在线曲目通常没有此字段。 */
+  replayGain?: ReplayGainInfo
   tags?: string[]
   albumId?: string
   singers?: Singer[]

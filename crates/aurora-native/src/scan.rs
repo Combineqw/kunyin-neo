@@ -37,6 +37,47 @@ pub struct ScannedTrack {
     /// 毫秒
     pub duration: u64,
     pub path: String,
+    #[serde(rename = "replayGain", skip_serializing_if = "Option::is_none")]
+    pub replay_gain: Option<ReplayGainInfo>,
+}
+
+/// ReplayGain 标签值；dB 与峰值分别保留，播放侧可按设置选择口径。
+#[derive(Debug, Serialize)]
+pub struct ReplayGainInfo {
+    #[serde(rename = "trackDb", skip_serializing_if = "Option::is_none")]
+    pub track_db: Option<f64>,
+    #[serde(rename = "albumDb", skip_serializing_if = "Option::is_none")]
+    pub album_db: Option<f64>,
+    #[serde(rename = "trackPeak", skip_serializing_if = "Option::is_none")]
+    pub track_peak: Option<f64>,
+    #[serde(rename = "albumPeak", skip_serializing_if = "Option::is_none")]
+    pub album_peak: Option<f64>,
+}
+
+impl ReplayGainInfo {
+    fn is_empty(&self) -> bool {
+        self.track_db.is_none()
+            && self.album_db.is_none()
+            && self.track_peak.is_none()
+            && self.album_peak.is_none()
+    }
+}
+
+fn parse_tag_number(tag: &lofty::tag::Tag, key: &ItemKey) -> Option<f64> {
+    tag.get_string(key)
+        .and_then(|value| value.split_whitespace().next())
+        .and_then(|value| value.parse::<f64>().ok())
+        .filter(|value| value.is_finite())
+}
+
+fn parse_replay_gain(tag: &lofty::tag::Tag) -> Option<ReplayGainInfo> {
+    let value = ReplayGainInfo {
+        track_db: parse_tag_number(tag, &ItemKey::ReplayGainTrackGain),
+        album_db: parse_tag_number(tag, &ItemKey::ReplayGainAlbumGain),
+        track_peak: parse_tag_number(tag, &ItemKey::ReplayGainTrackPeak),
+        album_peak: parse_tag_number(tag, &ItemKey::ReplayGainAlbumPeak),
+    };
+    (!value.is_empty()).then_some(value)
 }
 
 /// 判断扩展名是否为支持的音频格式（大小写不敏感）。
@@ -90,6 +131,7 @@ pub fn parse_track_counted(path: &Path) -> (ScannedTrack, bool) {
     let mut artist = fallback_artist;
     let mut album = String::new();
     let mut duration: u64 = 0;
+    let mut replay_gain: Option<ReplayGainInfo> = None;
 
     // 读标签：任何失败都静默回退，与 Node 端 try/catch 同语义
     let mut tag_failed = false;
@@ -120,6 +162,7 @@ pub fn parse_track_counted(path: &Path) -> (ScannedTrack, bool) {
             if let Some(a) = tag.album() {
                 album = a.trim().to_string();
             }
+            replay_gain = parse_replay_gain(tag);
         }
     } else {
         tag_failed = true;
@@ -132,6 +175,7 @@ pub fn parse_track_counted(path: &Path) -> (ScannedTrack, bool) {
             album,
             duration,
             path: path.display().to_string(),
+            replay_gain,
         },
         tag_failed,
     )

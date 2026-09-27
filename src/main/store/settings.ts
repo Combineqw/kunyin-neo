@@ -93,6 +93,20 @@ function load(): AppSettings {
     )
     // 保留旧字段的镜像值，避免旧备份或外部读取者看到互相矛盾的干湿比例。
     merged.player.irsDryPercent = 100 - merged.player.irsWetPercent
+    merged.player.replayGainEnabled = merged.player.replayGainEnabled === true
+    merged.player.replayGainMode = merged.player.replayGainMode === 'album' ? 'album' : 'track'
+    merged.player.replayGainPreampDb = clampSetting(
+      merged.player.replayGainPreampDb,
+      DEFAULT_SETTINGS.player.replayGainPreampDb,
+      -12,
+      12
+    )
+    merged.player.replayGainMaxDb = clampSetting(
+      merged.player.replayGainMaxDb,
+      DEFAULT_SETTINGS.player.replayGainMaxDb,
+      0,
+      12
+    )
     const profiles = Array.isArray(merged.player.irsProfiles) ? merged.player.irsProfiles : []
     merged.player.irsProfiles = profiles.filter((profile) => profile.id !== 'builtin-srs-normal-headphone')
     merged.player.irsProfileId = typeof merged.player.irsProfileId === 'string' ? merged.player.irsProfileId : ''

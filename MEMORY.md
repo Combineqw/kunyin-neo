@@ -1,10 +1,11 @@
-【kunyin-neo 项目记忆 v5.2 — 2026-09-27】
+【kunyin-neo 项目记忆 v5.3 — 2026-09-27】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
   v4.7 M0 收尾记档：2026-09-26；v4.8 M1 接入记档：2026-09-27；
   v4.9 M2 进度岛记档：2026-09-27；v5.0 M3 地基批记档：2026-09-27；
-  v5.1 M4 四季极光主题记档：2026-09-27；v5.2 M5 F1 本地信息补全记档：2026-09-27）
+  v5.1 M4 四季极光主题记档：2026-09-27；v5.2 M5 F1 本地信息补全记档：2026-09-27；
+  v5.3 M5 F1.5 ReplayGain 记档：2026-09-27）
 
 ◆ 项目身份
 - kunyin-neo，fork 自 github.com/ikunshare/kunyin-desktop
@@ -475,3 +476,20 @@
   原生模块 1,452,032 B，SHA-256
   `BAF2F84BE13E13B2026FCEB88DC09942728BA33F104A41FE70C1697E0A5CBCB3`。
   NSIS `/S` 静默安装退出码 0，安装目录主程序与原生模块哈希均一致。
+
+◆ M5 F1.5 ReplayGain 音量均衡（2026-09-27，事实与回执）
+- 本地扫描从 Node `music-metadata` 与 Rust `lofty` 两条路径读取已有 ReplayGain
+  track/album gain 与 peak 标签；字段以可选 `replayGain` 写入曲目 JSON，旧曲目、
+  在线曲目和无标签文件不增加字段。此版本读取标签并应用，不对无标签音频做全曲
+  LUFS 分析；重采样与写回标签留待 T3。
+- 播放设置新增 ReplayGain 开关、单曲/专辑口径、前置增益和正增益上限；独立
+  Web Audio GainNode 位于 IRS 合并后、淡入淡出输出前。峰值存在时限制正增益，
+  无标签或关闭开关时保持 0 dB；切歌、恢复、试听和设置变更均平滑更新。
+- 回归：`npm test`、`npm run typecheck`、Rust `cargo check`、`npm run native:compare`
+  均通过；影子对答案 scan 58/58、lyrics 4677/4677、settings 1551/1551，真实
+  文件校验一致。新增 M5.1 纯逻辑增益测试通过。
+- Windows 构建与安装：先执行 `npm run native:build`，原生模块 SHA-256
+  `0445C404C0598567FAAA749E217F5C735464CCF80A6CF6AAD08021DD8D60E2AA`；
+  安装器 `dist/kunyin-desktop-1.0.7-setup.exe` 大小 `97,913,762 B`，SHA-256
+  `ACA0DD01DBDB21D8E0D418F616FC4D865C79D27E31AAC529E61F234710AF96FB`；NSIS `/S`
+  静默安装退出码 `0`。未下验收通过结论。

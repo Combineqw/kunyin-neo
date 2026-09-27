@@ -4,7 +4,8 @@ import type { IrsProfile, MusicItem, PlayMode, QualityId, RecommendationSong } f
 import {
   blockedQualityIds,
   createHeartbeatRecommendations,
-  getMusicItemKey
+  getMusicItemKey,
+  resolveReplayGainDb
 } from '@common'
 import { useSettingsStore } from './settings'
 import { describeMediaError } from '../playback/mediaError'
@@ -172,6 +173,16 @@ export const usePlayerStore = defineStore('player', () => {
       limiter: settings.srsLimiter
     })
     graph.setIrsSettings({ enabled: settings.irsEnabled, wetPercent: settings.irsWetPercent })
+    graph.setReplayGain(
+      settings.replayGainEnabled && current.value
+        ? resolveReplayGainDb(
+            current.value.replayGain,
+            settings.replayGainMode,
+            settings.replayGainPreampDb,
+            settings.replayGainMaxDb
+          )
+        : 0
+    )
     const profile = settings.irsProfiles.find((item) => item.id === settings.irsProfileId) ?? null
     if (!profile || loadedIrsId !== profile.id) void applyIrsProfile(profile)
   }
@@ -205,6 +216,14 @@ export const usePlayerStore = defineStore('player', () => {
         settings.irsDryPercent,
         settings.irsProfileId,
         JSON.stringify(settings.irsProfiles),
+        settings.replayGainEnabled,
+        settings.replayGainMode,
+        settings.replayGainPreampDb,
+        settings.replayGainMaxDb,
+        current.value?.replayGain?.trackDb,
+        current.value?.replayGain?.albumDb,
+        current.value?.replayGain?.trackPeak,
+        current.value?.replayGain?.albumPeak,
         ...settings.equalizerGains
       ]
     },
@@ -633,6 +652,7 @@ export const usePlayerStore = defineStore('player', () => {
     muted.value = !!saved.muted
     syncVolumeFromSettings()
     current.value = saved.item
+    applyAudioSettings()
     beginPlaySession(saved.item)
     sessionMaxPositionMs = positionMs
     duration.value = saved.item.duration
@@ -661,6 +681,7 @@ export const usePlayerStore = defineStore('player', () => {
     enableAudioSpectrum()
     beginPlaySession(item)
     current.value = item
+    applyAudioSettings()
     retriedAfterError = false // 用户主动切歌：允许错误重试
     if (list) {
       queue.value = list
@@ -700,6 +721,7 @@ export const usePlayerStore = defineStore('player', () => {
     const q = list.length ? list : [plain]
     beginPlaySession(item)
     current.value = item
+    applyAudioSettings()
     retriedAfterError = false // 用户主动切歌：允许错误重试
     queue.value = q
     queueSource.value = { kind: 'trial', name: '试听列表' }

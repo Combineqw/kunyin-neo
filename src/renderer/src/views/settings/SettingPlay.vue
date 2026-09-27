@@ -401,6 +401,25 @@ function setFadeDuration(event: Event): void {
   const value = Number((event.target as HTMLInputElement).value)
   void store.update({ player: { fadeDurationMs: Math.max(0, Math.min(1000, value)) } })
 }
+
+function setReplayGainEnabled(enabled: boolean): void {
+  void store.update({ player: { replayGainEnabled: enabled } })
+}
+
+function setReplayGainMode(event: Event): void {
+  const mode = (event.target as HTMLSelectElement).value
+  void store.update({ player: { replayGainMode: mode === 'album' ? 'album' : 'track' } })
+}
+
+function setReplayGainPreamp(event: Event): void {
+  const value = Number((event.target as HTMLInputElement).value)
+  void store.update({ player: { replayGainPreampDb: Math.max(-12, Math.min(12, value)) } })
+}
+
+function setReplayGainMax(event: Event): void {
+  const value = Number((event.target as HTMLInputElement).value)
+  void store.update({ player: { replayGainMaxDb: Math.max(0, Math.min(12, value)) } })
+}
 </script>
 
 <template>
@@ -648,6 +667,52 @@ function setFadeDuration(event: Event): void {
           @input="setFadeDuration"
         />
       </label>
+      <div class="replay-gain-panel gap-top aurora-divider">
+        <BaseCheckbox
+          id="setting_replay_gain_enabled"
+          :model-value="settings.player.replayGainEnabled"
+          label="启用 ReplayGain 音量均衡"
+          @update:model-value="setReplayGainEnabled($event as boolean)"
+        />
+        <p class="srs-note">仅使用本地文件已有的 ReplayGain 标签；没有标签的歌曲保持原音量。</p>
+        <div class="replay-gain-controls" :class="{ disabled: !settings.player.replayGainEnabled }">
+          <label>
+            <span>增益口径</span>
+            <select
+              :value="settings.player.replayGainMode"
+              :disabled="!settings.player.replayGainEnabled"
+              @change="setReplayGainMode"
+            >
+              <option value="track">单曲增益</option>
+              <option value="album">专辑增益</option>
+            </select>
+          </label>
+          <label>
+            <span>前置增益 <b>{{ settings.player.replayGainPreampDb }} dB</b></span>
+            <input
+              type="range"
+              min="-12"
+              max="12"
+              step="0.5"
+              :value="settings.player.replayGainPreampDb"
+              :disabled="!settings.player.replayGainEnabled"
+              @input="setReplayGainPreamp"
+            />
+          </label>
+          <label>
+            <span>正增益上限 <b>{{ settings.player.replayGainMaxDb }} dB</b></span>
+            <input
+              type="range"
+              min="0"
+              max="12"
+              step="0.5"
+              :value="settings.player.replayGainMaxDb"
+              :disabled="!settings.player.replayGainEnabled"
+              @input="setReplayGainMax"
+            />
+          </label>
+        </div>
+      </div>
     </div>
   </dd>
 
@@ -857,6 +922,34 @@ function setFadeDuration(event: Event): void {
   .eq-grid {
     grid-template-columns: repeat(5, minmax(48px, 1fr));
     row-gap: 18px;
+  }
+}
+.replay-gain-panel {
+  padding-top: 12px;
+}
+.replay-gain-controls {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.7fr) minmax(160px, 1fr) minmax(160px, 1fr);
+  gap: 12px;
+  margin-top: 10px;
+}
+.replay-gain-controls label {
+  display: grid;
+  gap: 6px;
+  color: var(--color-font-label);
+  font-size: 12px;
+}
+.replay-gain-controls select {
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid var(--color-primary-alpha-700);
+  border-radius: 6px;
+  color: var(--color-font);
+  background: var(--color-main-background);
+}
+@media (max-width: 720px) {
+  .replay-gain-controls {
+    grid-template-columns: 1fr;
   }
 }
 </style>
