@@ -14,6 +14,9 @@ test-assets/
 
 # Rust 构建产物
 crates/aurora-native/target/
+crates/aurora-core/target/
+src-tauri/target/
+src-tauri/gen/schemas/
 # napi 产物（由 npm run native:build 生成）
 *.node
 

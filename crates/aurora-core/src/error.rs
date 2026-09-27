@@ -1,15 +1,14 @@
 //! 统一错误类型。
 //!
 //! 约定（tasks/R2-1.md）：关键路径禁裸 unwrap，一律走 Result。
-//! 对 Node 侧暴露时统一转成 napi::Error，带上可读的中文上下文。
+//! 宿主适配层将此错误转成各自的错误类型。
 
 use std::fmt;
 use std::path::Path;
 
-/// 原生模块的统一错误枚举。
+/// Shared core error type; adapters translate it at their host boundary.
 ///
-/// 刻意不引入 thiserror：依赖白名单只允许 napi / lofty / walkdir / serde / serde_json，
-/// 手写 Display + From 足够，也少一个依赖。
+/// Hand-written formatting keeps the core dependency surface small.
 #[derive(Debug)]
 pub enum AuroraError {
     /// 目录遍历失败（权限、路径不存在等）
@@ -56,13 +55,6 @@ impl fmt::Display for AuroraError {
 }
 
 impl std::error::Error for AuroraError {}
-
-/// 转成 napi 错误，让 Node 侧 catch 到可读信息。
-impl From<AuroraError> for napi::Error {
-    fn from(e: AuroraError) -> Self {
-        napi::Error::from_reason(e.to_string())
-    }
-}
 
 impl From<serde_json::Error> for AuroraError {
     fn from(e: serde_json::Error) -> Self {

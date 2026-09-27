@@ -100,7 +100,10 @@ fn parse_time(content: &str) -> Option<u64> {
         }
     }
 
-    let nums: Vec<u64> = parts.iter().map(|p| p.parse::<u64>().unwrap_or(0)).collect();
+    let nums: Vec<u64> = parts
+        .iter()
+        .map(|p| p.parse::<u64>().unwrap_or(0))
+        .collect();
     let (hour, minute, second) = match nums.len() {
         1 => (0, 0, nums[0]),
         2 => (0, nums[0], nums[1]),

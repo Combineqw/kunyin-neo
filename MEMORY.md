@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.6 — 2026-09-27】
+【kunyin-neo 项目记忆 v5.7 — 2026-09-27】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -7,7 +7,8 @@
   v5.1 M4 四季极光主题记档：2026-09-27；v5.2 M5 F1 本地信息补全记档：2026-09-27；
   v5.3 M5 F1.5 ReplayGain 记档：2026-09-27；v5.4 M5 F3' 曲库管家记档：2026-09-27；
   v5.5 M5 F2 聚合搜索交互与六源编排记档：2026-09-27；
-  v5.6 M5 F4' WASAPI 独占评估记档：2026-09-27）
+  v5.6 M5 F4' WASAPI 独占评估记档：2026-09-27；
+  v5.7 M6 Rust 核心双绑定记档：2026-09-27）
 
 ◆ 项目身份
 - kunyin-neo，fork 自 github.com/ikunshare/kunyin-desktop
@@ -520,3 +521,11 @@
 - 当前输出链为 HTMLAudioElement → Web Audio 效果图 → `AudioContext.destination`；没有应用级 WASAPI 独占接口或位元直通证据。Rust N-API 模块目前无解码/音频输出后端。
 - WASAPI exclusive 可实现，但需要独立原生输出后端。PCM 桥接可作设备与渲染原型，不等于 bit-perfect；完整本地/在线源接管会扩展到编解码、Range/seek、鉴权、QQ 解密、DSP、频谱与设备故障回退。
 - 本阶段只交评估报告 `F4-WASAPI-exclusive-assessment.md`，未改播放器代码、未改变系统音频设置。建议先做隔离的原生端点探测；生产实装范围及失败回退行为待用户拍板，WASAPI/格式直通仍属 T3 议题。
+
+◆ M6 Rust 核心双绑定（2026-09-27，事实与回执）
+- 新增宿主无关 `crates/aurora-core`，承载 scan、lyrics、settings_io 与 `AuroraError`；核心只依赖 lofty、walkdir、serde、serde_json，不再依赖 N-API。`crates/aurora-native` 改为薄适配层，通过路径依赖复用核心，并保留 Electron 现有 N-API 名称、JSON 字符串返回契约和 Node 回退路径。
+- 新增独立 `src-tauri/` Windows Tauri v2 验证壳，固定 tauri 2.12.0 / tauri-build 2.7.0；静态 UI 的 `parse_lyrics` command 调同一 `aurora-core::lyrics::parse_lrc`。使用现有 `resources/icons/icon.ico` 生成 Windows 资源；shell bundle 关闭，不替换 Electron 产品或现有 renderer。
+- Tauri UI 经 WebView2 CDP 实测：`parse_lyrics` 返回 2 行，第一行 start/end=1200/2500 ms，末行 start/end=2500/0 ms。`cargo check --manifest-path src-tauri/Cargo.toml`、`cargo build --manifest-path src-tauri/Cargo.toml` 均退出码 0；`node --check src-tauri/ui/main.js` 通过。
+- `aurora-core` 单元测试 2/2 通过；`npm run native:build` 成功；`npm run native:compare` 三表 0 mismatch：scan 58/58（Node 26,690 ms / Rust 8,249 ms）、lyrics 4,677/4,677（2,830/278 ms）、settings_io 1,551/1,551（31/641 ms）。settings_io 计时非同等工作量：Rust 每个回环用例重读源设置文件，Node 从已解析内存值复制；本数字原样记录，不作性能结论。真实文件防篡改校验一致。
+- `npm run typecheck`、`npm test`、`npm run build` 均退出码 0；`git diff --check` 通过。初次 Tauri 检查因默认 `src-tauri/icons/icon.ico` 缺失而失败，改为引用仓库现有图标后复跑通过。
+- 本步建立双绑定核心与 Tauri proof shell；没有迁移 Electron renderer API、替换应用主壳或移除 JS fallback/shadow oracle。判定权仍在用户，未下验收通过结论。

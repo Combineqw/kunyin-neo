@@ -1,10 +1,8 @@
-# aurora-native · 坤音 neo 原生模块（R2 Rust 原生化）
+# aurora-native · Electron's Node-API adapter for aurora-core
 #
-# 产物为 .node（Node-API 动态库），供 Node 侧 require 加载做影子对答案。
-# R2-1 只实现 scan；lyrics / settings_io 为占位，R2-2 / R2-3 填充。
+# Produces a .node library. Domain logic lives in crates/aurora-core.
 #
-# 依赖白名单（tasks/R2-1.md 规定，不得超出）：
-#   napi / napi-derive / lofty / walkdir / serde / serde_json
+# Adapter dependencies: napi / napi-derive / aurora-core.
 [package]
 name = "aurora-native"
 version = "0.1.0"
@@ -20,15 +18,7 @@ crate-type = ["cdylib"]
 # napi 4 + Node-API 8：跨 Node/Electron ABI 通用，换 Electron 版本不用重编
 napi = { version = "2.16", default-features = false, features = ["napi8", "serde-json"] }
 napi-derive = "2.16"
-# 音频标签解析（对齐 Node 侧 music-metadata 的语义）
-lofty = "0.22"
-# 递归目录遍历
-walkdir = "2.5"
-serde = { version = "1", features = ["derive"] }
-# preserve_order：serde_json 默认按字母序重排对象键，V8 的 JSON.parse/stringify
-# 保留插入顺序。设置文件的键序必须与 Node 端逐字节一致（回环测试判据），
-# 故启用该特性改用 IndexMap 保序。属 serde_json 自带特性，未引入白名单外依赖。
-serde_json = { version = "1", features = ["preserve_order"] }
+aurora-core = { path = "../aurora-core" }
 
 [build-dependencies]
 napi-build = "2"
