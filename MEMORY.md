@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.5 — 2026-09-27】
+【kunyin-neo 项目记忆 v5.6 — 2026-09-27】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -6,7 +6,8 @@
   v4.9 M2 进度岛记档：2026-09-27；v5.0 M3 地基批记档：2026-09-27；
   v5.1 M4 四季极光主题记档：2026-09-27；v5.2 M5 F1 本地信息补全记档：2026-09-27；
   v5.3 M5 F1.5 ReplayGain 记档：2026-09-27；v5.4 M5 F3' 曲库管家记档：2026-09-27；
-  v5.5 M5 F2 聚合搜索交互与六源编排记档：2026-09-27）
+  v5.5 M5 F2 聚合搜索交互与六源编排记档：2026-09-27；
+  v5.6 M5 F4' WASAPI 独占评估记档：2026-09-27）
 
 ◆ 项目身份
 - kunyin-neo，fork 自 github.com/ikunshare/kunyin-desktop
@@ -514,3 +515,8 @@
 - QQ 云返回的 `MusicItem.type` 可能为 `qq`，聚合展示的来源标签取 Provider 分组而非歌曲 type，避免来源误标。
 - 新增 `runSourceSearches` 纯逻辑编排边界和 `test:m54` 时序测试，验证先回先显与旧查询结果作废。`npm run test:m54`、`npm test`、`npm run typecheck`、正式文件定向 ESLint 均通过；`git diff --check` 通过。
 - Windows 构建与安装：`npm run build:win` 退出码 0；安装器 `dist/kunyin-desktop-1.0.7-setup.exe` 大小 `97,957,744 B`，SHA-256 `060C96E3D5763B6429BBC81C4E34D5357ABE2D7DB22A2D56DE96581CAFF26766`；独立临时目录 NSIS `/S` 退出码 0，安装版本 `1.0.7.0`，主程序 SHA-256 `465A8001BEDDD6789940E6CCBA597861EF4F5C4DEA796B5E6435D39713F0570F`。
+
+◆ M5 F4' WASAPI 独占评估（2026-09-27，评估记录）
+- 当前输出链为 HTMLAudioElement → Web Audio 效果图 → `AudioContext.destination`；没有应用级 WASAPI 独占接口或位元直通证据。Rust N-API 模块目前无解码/音频输出后端。
+- WASAPI exclusive 可实现，但需要独立原生输出后端。PCM 桥接可作设备与渲染原型，不等于 bit-perfect；完整本地/在线源接管会扩展到编解码、Range/seek、鉴权、QQ 解密、DSP、频谱与设备故障回退。
+- 本阶段只交评估报告 `F4-WASAPI-exclusive-assessment.md`，未改播放器代码、未改变系统音频设置。建议先做隔离的原生端点探测；生产实装范围及失败回退行为待用户拍板，WASAPI/格式直通仍属 T3 议题。
