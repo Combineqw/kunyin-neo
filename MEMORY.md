@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.7 — 2026-09-27】
+【kunyin-neo 项目记忆 v5.8 — 2026-09-27】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -8,7 +8,8 @@
   v5.3 M5 F1.5 ReplayGain 记档：2026-09-27；v5.4 M5 F3' 曲库管家记档：2026-09-27；
   v5.5 M5 F2 聚合搜索交互与六源编排记档：2026-09-27；
   v5.6 M5 F4' WASAPI 独占评估记档：2026-09-27；
-  v5.7 M6 Rust 核心双绑定记档：2026-09-27）
+  v5.7 M6 Rust 核心双绑定记档：2026-09-27；
+  v5.8 M7 终版构建与发布核验记档：2026-09-27）
 
 ◆ 项目身份
 - kunyin-neo，fork 自 github.com/ikunshare/kunyin-desktop
@@ -529,3 +530,11 @@
 - `aurora-core` 单元测试 2/2 通过；`npm run native:build` 成功；`npm run native:compare` 三表 0 mismatch：scan 58/58（Node 26,690 ms / Rust 8,249 ms）、lyrics 4,677/4,677（2,830/278 ms）、settings_io 1,551/1,551（31/641 ms）。settings_io 计时非同等工作量：Rust 每个回环用例重读源设置文件，Node 从已解析内存值复制；本数字原样记录，不作性能结论。真实文件防篡改校验一致。
 - `npm run typecheck`、`npm test`、`npm run build` 均退出码 0；`git diff --check` 通过。初次 Tauri 检查因默认 `src-tauri/icons/icon.ico` 缺失而失败，改为引用仓库现有图标后复跑通过。
 - 本步建立双绑定核心与 Tauri proof shell；没有迁移 Electron renderer API、替换应用主壳或移除 JS fallback/shadow oracle。判定权仍在用户，未下验收通过结论。
+
+◆ M7 终版构建与发布核验（2026-09-27，事实与回执）
+- 文档：README 更新为 M2/M3/M4/M5/M6 当前事实，F4' 保留为评估阶段；新增根目录 `CHANGELOG.md`，按实际提交记录 M0-M6，不写验收结论。作者与协作署名沿用 Codex、清言、Claude、南风知我意（@Combineqw）。
+- 最终 Electron Windows 构建使用 D 盘仓库自带 Node.js 22.23.2/npm 10.9.8；正式源码 ESLint（排除未跟踪 `work/`）、`npm run typecheck`、`npm test`、`npm run native:test` 均退出码 0。native 三表继续 0 mismatch：scan 58/58、lyrics 4677/4677、settings_io 1551/1551；核心/Tauri `cargo check` 与 `cargo build` 已在 M6 记录并通过。
+- `npm run build:win` 退出码 0。新安装器 `dist/kunyin-desktop-1.0.7-setup.exe`：97,957,916 B，SHA-256 `5DA1AB8EF3F8BDC963413F942D5A827FB503325DDC57BF9B11AEC2741CB68625`。解包主程序 211,232,768 B，版本 1.0.7.0，SHA-256 `465A8001BEDDD6789940E6CCBA597861EF4F5C4DEA796B5E6435D39713F0570F`。
+- NSIS `/S` 独立目录安装退出码 0；安装目录主程序 SHA 与解包主程序一致；原生模块存在，1,472,000 B，SHA-256 `93839E1965F8EF5402A0D43B4B64C5CBB63091C7FB0C5611B0333701FAD4CB3C`。
+- 镜像：`npm config get registry` 仍为 `https://registry.npmjs.org/`；显式 `npm ping --registry=https://registry.npmmirror.com` 返回 PONG；隔离目录 `npm ci --ignore-scripts --registry=https://registry.npmmirror.com` 成功，HTTP 日志显示包 tarball 来自 `registry.npmmirror.com`。Electron 镜像 `https://npmmirror.com/mirrors/electron/39.8.10/electron-v39.8.10-win32-x64.zip` HEAD 返回 HTTP 200；未修改 `.npmrc`。
+- 用户主观清单仍由所有者执行：20 分钟卡顿日记（补标失焦时段）、玻璃拿起手感、Network 封面查重、四季主题观感、四题各 30 秒冒烟、功能清单。以上为数据与复现记录，不构成验收通过结论。
