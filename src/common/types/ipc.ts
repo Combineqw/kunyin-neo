@@ -27,6 +27,7 @@ import type { AppSettings, AuthState, CacheKind, CacheStats, ProxyStatus } from 
 import type { AnimationPackJson } from './animation'
 import type { ThemeFileConfig } from '../domain/themeFile'
 import type { LocalPlaylist } from './library'
+import type { LocalCleanupPlanEntry } from '../domain/localLibrary'
 import type { RecommendationSong } from './recommendation'
 import type { AddDownloadInput, DownloadTask } from './download'
 import type { EqualizerProfile, EqualizerProfileImportResult } from './equalizer'
@@ -111,6 +112,10 @@ export const IpcChannels = {
   LIBRARY_SET_REDIRECT: 'library:setRedirect',
   LIBRARY_CLEAR_REDIRECT: 'library:clearRedirect',
   LIBRARY_CHANGED: 'library:changed', // 主 → 渲染 事件
+  LIBRARY_LOCAL_CLEANUP_PLAN: 'library:localCleanupPlan',
+  LIBRARY_LOCAL_CLEANUP_APPLY: 'library:localCleanupApply',
+  LIBRARY_LOCAL_CLEANUP_UNDO: 'library:localCleanupUndo',
+  LIBRARY_LOCAL_HEALTH: 'library:localHealth',
 
   // 歌词/封面重定向查询（对话框用）
   REDIRECT_LOOKUP: 'redirect:lookup',
@@ -542,6 +547,18 @@ export interface WindowApi {
     /** 设置歌词/封面重定向：item 的歌词与封面改用 target 的 */
     setRedirect(item: MusicItem, target: MusicItem): Promise<void>
     clearRedirect(item: MusicItem): Promise<void>
+    localCleanupPlan(playlistId: number): Promise<LocalCleanupPlanEntry[]>
+    localCleanupApply(playlistId: number, entries: LocalCleanupPlanEntry[]): Promise<{
+      operationId: string
+      moved: number
+      skipped: number
+      failed: string[]
+    }>
+    localCleanupUndo(operationId: string): Promise<{ moved: number; failed: string[] }>
+    localHealth(playlistId: number): Promise<{
+      duplicateGroups: Array<{ hash: string; paths: string[]; bytes: number }>
+      probeFailures: string[]
+    }>
     /** 订阅曲库变更（主进程广播），返回取消订阅 */
     onChange(cb: () => void): Unsubscribe
   }

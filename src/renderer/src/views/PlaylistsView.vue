@@ -351,6 +351,7 @@ interface MenuState {
   playlist: LocalPlaylist
 }
 const menu = ref<MenuState | null>(null)
+const lastCleanupOperation = ref('')
 const menuItems = computed<MenuItem[]>(() => {
   const p = menu.value?.playlist
   if (!p) return []
@@ -363,6 +364,9 @@ const menuItems = computed<MenuItem[]>(() => {
     { key: 'addLocal', label: '添加本地歌曲', icon: 'folder' },
     { key: 'scanLocalDirectory', label: '扫描音乐文件夹', icon: 'folder' },
     { key: 'enrichLocal', label: '补全本地信息', icon: 'refresh' },
+    { key: 'cleanupLocalNames', label: '清理 KUNYIN__ 文件名', icon: 'edit' },
+    { key: 'healthLocal', label: '查重与健康检查', icon: 'search' },
+    { key: 'undoCleanupLocal', label: '撤销上次文件名清理', icon: 'undo', disabled: !lastCleanupOperation.value },
     { key: 'addById', label: '通过 ID / MID 添加歌曲', icon: 'plus' },
     { key: 'update', label: '更新', icon: 'refresh', divider: true, disabled: !remote },
     { key: 'detail', label: '歌单详情页', icon: 'library', disabled: !remote },
@@ -396,6 +400,12 @@ async function onMenuSelect(key: string): Promise<void> {
     void scanLocalDirectory(p)
   } else if (key === 'enrichLocal') {
     void enrichLocalSongs(p)
+  } else if (key === 'cleanupLocalNames') {
+    void cleanupLocalNames(p)
+  } else if (key === 'healthLocal') {
+    void healthLocal(p)
+  } else if (key === 'undoCleanupLocal') {
+    void undoCleanupLocal()
   } else if (key === 'addById') {
     openIdAddDialog(p)
   } else if (key === 'update') {
@@ -445,6 +455,46 @@ async function enrichLocalSongs(p: LocalPlaylist): Promise<void> {
     return
   }
   showToast('已开始补全本地信息')
+}
+
+async function cleanupLocalNames(p: LocalPlaylist): Promise<void> {
+  const plan = await api.library.localCleanupPlan(p.id).catch(() => [])
+  const changes = plan.filter((entry) => entry.status === 'rename')
+  const conflicts = plan.filter((entry) => entry.status === 'conflict')
+  if (!changes.length) {
+    showToast(conflicts.length ? `未执行：${conflicts.length} 项存在冲突` : '没有需要清理的文件名')
+    return
+  }
+  const preview = changes
+    .slice(0, 5)
+    .map((entry) => `${entry.oldPath} → ${entry.newPath}`)
+    .join('\n')
+  const suffix = changes.length > 5 ? `\n……另有 ${changes.length - 5} 项` : ''
+  if (!window.confirm(`将预览中的 ${changes.length} 个文件改名，冲突 ${conflicts.length} 项跳过。\n\n${preview}${suffix}\n\n继续？`)) return
+  const result = await api.library.localCleanupApply(p.id, plan).catch(() => null)
+  if (!result) return
+  lastCleanupOperation.value = result.operationId
+  showToast(`已清理 ${result.moved} 项，跳过 ${result.skipped} 项`)
+}
+
+async function undoCleanupLocal(): Promise<void> {
+  if (!lastCleanupOperation.value) return
+  const result = await api.library.localCleanupUndo(lastCleanupOperation.value).catch(() => null)
+  if (!result) return
+  if (!result.failed.length) lastCleanupOperation.value = ''
+  showToast(`已撤销 ${result.moved} 项${result.failed.length ? `，失败 ${result.failed.length} 项` : ''}`)
+}
+
+async function healthLocal(p: LocalPlaylist): Promise<void> {
+  const result = await api.library.localHealth(p.id).catch(() => null)
+  if (!result) return
+  const duplicateText = result.duplicateGroups.length
+    ? result.duplicateGroups.map((group) => `${group.paths.join('、')}（${group.bytes} B）`).join('\n')
+    : '无同大小且 SHA-256 相同的文件'
+  const probeText = result.probeFailures.length
+    ? `\n\n元数据探测失败（不是完整音频损坏结论）：\n${result.probeFailures.join('\n')}`
+    : ''
+  window.alert(`查重结果：\n${duplicateText}${probeText}`)
 }
 
 // ============ 更新（远端绑定歌单重新拉取整单替换） ============

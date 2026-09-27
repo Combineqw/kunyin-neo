@@ -17,6 +17,7 @@ import type {
   SystemKind
 } from '@common'
 import { invalidateDailyRecommendations } from './daily-recommendation'
+import { localSongId } from '../modules/local-music/core'
 import {
   getDb,
   SYSTEM_KIND_FAVORITES,
@@ -25,6 +26,8 @@ import {
   SYSTEM_TRIAL_NAME,
   TABLE_PLAYLIST_SONGS,
   TABLE_PLAYLISTS,
+  TABLE_PLAY_EVENTS,
+  TABLE_SONG_METADATA,
   TABLE_SONG_REDIRECTS,
   TABLE_SONGS
 } from './db'
@@ -527,6 +530,52 @@ export function updateSongInfos(items: MusicItem[]): void {
   })
   tx()
   notifyChange()
+}
+
+/** 将本地歌曲路径迁移到新 id，同时保留所有歌单/收藏/重定向关联。 */
+export function migrateLocalSongPath(item: MusicItem, filePath: string): MusicItem {
+  if (item.type !== 'local') throw new Error('只有本地歌曲可以迁移路径')
+  const next = { ...item, id: localSongId(filePath), filePath }
+  const d = getDb()
+  const oldId = item.id
+  const newId = next.id
+  if (oldId === newId) {
+    upsertSong(next)
+    notifyChange()
+    return next
+  }
+  const conflict = d
+    .prepare(`SELECT 1 FROM ${TABLE_SONGS} WHERE song_id = ? AND source = 'local'`)
+    .get(newId)
+  if (conflict) throw new Error('目标路径对应的歌曲已存在')
+  const tx = d.transaction(() => {
+    d.prepare(`UPDATE ${TABLE_PLAYLIST_SONGS} SET song_id = ? WHERE song_id = ? AND source = 'local'`).run(
+      newId,
+      oldId
+    )
+    d.prepare(`UPDATE ${TABLE_SONG_REDIRECTS} SET song_id = ? WHERE song_id = ? AND source = 'local'`).run(
+      newId,
+      oldId
+    )
+    d.prepare(`UPDATE ${TABLE_PLAY_EVENTS} SET song_id = ? WHERE song_id = ? AND source = 'local'`).run(
+      newId,
+      oldId
+    )
+    d.prepare(
+      `INSERT OR REPLACE INTO ${TABLE_SONG_METADATA}
+       (song_id, source, tags_json, genre, bpm, updated_at)
+       SELECT ?, source, tags_json, genre, bpm, updated_at
+       FROM ${TABLE_SONG_METADATA} WHERE song_id = ? AND source = 'local'`
+    ).run(newId, oldId)
+    d.prepare(`DELETE FROM ${TABLE_SONG_METADATA} WHERE song_id = ? AND source = 'local'`).run(oldId)
+    d.prepare(`DELETE FROM ${TABLE_SONGS} WHERE song_id = ? AND source = 'local'`).run(oldId)
+    upsertSong(next)
+  })
+  tx()
+  refreshRedirectCache()
+  refreshFavoritesCache()
+  notifyChange()
+  return next
 }
 
 // ===== 收藏缓存重建 =====

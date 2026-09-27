@@ -11,7 +11,11 @@ import {
   type PlaylistSortField,
   type PlaylistSortOrder
 } from '@common'
-import { randomUUID } from 'node:crypto'
+import { buildLocalCleanupPlan, type LocalCleanupPlanEntry } from '@common'
+import { createHash, randomUUID } from 'node:crypto'
+import { createReadStream } from 'node:fs'
+import { existsSync, statSync } from 'node:fs'
+import { rename } from 'node:fs/promises'
 import { handle, sendToRenderer } from '../helpers'
 import * as library from '../../store/library'
 import {
@@ -26,6 +30,7 @@ import { enrichLocalSongs } from '../../modules/local-music/enrich'
 let wired = false
 const activeScans = new Map<string, { playlistId: number; controller: AbortController }>()
 const activeEnrichments = new Map<string, { playlistId: number; controller: AbortController }>()
+const cleanupOperations = new Map<string, LocalCleanupPlanEntry[]>()
 
 function activeTaskId(): string | undefined {
   return activeScans.keys().next().value ?? activeEnrichments.keys().next().value
@@ -92,6 +97,146 @@ export function registerLibraryHandlers(): void {
     library.setRedirect(item, target)
   )
   handle(IpcChannels.LIBRARY_CLEAR_REDIRECT, (item: MusicItem) => library.clearRedirect(item))
+  handle(IpcChannels.LIBRARY_LOCAL_CLEANUP_PLAN, (playlistId: number) => {
+    const items = library
+      .queryPlaylistSongs(playlistId)
+      .filter((item): item is LocalMusicItem => item.type === 'local')
+    const paths = new Set(items.map((item) => item.filePath))
+    return buildLocalCleanupPlan(
+      items.map((item) => ({
+        itemKey: `${item.id}_${item.type}`,
+        filePath: item.filePath,
+        title: item.title,
+        artist: item.artist
+      })),
+      paths
+    )
+  })
+  handle(
+    IpcChannels.LIBRARY_LOCAL_CLEANUP_APPLY,
+    async (playlistId: number, entries: LocalCleanupPlanEntry[]) => {
+      const localItems = library
+        .queryPlaylistSongs(playlistId)
+        .filter((item): item is LocalMusicItem => item.type === 'local')
+      const allowed = new Map(localItems.map((item) => [`${item.id}_${item.type}`, item]))
+      const expected = new Map(
+        buildLocalCleanupPlan(
+          localItems.map((item) => ({
+            itemKey: `${item.id}_${item.type}`,
+            filePath: item.filePath,
+            title: item.title,
+            artist: item.artist
+          })),
+          new Set(localItems.map((item) => item.filePath))
+        ).map((entry) => [entry.itemKey, entry])
+      )
+      const moved: LocalCleanupPlanEntry[] = []
+      const failed: string[] = []
+      for (const entry of entries.filter((candidate) => candidate.status === 'rename')) {
+        const item = allowed.get(entry.itemKey)
+        try {
+          const current = expected.get(entry.itemKey)
+          if (
+            !item ||
+            !current ||
+            current.status !== 'rename' ||
+            item.filePath !== entry.oldPath ||
+            current.newPath !== entry.newPath
+          ) throw new Error('清理计划已变化')
+          if (!existsSync(entry.oldPath)) throw new Error('源文件不存在')
+          if (existsSync(entry.newPath)) throw new Error('目标文件已存在')
+          await rename(entry.oldPath, entry.newPath)
+          library.migrateLocalSongPath(item, entry.newPath)
+          moved.push(entry)
+        } catch (error) {
+          failed.push(`${entry.oldPath}: ${error instanceof Error ? error.message : String(error)}`)
+          try {
+            if (!existsSync(entry.oldPath) && existsSync(entry.newPath)) await rename(entry.newPath, entry.oldPath)
+          } catch {
+            failed.push(`${entry.newPath}: 回滚失败`)
+          }
+        }
+      }
+      const operationId = randomUUID()
+      if (moved.length) cleanupOperations.set(operationId, moved)
+      return { operationId, moved: moved.length, skipped: entries.length - moved.length, failed }
+    }
+  )
+  handle(IpcChannels.LIBRARY_LOCAL_CLEANUP_UNDO, async (operationId: string) => {
+    const entries = cleanupOperations.get(operationId)
+    if (!entries) return { moved: 0, failed: ['找不到可撤销的操作'] }
+    const failed: string[] = []
+    let moved = 0
+    const allSongs = library
+      .getPlaylists()
+      .flatMap((playlist) => library.queryPlaylistSongs(playlist.id))
+      .filter((item): item is LocalMusicItem => item.type === 'local')
+    const remaining: LocalCleanupPlanEntry[] = []
+    for (const entry of [...entries].reverse()) {
+      let renamed = false
+      try {
+        if (!existsSync(entry.newPath)) throw new Error('新文件不存在')
+        if (existsSync(entry.oldPath)) throw new Error('旧路径已被占用')
+        const item = allSongs.find((candidate) => candidate.filePath === entry.newPath)
+        if (!item) throw new Error('曲库关联已变化')
+        await rename(entry.newPath, entry.oldPath)
+        renamed = true
+        library.migrateLocalSongPath(item, entry.oldPath)
+        moved++
+      } catch (error) {
+        failed.push(`${entry.newPath}: ${error instanceof Error ? error.message : String(error)}`)
+        try {
+          if (renamed && !existsSync(entry.newPath) && existsSync(entry.oldPath)) {
+            await rename(entry.oldPath, entry.newPath)
+          }
+        } catch {
+          failed.push(`${entry.oldPath}: 回滚失败`)
+        }
+        remaining.push(entry)
+      }
+    }
+    if (remaining.length) cleanupOperations.set(operationId, remaining.reverse())
+    else cleanupOperations.delete(operationId)
+    return { moved, failed }
+  })
+  handle(IpcChannels.LIBRARY_LOCAL_HEALTH, async (playlistId: number) => {
+    const items = library
+      .queryPlaylistSongs(playlistId)
+      .filter((item): item is LocalMusicItem => item.type === 'local')
+    const bySize = new Map<number, LocalMusicItem[]>()
+    const probeFailures: string[] = []
+    for (const item of items) {
+      try {
+        const stat = statSync(item.filePath)
+        const list = bySize.get(stat.size) ?? []
+        list.push(item)
+        bySize.set(stat.size, list)
+        const mm = await import('music-metadata')
+        await mm.parseFile(item.filePath, { duration: false, skipCovers: true })
+      } catch {
+        probeFailures.push(item.filePath)
+      }
+    }
+    const duplicateGroups: Array<{ hash: string; paths: string[]; bytes: number }> = []
+    for (const [bytes, candidates] of bySize) {
+      if (candidates.length < 2) continue
+      const byHash = new Map<string, string[]>()
+      for (const item of candidates) {
+        const hash = await new Promise<string>((resolve, reject) => {
+          const digest = createHash('sha256')
+          const stream = createReadStream(item.filePath)
+          stream.on('data', (chunk) => digest.update(chunk))
+          stream.on('error', reject)
+          stream.on('end', () => resolve(digest.digest('hex')))
+        }).catch(() => '')
+        if (hash) byHash.set(hash, [...(byHash.get(hash) ?? []), item.filePath])
+      }
+      for (const [hash, paths] of byHash) {
+        if (paths.length > 1) duplicateGroups.push({ hash, paths, bytes })
+      }
+    }
+    return { duplicateGroups, probeFailures }
+  })
   handle(
     IpcChannels.LIBRARY_SORT_SONGS,
     (playlistId: number, field: PlaylistSortField, order: PlaylistSortOrder) =>

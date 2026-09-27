@@ -144,6 +144,12 @@ const api: WindowApi = {
     setRedirect: (item, target) =>
       ipcRenderer.invoke(IpcChannels.LIBRARY_SET_REDIRECT, toPlain(item), toPlain(target)),
     clearRedirect: (item) => ipcRenderer.invoke(IpcChannels.LIBRARY_CLEAR_REDIRECT, toPlain(item)),
+    localCleanupPlan: (playlistId) => ipcRenderer.invoke(IpcChannels.LIBRARY_LOCAL_CLEANUP_PLAN, playlistId),
+    localCleanupApply: (playlistId, entries) =>
+      ipcRenderer.invoke(IpcChannels.LIBRARY_LOCAL_CLEANUP_APPLY, playlistId, entries),
+    localCleanupUndo: (operationId) =>
+      ipcRenderer.invoke(IpcChannels.LIBRARY_LOCAL_CLEANUP_UNDO, operationId),
+    localHealth: (playlistId) => ipcRenderer.invoke(IpcChannels.LIBRARY_LOCAL_HEALTH, playlistId),
     onChange: (cb) => {
       const listener = (): void => cb()
       ipcRenderer.on(IpcChannels.LIBRARY_CHANGED, listener)
