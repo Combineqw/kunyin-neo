@@ -11,6 +11,8 @@ import type {
   MusicSource,
   PlayListInfoResult
 } from '@common'
+import { PLATFORMS } from '@common'
+import { runSourceSearches } from '@common'
 
 /** 搜索类型（对应 Android SearchType；joox 等只支持单曲，UI 按平台隐藏其余 Tab） */
 export type SearchType = 'song' | 'playlist' | 'album' | 'artist'
@@ -49,6 +51,7 @@ function loadHistory(): string[] {
  */
 export const useSearchStore = defineStore('search', () => {
   const source = ref<MusicSource>('wy')
+  const aggregateMode = ref(false)
   const keyword = ref('')
   const searchType = ref<SearchType>('song')
   const results = ref<MusicItem[]>([])
@@ -64,6 +67,15 @@ export const useSearchStore = defineStore('search', () => {
   const hotLoading = ref(false)
   /** 搜索历史（本地持久化，最近在前） */
   const history = ref<string[]>(loadHistory())
+  const aggregateSources = ref<MusicSource[]>([])
+  const aggregateResults = ref<Partial<Record<MusicSource, MusicItem[]>>>({})
+  const aggregateStatus = ref<Partial<Record<MusicSource, 'loading' | 'done' | 'error'>>>({})
+  const aggregateErrors = ref<Partial<Record<MusicSource, string>>>({})
+  const aggregatePages = ref<Partial<Record<MusicSource, number>>>({})
+  const aggregateHasNext = ref<Partial<Record<MusicSource, boolean>>>({})
+  const aggregateLoadingMore = ref<Partial<Record<MusicSource, boolean>>>({})
+  let requestGeneration = 0
+  let hotGeneration = 0
 
   function persistHistory(): void {
     try {
@@ -94,10 +106,59 @@ export const useSearchStore = defineStore('search', () => {
     artistResults.value = []
     page.value = 0
     hasNext.value = false
+    aggregateSources.value = []
+    aggregateResults.value = {}
+    aggregateStatus.value = {}
+    aggregateErrors.value = {}
+    aggregatePages.value = {}
+    aggregateHasNext.value = {}
+    aggregateLoadingMore.value = {}
+  }
+
+  function invalidatePendingSearch(): void {
+    requestGeneration++
+    loading.value = false
+    loadingMore.value = false
+    aggregateLoadingMore.value = {}
+    clearResults()
+  }
+
+  function errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error)
+  }
+
+  async function searchAllSources(generation: number, query: string): Promise<void> {
+    aggregateStatus.value = Object.fromEntries(
+      PLATFORMS.map((platform) => [platform, 'loading'])
+    ) as Partial<Record<MusicSource, 'loading' | 'done' | 'error'>>
+    await runSourceSearches(
+      PLATFORMS,
+      (platform) => window.api.search.songs(platform, query, 0, PAGE_SIZE),
+      () => generation === requestGeneration,
+      {
+        resolved: (platform, response) => {
+          aggregateResults.value[platform] = response.result
+          aggregatePages.value[platform] = response.page
+          aggregateHasNext.value[platform] = response.hasNext
+          aggregateStatus.value[platform] = 'done'
+        },
+        rejected: (platform, error) => {
+          aggregateStatus.value[platform] = 'error'
+          aggregateErrors.value[platform] = errorMessage(error)
+        },
+        settled: (platform) => {
+          if (!aggregateSources.value.includes(platform)) {
+            aggregateSources.value = [...aggregateSources.value, platform]
+          }
+        }
+      }
+    )
   }
 
   async function search(reset = true): Promise<void> {
     if (!keyword.value.trim()) return
+    const generation = reset ? ++requestGeneration : requestGeneration
+    const query = keyword.value.trim()
     if (reset) addHistory(keyword.value)
     if (reset) {
       page.value = 0
@@ -107,6 +168,10 @@ export const useSearchStore = defineStore('search', () => {
       loadingMore.value = true
     }
     try {
+      if (aggregateMode.value && searchType.value === 'song') {
+        await searchAllSources(generation, query)
+        return
+      }
       switch (searchType.value) {
         case 'playlist': {
           const res = await window.api.discover.searchPlaylist(
@@ -115,6 +180,7 @@ export const useSearchStore = defineStore('search', () => {
             page.value,
             PAGE_SIZE
           )
+          if (generation !== requestGeneration) return
           playlistResults.value = reset ? res.result : [...playlistResults.value, ...res.result]
           hasNext.value = res.hasNext
           break
@@ -126,6 +192,7 @@ export const useSearchStore = defineStore('search', () => {
             page.value,
             PAGE_SIZE
           )
+          if (generation !== requestGeneration) return
           albumResults.value = reset ? res.result : [...albumResults.value, ...res.result]
           hasNext.value = res.hasNext
           break
@@ -137,6 +204,7 @@ export const useSearchStore = defineStore('search', () => {
             page.value,
             PAGE_SIZE
           )
+          if (generation !== requestGeneration) return
           artistResults.value = reset ? res.result : [...artistResults.value, ...res.result]
           hasNext.value = res.hasNext
           break
@@ -148,13 +216,43 @@ export const useSearchStore = defineStore('search', () => {
             page.value,
             PAGE_SIZE
           )
+          if (generation !== requestGeneration) return
           results.value = reset ? res.result : [...results.value, ...res.result]
           hasNext.value = res.hasNext
         }
       }
     } finally {
-      loading.value = false
-      loadingMore.value = false
+      if (generation === requestGeneration) {
+        loading.value = false
+        loadingMore.value = false
+      }
+    }
+  }
+
+  async function loadMoreSource(platform: MusicSource): Promise<void> {
+    if (
+      !aggregateMode.value ||
+      aggregateLoadingMore.value[platform] ||
+      !aggregateHasNext.value[platform] ||
+      aggregateStatus.value[platform] !== 'done'
+    ) return
+    const generation = requestGeneration
+    const nextPage = (aggregatePages.value[platform] ?? 0) + 1
+    aggregateLoadingMore.value[platform] = true
+    delete aggregateErrors.value[platform]
+    try {
+      const response = await window.api.search.songs(platform, keyword.value.trim(), nextPage, PAGE_SIZE)
+      if (generation !== requestGeneration) return
+      aggregateResults.value[platform] = [
+        ...(aggregateResults.value[platform] ?? []),
+        ...response.result
+      ]
+      aggregatePages.value[platform] = response.page
+      aggregateHasNext.value[platform] = response.hasNext
+    } catch (error) {
+      if (generation === requestGeneration) aggregateErrors.value[platform] = errorMessage(error)
+    } finally {
+      if (generation === requestGeneration) aggregateLoadingMore.value[platform] = false
     }
   }
 
@@ -192,13 +290,15 @@ export const useSearchStore = defineStore('search', () => {
 
   /** 加载当前音源热搜词 */
   async function loadHot(): Promise<void> {
+    const generation = ++hotGeneration
     hotLoading.value = true
     try {
-      hotWords.value = await window.api.search.hot(source.value)
+      const words = await window.api.search.hot(source.value)
+      if (generation === hotGeneration) hotWords.value = words
     } catch {
-      hotWords.value = []
+      if (generation === hotGeneration) hotWords.value = []
     } finally {
-      hotLoading.value = false
+      if (generation === hotGeneration) hotLoading.value = false
     }
   }
 
@@ -210,6 +310,7 @@ export const useSearchStore = defineStore('search', () => {
 
   return {
     source,
+    aggregateMode,
     keyword,
     searchType,
     results,
@@ -223,8 +324,16 @@ export const useSearchStore = defineStore('search', () => {
     hotWords,
     hotLoading,
     history,
+    aggregateSources,
+    aggregateResults,
+    aggregateStatus,
+    aggregateErrors,
+    aggregatePages,
+    aggregateHasNext,
+    aggregateLoadingMore,
     search,
     loadMore,
+    loadMoreSource,
     switchType,
     ensureTypeSupported,
     loadHot,
@@ -233,6 +342,7 @@ export const useSearchStore = defineStore('search', () => {
     addHistory,
     removeHistory,
     clearHistory,
-    clearResults
+    clearResults,
+    invalidatePendingSearch
   }
 })

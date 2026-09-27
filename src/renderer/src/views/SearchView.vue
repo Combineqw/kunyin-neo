@@ -8,6 +8,7 @@ import { useArtistStore } from '../stores/artist'
 import {
   PLATFORMS,
   PLATFORM_NAMES,
+  PLATFORM_SHORT_TAGS,
   getMusicItemKey,
   type ArtistInfoResult,
   type MusicSource
@@ -25,6 +26,7 @@ const player = usePlayerStore()
 const artistStore = useArtistStore()
 const {
   source,
+  aggregateMode,
   keyword,
   searchType,
   results,
@@ -35,10 +37,20 @@ const {
   loadingMore,
   hasNext,
   hotWords,
-  history
+  history,
+  aggregateSources,
+  aggregateResults,
+  aggregateStatus,
+  aggregateErrors,
+  aggregateHasNext,
+  aggregateLoadingMore
 } = storeToRefs(searchStore)
 
-const sourceTabs = PLATFORMS.map((p) => ({ id: p, label: PLATFORM_NAMES[p] }))
+const sourceTabs = [
+  { id: 'all', label: '全部' },
+  ...PLATFORMS.map((p) => ({ id: p, label: PLATFORM_NAMES[p] }))
+]
+const selectedSourceTab = computed(() => (aggregateMode.value ? 'all' : source.value))
 
 // 搜索类型 Tab（对应 Android SearchScreen 的类型 chips；joox 只支持单曲时整排隐藏）
 const typeTabs = computed(() =>
@@ -52,10 +64,15 @@ function staggerStyle(index: number): Record<string, string> {
 }
 
 function switchSource(id: string): void {
-  source.value = id as MusicSource
-  searchStore.ensureTypeSupported()
+  aggregateMode.value = id === 'all'
+  if (id !== 'all') source.value = id as MusicSource
+  if (aggregateMode.value) searchType.value = 'song'
+  else searchStore.ensureTypeSupported()
   if (keyword.value) void searchStore.search()
-  else void searchStore.loadHot()
+  else {
+    searchStore.invalidatePendingSearch()
+    if (!aggregateMode.value) void searchStore.loadHot()
+  }
 }
 
 function isActive(item: (typeof results.value)[number]): boolean {
@@ -81,7 +98,8 @@ const showBlank = computed(
     !results.value.length &&
     !playlistResults.value.length &&
     !albumResults.value.length &&
-    !artistResults.value.length
+    !artistResults.value.length &&
+    !aggregateSources.value.length
 )
 
 onMounted(() => {
@@ -97,9 +115,9 @@ watch(source, () => {
 <template>
   <div class="search-view">
     <div class="header">
-      <AppTabs :model-value="source" :list="sourceTabs" @change="switchSource" />
+      <AppTabs :model-value="selectedSourceTab" :list="sourceTabs" @change="switchSource" />
       <AppTabs
-        v-if="showTypeTabs"
+        v-if="showTypeTabs && !aggregateMode"
         class="type-tabs"
         :model-value="searchType"
         :list="typeTabs"
@@ -107,7 +125,11 @@ watch(source, () => {
       />
     </div>
     <div class="body scroll">
-      <div v-if="loading" class="skeleton-list" aria-label="搜索中">
+      <div
+        v-if="loading && !(aggregateMode && aggregateSources.length)"
+        class="skeleton-list"
+        aria-label="搜索中"
+      >
         <span v-for="i in 6" :key="i" class="skeleton-row">
           <i class="skeleton-cover" />
           <i class="skeleton-copy" />
@@ -115,6 +137,53 @@ watch(source, () => {
       </div>
 
       <!-- 单曲结果 -->
+      <template v-else-if="searchType === 'song' && aggregateMode">
+        <section v-for="platform in aggregateSources" :key="platform" class="source-results">
+          <header class="source-heading">
+            <strong>{{ PLATFORM_NAMES[platform] }}</strong>
+            <span v-if="aggregateStatus[platform] === 'loading'">搜索中</span>
+            <span v-else-if="aggregateStatus[platform] === 'error'">请求失败</span>
+            <span v-else>{{ aggregateResults[platform]?.length ?? 0 }} 首</span>
+          </header>
+          <SongRow
+            v-for="(item, index) in aggregateResults[platform] ?? []"
+            :key="`${platform}:${getMusicItemKey(item)}`"
+            :item="item"
+            :index="index"
+            :active="isActive(item)"
+            :source-tag="PLATFORM_SHORT_TAGS[platform]"
+            @play="player.playInTrial(item)"
+          />
+          <p v-if="aggregateErrors[platform]" class="source-message error">
+            {{ aggregateErrors[platform] }}
+          </p>
+          <p v-else-if="aggregateStatus[platform] === 'error'" class="source-message">该音源暂不可用</p>
+          <p
+            v-else-if="aggregateStatus[platform] === 'done' && !aggregateResults[platform]?.length"
+            class="source-message"
+          >
+            无匹配结果
+          </p>
+          <button
+            v-if="aggregateHasNext[platform]"
+            class="more-btn pressable"
+            :disabled="aggregateLoadingMore[platform]"
+            @click="void searchStore.loadMoreSource(platform)"
+          >
+            {{
+              aggregateLoadingMore[platform]
+                ? '加载中…'
+                : aggregateErrors[platform]
+                  ? '重试'
+                  : `${PLATFORM_NAMES[platform]} · 加载更多`
+            }}
+          </button>
+        </section>
+        <div v-if="keyword && !aggregateSources.length && !loading" class="empty">
+          未找到「{{ keyword }}」相关歌曲
+        </div>
+      </template>
+
       <template v-else-if="searchType === 'song'">
         <TransitionGroup v-if="results.length" name="search-result" tag="div" class="list">
           <!-- 试听模型：该曲进试听列表，队列 = 整个试听列表（不变成搜索结果，也不单曲循环） -->
@@ -233,7 +302,7 @@ watch(source, () => {
       </template>
 
       <!-- 加载更多（Android 无限滚动的按钮版） -->
-      <div v-if="!loading && hasNext && keyword" class="more">
+      <div v-if="!aggregateMode && !loading && hasNext && keyword" class="more">
         <button class="more-btn pressable" :disabled="loadingMore" @click="void searchStore.loadMore()">
           {{ loadingMore ? '加载中…' : '加载更多' }}
         </button>
@@ -247,7 +316,7 @@ watch(source, () => {
 
       <!-- LX BlankView：热门搜索 / 搜索历史 chip 流 -->
       <div v-if="showBlank" class="blank">
-        <dl v-if="hotWords.length" class="group">
+        <dl v-if="!aggregateMode && hotWords.length" class="group">
           <dt class="group-title">热门搜索</dt>
           <dd class="group-body">
             <button
@@ -308,6 +377,31 @@ watch(source, () => {
 .list {
   display: flex;
   flex-direction: column;
+}
+.source-results + .source-results {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+}
+.source-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 28px;
+  color: var(--color-font-label);
+  font-size: 12px;
+}
+.source-heading strong {
+  color: var(--color-font);
+  font-weight: 600;
+}
+.source-message {
+  padding: 8px 2px;
+  color: var(--color-font-label);
+  font-size: 12px;
+}
+.source-message.error {
+  color: var(--color-warning, #b24c3e);
 }
 .search-result-enter-active {
   animation: none;

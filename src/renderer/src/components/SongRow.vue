@@ -33,6 +33,8 @@ const props = defineProps<{
   selected?: boolean
   /** 当前所在本地歌单 id；设置后右键菜单出现「从此列表移除」 */
   removableFrom?: number
+  /** 聚合搜索结果使用 Provider 来源标记，qqc 的 MusicItem.type 本身为 qq。 */
+  sourceTag?: string
 }>()
 const emit = defineEmits<{ play: []; select: [e: MouseEvent] }>()
 
@@ -42,7 +44,7 @@ const player = usePlayerStore()
 const mv = useMvStore()
 const settingsStore = useSettingsStore()
 
-const sourceTag = PLATFORM_SHORT_TAGS[props.item.type] ?? props.item.type
+const sourceTag = props.sourceTag ?? PLATFORM_SHORT_TAGS[props.item.type] ?? props.item.type
 // 音质徽标（HiRes/SQ/HQ/标准，取该曲可用最高档；被屏蔽的 AI 音质不计入）
 const qualityInfo = computed(() =>
   qualityBadge(props.item.qualities, blockedQualityIds(settingsStore.settings))
