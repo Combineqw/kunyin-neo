@@ -1,9 +1,10 @@
-【kunyin-neo 项目记忆 v5.0 — 2026-09-27】
+【kunyin-neo 项目记忆 v5.1 — 2026-09-27】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
   v4.7 M0 收尾记档：2026-09-26；v4.8 M1 接入记档：2026-09-27；
-  v4.9 M2 进度岛记档：2026-09-27；v5.0 M3 地基批记档：2026-09-27）
+  v4.9 M2 进度岛记档：2026-09-27；v5.0 M3 地基批记档：2026-09-27；
+  v5.1 M4 四季极光主题记档：2026-09-27）
 
 ◆ 项目身份
 - kunyin-neo，fork 自 github.com/ikunshare/kunyin-desktop
@@ -435,3 +436,22 @@
   `625A230BCB82B35AF10AF39D51BF06A24324EEE78E0C3549BB0D5EB7AC90FB8F`；
   静默安装退出码 0；安装目录原生模块存在，SHA-256
   `BAF2F84BE13E13B2026FCEB88DC09942728BA33F104A41FE70C1697E0A5CBCB3`。
+
+◆ M4 四季极光主题（2026-09-27，事实与回执）
+- 新增春樱嫩绿、夏碧蓝青翠、秋橙绯红、冬冰蓝雪白四套极光主题；
+  `aurora_seasonal_auto` 按本机日期在 3-5、6-8、9-11、12-2 月自动选择，
+  本地午夜定时刷新；设置页同时提供手动入口。
+- 主题切换过渡使用 `--anim-dur-theme: 0.28s` 与既有 easing tokens，
+  对 `prefers-reduced-motion: reduce` 禁用过渡；主题切换 CSS 覆盖主壳、侧栏、
+  视图、玻璃层和极光装饰。
+- 回归：正式源码范围 ESLint、`npm run typecheck`、`npm test` 均通过；
+  `npm run lint:gate` 的失败仅来自未跟踪 `work/cover-cdp-listener.mjs` 的 6 个
+  显式返回类型错误，该临时脚本未纳入提交。
+- Windows 构建与安装：`electron-builder --win` 退出码 0；安装器
+  97,796,319 B，SHA-256
+  `93224CD52CB1D36F96EB5749DD9F3FA48B05DCF7A9C47FE5FB8E65F84671F0F0`；
+  解包主程序 211,232,768 B，SHA-256
+  `240DF46B4487862CC5BA42556A31675139AB4DB6FD9A9C27E3782CD7ACF4A823`；
+  原生模块 1,452,032 B，SHA-256
+  `BAF2F84BE13E13B2026FCEB88DC09942728BA33F104A41FE70C1697E0A5CBCB3`。
+  NSIS `/S` 静默安装退出码 0，安装目录主程序与原生模块哈希均一致。

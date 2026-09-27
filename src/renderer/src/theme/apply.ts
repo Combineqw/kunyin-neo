@@ -9,6 +9,7 @@ import {
   type ThemeDef
 } from './themes'
 import { applyComfort, type ComfortLevel } from './comfort'
+import { getSeasonalAuroraThemeId, SEASONAL_AURORA_AUTO_ID } from './seasons'
 
 const STYLE_ID = 'theme-vars'
 
@@ -36,9 +37,18 @@ let currentLightId = 'green'
 let currentDarkId = 'black'
 let customThemes: ThemeDef[] = []
 let comfortLevel: ComfortLevel = 'standard'
+let hasAppliedTheme = false
+let themeTransitionTimer: ReturnType<typeof setTimeout> | undefined
 
 function resolve(id: string): ThemeDef {
-  const themeId = id === 'auto' ? (darkQuery.matches ? currentDarkId : currentLightId) : id
+  const themeId =
+    id === SEASONAL_AURORA_AUTO_ID
+      ? getSeasonalAuroraThemeId()
+      : id === 'auto'
+        ? darkQuery.matches
+          ? currentDarkId
+          : currentLightId
+        : id
   return (
     findTheme(themeId, customThemes) ??
     // 兜底：引用了不存在的主题（如已删除的自定义主题）时回落到默认深浅主题
@@ -49,6 +59,13 @@ function resolve(id: string): ThemeDef {
 
 /** 应用主题。id 可为具体主题 id 或 'auto'（跟随系统深浅）。 */
 export function applyTheme(id: string, lightId = currentLightId, darkId = currentDarkId): void {
+  if (hasAppliedTheme) {
+    document.documentElement.classList.add('theme-transition')
+    if (themeTransitionTimer) clearTimeout(themeTransitionTimer)
+    themeTransitionTimer = setTimeout(() => {
+      document.documentElement.classList.remove('theme-transition')
+    }, 280)
+  }
   currentId = id
   currentLightId = lightId
   currentDarkId = darkId
@@ -57,9 +74,11 @@ export function applyTheme(id: string, lightId = currentLightId, darkId = curren
   setThemeVars(applyComfort(buildThemeColors(theme), comfortLevel, theme.isDark))
   document.documentElement.classList.toggle('theme-dark', theme.isDark)
   // 已解析的具体主题 id（'auto' 已在 resolve 里落到真实主题）。
-  // CSS 侧据此把极光装饰限定在 aurora_* 五个主题上：html[data-theme^='aurora']。
+  // CSS 侧据此把极光装饰限定在 aurora_* 主题上：html[data-theme^='aurora']。
   // 写具体 id 而不是写一个 has-aurora 布尔类，是为了让将来按单个主题微调也够用。
   document.documentElement.dataset.theme = theme.id
+  document.documentElement.classList.toggle('seasonal-theme', id === SEASONAL_AURORA_AUTO_ID)
+  hasAppliedTheme = true
 }
 
 /** 记录界面亮度档位。只写状态不重放——调用方紧接着会 applyTheme，
@@ -77,6 +96,23 @@ export function setCustomThemes(configs: CustomThemeConfig[]): void {
 darkQuery.addEventListener('change', () => {
   if (currentId === 'auto') applyTheme('auto')
 })
+
+// Refresh the date-bound seasonal choice at local midnight without requiring a restart.
+let seasonalTimer: ReturnType<typeof setTimeout> | undefined
+function scheduleSeasonalRefresh(): void {
+  if (seasonalTimer) clearTimeout(seasonalTimer)
+  const now = new Date()
+  const next = new Date(now)
+  next.setHours(24, 0, 0, 50)
+  seasonalTimer = setTimeout(
+    () => {
+      if (currentId === SEASONAL_AURORA_AUTO_ID) applyTheme(SEASONAL_AURORA_AUTO_ID)
+      scheduleSeasonalRefresh()
+    },
+    Math.max(1000, next.getTime() - now.getTime())
+  )
+}
+scheduleSeasonalRefresh()
 
 /** 首屏初始化（同步注入默认主题变量，避免无样式闪烁） */
 export function initTheme(id = 'green'): void {

@@ -373,7 +373,7 @@ export const THEMES: ThemeDef[] = [
   },
 
   // ---------------- 极光系（.aurora-band 光带随主题变色） ----------------
-  // 这五个主题的主色刻意取极淡/高亮色：作为背景与光带很好看，但直接当字色对比度
+  // 这些极光主题的主色刻意取极淡/高亮色：作为背景与光带很好看，但直接当字色对比度
   // 只有 1.19~1.31，远不足 AA。因此浅色三主题把"字色语义变量"下移到
   // --color-primary-dark-700（实测白底 4.95/5.09/5.29、侧栏 4.80/4.90/5.03，全部过 AA），
   // 而 --color-primary 本身保持需求给定的原值不动，背景/光带观感不受影响。
@@ -460,6 +460,75 @@ export const THEMES: ThemeDef[] = [
       '--aurora-c1': '#7fe0d8',
       '--aurora-c3': '#a8c8ff',
       '--aurora-glow': 'rgba(127, 224, 216, 0.4)'
+    }
+  },
+  {
+    id: 'aurora_spring',
+    name: '春樱嫩绿',
+    isDark: false,
+    isDarkFont: false,
+    primary: 'rgb(244, 190, 211)',
+    font: 'rgb(33, 33, 33)',
+    ext: {
+      ...lightExt('#cf8fac', '#8cae7d'),
+      '--color-nav-font': 'var(--color-primary-dark-700)',
+      '--color-primary-font': 'var(--color-primary-dark-700)',
+      '--color-button-font': 'var(--color-primary-dark-800)',
+      '--color-badge-primary': 'var(--color-primary-dark-700)',
+      '--aurora-c1': '#f4bed3',
+      '--aurora-c3': '#c8e6b8',
+      '--aurora-glow': 'rgba(244, 190, 211, 0.46)'
+    }
+  },
+  {
+    id: 'aurora_summer',
+    name: '夏碧蓝青翠',
+    isDark: false,
+    isDarkFont: false,
+    primary: 'rgb(137, 211, 224)',
+    font: 'rgb(33, 33, 33)',
+    ext: {
+      ...lightExt('#4a9fae', '#68ac78'),
+      '--color-nav-font': 'var(--color-primary-dark-700)',
+      '--color-primary-font': 'var(--color-primary-dark-700)',
+      '--color-button-font': 'var(--color-primary-dark-800)',
+      '--color-badge-primary': 'var(--color-primary-dark-700)',
+      '--aurora-c1': '#89d3e0',
+      '--aurora-c3': '#b5e4b5',
+      '--aurora-glow': 'rgba(137, 211, 224, 0.44)'
+    }
+  },
+  {
+    id: 'aurora_autumn',
+    name: '秋橙绯红',
+    isDark: false,
+    isDarkFont: false,
+    primary: 'rgb(239, 169, 91)',
+    font: 'rgb(33, 33, 33)',
+    ext: {
+      ...lightExt('#bd6d35', '#b64c48'),
+      '--color-nav-font': 'var(--color-primary-dark-700)',
+      '--color-primary-font': 'var(--color-primary-dark-700)',
+      '--color-button-font': 'var(--color-primary-dark-800)',
+      '--color-badge-primary': 'var(--color-primary-dark-700)',
+      '--aurora-c1': '#efa95b',
+      '--aurora-c3': '#e78672',
+      '--aurora-glow': 'rgba(239, 169, 91, 0.44)'
+    }
+  },
+  {
+    id: 'aurora_winter',
+    name: '冬冰蓝雪白',
+    isDark: true,
+    isDarkFont: true,
+    primary: 'rgb(160, 206, 235)',
+    font: 'rgb(224, 236, 245)',
+    ext: {
+      ...darkExt('#8eb5d4', '#c5d8e8'),
+      '--color-main-background': 'rgb(32, 43, 54)',
+      '--aurora-c1': '#a0ceeb',
+      '--aurora-c3': '#f3f7fb',
+      '--aurora-glow': 'rgba(160, 206, 235, 0.42)'
     }
   }
 ]

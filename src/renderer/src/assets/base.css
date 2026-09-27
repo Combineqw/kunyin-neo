@@ -60,6 +60,7 @@
   --anim-dur-fast: 0.2s;
   --anim-dur-base: 0.35s;
   --anim-dur-slow: 0.5s;
+  --anim-dur-theme: 0.28s;
 
   /* ---- 按压反馈（.pressable 专用）----
      这一套手感只由下面这两个变量决定，且刻意不复用任何会被外部改写的变量：
@@ -247,6 +248,7 @@ html[data-anim-pack='originos'] {
   --anim-dur-fast: 0.16s;
   --anim-dur-base: 0.28s;
   --anim-dur-slow: 0.42s;
+  --anim-dur-theme: 0.28s;
 }
 
 html[data-anim-pack='hyperos4'] {
@@ -256,6 +258,7 @@ html[data-anim-pack='hyperos4'] {
   --anim-dur-fast: 0.24s;
   --anim-dur-base: 0.42s;
   --anim-dur-slow: 0.62s;
+  --anim-dur-theme: 0.28s;
 }
 
 /* ---------- 字体栈（按 OS class + 语言，移植自 lx reset.less） ---------- */
@@ -329,6 +332,35 @@ body {
   border-radius: 10px;
   overflow: hidden;
   transition: none;
+}
+
+/* Theme changes, including the date-bound seasonal choice, settle within 280ms. */
+html.theme-transition #app,
+html.theme-transition .shell,
+html.theme-transition .area-aside,
+html.theme-transition .area-main,
+html.theme-transition .view,
+html.theme-transition .glass-surface,
+html.theme-transition .aurora-band,
+html.theme-transition .aurora-divider::after {
+  transition:
+    background-color var(--anim-dur-theme) var(--anim-ease-smooth),
+    color var(--anim-dur-theme) var(--anim-ease-smooth),
+    border-color var(--anim-dur-theme) var(--anim-ease-smooth),
+    box-shadow var(--anim-dur-theme) var(--anim-ease-smooth);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.theme-transition #app,
+  html.theme-transition .shell,
+  html.theme-transition .area-aside,
+  html.theme-transition .area-main,
+  html.theme-transition .view,
+  html.theme-transition .glass-surface,
+  html.theme-transition .aurora-band,
+  html.theme-transition .aurora-divider::after {
+    transition: none;
+  }
 }
 
 /* 全屏不保留透明窗口的内容圆角，避免四角露出桌面。 */
@@ -567,8 +599,8 @@ svg {
    border-top，或是 1px 高的实心条且还要承担布局。用伪元素叠加后，非极光主题
    下把伪元素 opacity 归零即可完全退场，宿主原样式一点不动。
 
-   激活范围严格限制在 5 个 aurora_* 主题：html[data-theme^='aurora'] 属性由
-   theme/apply.ts 写入。其余 15 个主题下 opacity: 0，既不显示也不参与合成。 */
+   激活范围严格限制在 aurora_* 主题：html[data-theme^='aurora'] 属性由
+   theme/apply.ts 写入。其余主题下 opacity: 0，既不显示也不参与合成。 */
 .aurora-divider {
   position: relative;
 }

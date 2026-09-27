@@ -14,6 +14,7 @@ import {
 import AutoThemeDialog from './AutoThemeDialog.vue'
 import ThemeEditDialog from './ThemeEditDialog.vue'
 import ContextMenu, { type MenuItem } from '../../../components/ContextMenu.vue'
+import { SEASONAL_AURORA_AUTO_ID, getSeasonalAuroraThemeId } from '../../../theme/seasons'
 
 const store = useSettingsStore()
 const { settings } = storeToRefs(store)
@@ -44,8 +45,15 @@ function themePreviewStyles(theme: ThemeDef): Record<string, string> {
 }
 
 const themeItems = computed<ThemeItem[]>(() =>
-  [...THEMES, ...customDefs.value].map((def) => ({ def, styles: themePreviewStyles(def) }))
+  [...THEMES, ...customDefs.value]
+    .filter((def) => def.id !== SEASONAL_AURORA_AUTO_ID)
+    .map((def) => ({ def, styles: themePreviewStyles(def) }))
 )
+
+const seasonalStyles = computed<Record<string, string>>(() => {
+  const current = findTheme(getSeasonalAuroraThemeId(), []) ?? THEMES[0]
+  return themePreviewStyles(current)
+})
 
 const autoStyles = computed<Record<string, string>>(() => {
   const light =
@@ -190,6 +198,25 @@ async function removeTheme(theme: ThemeDef): Promise<void> {
       <span class="label">
         <strong>{{ item.def.name }}</strong>
         <small>{{ themeKind(item.def) }}</small>
+      </span>
+    </button>
+
+    <button
+      class="theme-item seasonal pressable"
+      :class="{ active: themeId === SEASONAL_AURORA_AUTO_ID }"
+      :style="seasonalStyles"
+      aria-label="四季极光自动"
+      :aria-pressed="themeId === SEASONAL_AURORA_AUTO_ID"
+      @click="toggleTheme(SEASONAL_AURORA_AUTO_ID)"
+    >
+      <span class="preview">
+        <span class="preview-image" />
+        <span class="swatch" />
+        <span v-if="themeId === SEASONAL_AURORA_AUTO_ID" class="check">✓</span>
+      </span>
+      <span class="label">
+        <strong>四季极光·自动</strong>
+        <small>按日期切换</small>
       </span>
     </button>
 
