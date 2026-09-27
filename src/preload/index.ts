@@ -131,6 +131,8 @@ const api: WindowApi = {
       ipcRenderer.invoke(IpcChannels.LIBRARY_ADD_LOCAL_SONGS, playlistId),
     scanLocalDirectory: (playlistId) =>
       ipcRenderer.invoke(IpcChannels.LIBRARY_SCAN_LOCAL_DIRECTORY, playlistId),
+    enrichLocalSongs: (playlistId) =>
+      ipcRenderer.invoke(IpcChannels.LIBRARY_ENRICH_LOCAL, playlistId),
     cancelScan: (taskId) => ipcRenderer.invoke(IpcChannels.LIBRARY_CANCEL_SCAN, taskId),
     onScanProgress: (cb) => {
       const listener = (_e: Electron.IpcRendererEvent, progress: LibraryScanProgress): void =>

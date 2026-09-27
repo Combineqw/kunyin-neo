@@ -5,6 +5,7 @@
 import {
   IpcChannels,
   type LibraryScanProgress,
+  type LocalMusicItem,
   type LocalPlaylist,
   type MusicItem,
   type PlaylistSortField,
@@ -20,9 +21,15 @@ import {
   scanLocalSongsProgressive,
   type LocalScanProgress
 } from '../../modules/local-music'
+import { enrichLocalSongs } from '../../modules/local-music/enrich'
 
 let wired = false
 const activeScans = new Map<string, { playlistId: number; controller: AbortController }>()
+const activeEnrichments = new Map<string, { playlistId: number; controller: AbortController }>()
+
+function activeTaskId(): string | undefined {
+  return activeScans.keys().next().value ?? activeEnrichments.keys().next().value
+}
 
 function emitScanProgress(progress: LibraryScanProgress): void {
   sendToRenderer(IpcChannels.LIBRARY_SCAN_PROGRESS, progress)
@@ -121,9 +128,8 @@ export function registerLibraryHandlers(): void {
   handle(
     IpcChannels.LIBRARY_SCAN_LOCAL_DIRECTORY,
     async (playlistId: number): Promise<{ taskId: string } | null> => {
-      const activeEntry = activeScans.entries().next().value as
-        [string, { playlistId: number; controller: AbortController }] | undefined
-      if (activeEntry) return { taskId: activeEntry[0] }
+      const running = activeTaskId()
+      if (running) return { taskId: running }
       const directory = await pickLocalDirectory()
       if (!directory) return null
 
@@ -134,10 +140,31 @@ export function registerLibraryHandlers(): void {
       return { taskId }
     }
   )
+  handle(
+    IpcChannels.LIBRARY_ENRICH_LOCAL,
+    async (playlistId: number): Promise<{ taskId: string } | null> => {
+      const running = activeTaskId()
+      if (running) return { taskId: running }
+      const items = library
+        .queryPlaylistSongs(playlistId)
+        .filter((item): item is LocalMusicItem => item.type === 'local')
+      if (!items.length) return null
+      const taskId = randomUUID()
+      const controller = new AbortController()
+      activeEnrichments.set(taskId, { playlistId, controller })
+      void runEnrichment(taskId, items, controller)
+      return { taskId }
+    }
+  )
   handle(IpcChannels.LIBRARY_CANCEL_SCAN, (taskId: string): boolean => {
     const task = activeScans.get(taskId)
-    if (!task) return false
-    task.controller.abort()
+    if (task) {
+      task.controller.abort()
+      return true
+    }
+    const enrichment = activeEnrichments.get(taskId)
+    if (!enrichment) return false
+    enrichment.controller.abort()
     return true
   })
 }
@@ -153,14 +180,23 @@ async function runScan(
     const now = Date.now()
     if (progress.done < progress.total && now - lastProgressAt < 80) return
     lastProgressAt = now
-    emitScanProgress({ taskId, ...progress, added: 0 })
+    emitScanProgress({ taskId, taskKind: 'scan', ...progress, added: 0 })
   }
-  emitScanProgress({ taskId, phase: 'collecting', done: 0, total: 0, added: 0, skipped: 0 })
+  emitScanProgress({
+    taskId,
+    taskKind: 'scan',
+    phase: 'collecting',
+    done: 0,
+    total: 0,
+    added: 0,
+    skipped: 0
+  })
   try {
     const scan = await scanLocalSongsProgressive(directory, controller.signal, forward)
     if (scan.cancelled || controller.signal.aborted) {
       emitScanProgress({
         taskId,
+        taskKind: 'scan',
         phase: 'cancelled',
         done: 0,
         total: 0,
@@ -171,6 +207,7 @@ async function runScan(
     }
     emitScanProgress({
       taskId,
+      taskKind: 'scan',
       phase: 'committing',
       done: scan.items.length,
       total: scan.items.length,
@@ -180,6 +217,7 @@ async function runScan(
     if (controller.signal.aborted) {
       emitScanProgress({
         taskId,
+        taskKind: 'scan',
         phase: 'cancelled',
         done: 0,
         total: 0,
@@ -191,6 +229,7 @@ async function runScan(
     const result = library.addToPlaylistBatch(playlistId, scan.items)
     emitScanProgress({
       taskId,
+      taskKind: 'scan',
       phase: 'done',
       done: scan.items.length,
       total: scan.items.length,
@@ -200,6 +239,7 @@ async function runScan(
   } catch (error) {
     emitScanProgress({
       taskId,
+      taskKind: 'scan',
       phase: 'error',
       done: 0,
       total: 0,
@@ -209,5 +249,76 @@ async function runScan(
     })
   } finally {
     activeScans.delete(taskId)
+  }
+}
+
+async function runEnrichment(
+  taskId: string,
+  items: LocalMusicItem[],
+  controller: AbortController
+): Promise<void> {
+  let lastProgressAt = 0
+  const pending: LocalMusicItem[] = []
+  const flush = (): void => {
+    if (!pending.length) return
+    library.updateSongInfos(pending.splice(0))
+  }
+  emitScanProgress({
+    taskId,
+    taskKind: 'enrich',
+    phase: 'enriching',
+    done: 0,
+    total: items.length,
+    added: 0,
+    skipped: 0
+  })
+  try {
+    const result = await enrichLocalSongs(
+      items,
+      controller.signal,
+      (progress) => {
+        const now = Date.now()
+        if (progress.done < progress.total && now - lastProgressAt < 80) return
+        lastProgressAt = now
+        emitScanProgress({
+          taskId,
+          taskKind: 'enrich',
+          phase: 'enriching',
+          done: progress.done,
+          total: progress.total,
+          added: progress.updated,
+          skipped: progress.skipped,
+          currentPath: progress.currentPath
+        })
+      },
+      (item) => {
+        pending.push(item)
+        if (pending.length >= 8) flush()
+      }
+    )
+    flush()
+    emitScanProgress({
+      taskId,
+      taskKind: 'enrich',
+      phase: result.cancelled ? 'cancelled' : 'done',
+      done: result.cancelled ? 0 : items.length,
+      total: items.length,
+      added: result.updated,
+      skipped: result.skipped
+    })
+  } catch (error) {
+    flush()
+    emitScanProgress({
+      taskId,
+      taskKind: 'enrich',
+      phase: 'error',
+      done: 0,
+      total: items.length,
+      added: 0,
+      skipped: 0,
+      error: error instanceof Error ? error.message : String(error)
+    })
+  } finally {
+    activeEnrichments.delete(taskId)
   }
 }

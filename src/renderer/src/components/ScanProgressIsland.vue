@@ -29,6 +29,14 @@ function cancel(): void {
   if (taskId) void api.library.cancelScan(taskId)
 }
 
+function isActive(): boolean {
+  return (
+    progress.value?.phase === 'collecting' ||
+    progress.value?.phase === 'scanning' ||
+    progress.value?.phase === 'enriching'
+  )
+}
+
 onMounted(() => {
   unsubscribe = api.library.onScanProgress(onProgress)
 })
@@ -45,23 +53,27 @@ onUnmounted(() => {
       <div class="scan-island-head">
         <span>
           {{
-            progress.phase === 'collecting'
-              ? '准备扫描本地音乐'
-              : progress.phase === 'committing'
-                ? '正在写入曲库'
-                : progress.phase === 'done'
-                  ? `扫描完成，已添加 ${progress.added} 首`
-                  : progress.phase === 'cancelled'
-                    ? '扫描已取消'
-                    : progress.phase === 'error'
-                      ? `扫描失败：${progress.error ?? '未知错误'}`
-                      : `正在扫描 ${progress.done}/${progress.total}`
+            progress.taskKind === 'enrich' && progress.phase === 'enriching'
+              ? `正在补全本地信息 ${progress.done}/${progress.total}`
+              : progress.phase === 'collecting'
+                ? '准备扫描本地音乐'
+                : progress.phase === 'committing'
+                  ? '正在写入曲库'
+                  : progress.phase === 'done'
+                    ? progress.taskKind === 'enrich'
+                      ? `信息补全完成，更新 ${progress.added} 首`
+                      : `扫描完成，已添加 ${progress.added} 首`
+                    : progress.phase === 'cancelled'
+                      ? '扫描已取消'
+                      : progress.phase === 'error'
+                        ? `扫描失败：${progress.error ?? '未知错误'}`
+                        : `正在扫描 ${progress.done}/${progress.total}`
           }}
         </span>
         <button
-          v-if="progress.phase === 'collecting' || progress.phase === 'scanning'"
+          v-if="isActive()"
           type="button"
-          title="取消扫描"
+          :title="progress.taskKind === 'enrich' ? '取消补全' : '取消扫描'"
           @click="cancel"
         >
           取消
@@ -71,6 +83,7 @@ onUnmounted(() => {
         v-if="
           progress.phase === 'collecting' ||
           progress.phase === 'scanning' ||
+          progress.phase === 'enriching' ||
           progress.phase === 'committing'
         "
         class="scan-track"

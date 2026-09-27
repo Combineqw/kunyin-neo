@@ -519,6 +519,16 @@ export function updateSongInfo(item: MusicItem): void {
   upsertSong(item)
 }
 
+/** 批量回写补全结果，单次事务只广播一次，避免 500 首任务反复刷新曲库。 */
+export function updateSongInfos(items: MusicItem[]): void {
+  if (!items.length) return
+  const tx = getDb().transaction(() => {
+    for (const item of items) upsertSong(item)
+  })
+  tx()
+  notifyChange()
+}
+
 // ===== 收藏缓存重建 =====
 
 function refreshFavoritesCache(): void {

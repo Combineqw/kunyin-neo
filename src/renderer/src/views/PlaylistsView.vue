@@ -362,6 +362,7 @@ const menuItems = computed<MenuItem[]>(() => {
     { key: 'duplicate', label: '重复歌曲', icon: 'copy' },
     { key: 'addLocal', label: '添加本地歌曲', icon: 'folder' },
     { key: 'scanLocalDirectory', label: '扫描音乐文件夹', icon: 'folder' },
+    { key: 'enrichLocal', label: '补全本地信息', icon: 'refresh' },
     { key: 'addById', label: '通过 ID / MID 添加歌曲', icon: 'plus' },
     { key: 'update', label: '更新', icon: 'refresh', divider: true, disabled: !remote },
     { key: 'detail', label: '歌单详情页', icon: 'library', disabled: !remote },
@@ -393,6 +394,8 @@ async function onMenuSelect(key: string): Promise<void> {
     void addLocalSongs(p)
   } else if (key === 'scanLocalDirectory') {
     void scanLocalDirectory(p)
+  } else if (key === 'enrichLocal') {
+    void enrichLocalSongs(p)
   } else if (key === 'addById') {
     openIdAddDialog(p)
   } else if (key === 'update') {
@@ -433,6 +436,15 @@ async function scanLocalDirectory(p: LocalPlaylist): Promise<void> {
   const result = await api.library.scanLocalDirectory(p.id).catch(() => null)
   if (!result) return
   showToast('已开始扫描本地音乐')
+}
+
+async function enrichLocalSongs(p: LocalPlaylist): Promise<void> {
+  const result = await api.library.enrichLocalSongs(p.id).catch(() => null)
+  if (!result) {
+    showToast('列表中没有可补全的本地歌曲')
+    return
+  }
+  showToast('已开始补全本地信息')
 }
 
 // ============ 更新（远端绑定歌单重新拉取整单替换） ============

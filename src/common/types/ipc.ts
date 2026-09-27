@@ -104,6 +104,7 @@ export const IpcChannels = {
   LIBRARY_REPLACE_SONGS: 'library:replaceSongs',
   LIBRARY_ADD_LOCAL_SONGS: 'library:addLocalSongs',
   LIBRARY_SCAN_LOCAL_DIRECTORY: 'library:scanLocalDirectory',
+  LIBRARY_ENRICH_LOCAL: 'library:enrichLocal',
   LIBRARY_CANCEL_SCAN: 'library:cancelScan',
   LIBRARY_SCAN_PROGRESS: 'library:scanProgress',
   LIBRARY_GET_REDIRECT: 'library:getRedirect',
@@ -235,10 +236,13 @@ export type DeepPartial<T> = T extends object ? { [K in keyof T]?: DeepPartial<T
 export type Unsubscribe = () => void
 
 export type LibraryScanPhase =
-  'collecting' | 'scanning' | 'committing' | 'done' | 'cancelled' | 'error'
+  'collecting' | 'scanning' | 'enriching' | 'committing' | 'done' | 'cancelled' | 'error'
+
+export type LibraryTaskKind = 'scan' | 'enrich'
 
 export interface LibraryScanProgress {
   taskId: string
+  taskKind?: LibraryTaskKind
   phase: LibraryScanPhase
   done: number
   total: number
@@ -527,6 +531,8 @@ export interface WindowApi {
     addLocalSongs(playlistId: number): Promise<{ added: number; skipped: number } | null>
     /** 选择目录并启动可取消的增量扫描；返回 null 表示取消选择 */
     scanLocalDirectory(playlistId: number): Promise<LibraryScanStart | null>
+    /** 对歌单内带嵌入标签的本地歌曲补全封面、歌词和专辑信息；任务可取消 */
+    enrichLocalSongs(playlistId: number): Promise<LibraryScanStart | null>
     /** 请求取消扫描任务；返回是否找到活动任务 */
     cancelScan(taskId: string): Promise<boolean>
     /** 订阅扫描任务进度 */
