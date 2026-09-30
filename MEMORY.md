@@ -545,4 +545,5 @@
 - 播放设置新增“显示悬浮迷你播放器”入口；原有独立透明 BrowserWindow、拖动、悬停展开/收缩和 IPC 播放控制保持不变，并为窗口补上半透明模糊材质。
 - 修复详情页滚动：`MainLayout` 主视图改为纵向可滚动，搜索后进入长歌单可继续浏览；设置页统一主面、目录和卡片的暖白语义表面，移除多层主色混合造成的色差。
 - `npm run typecheck`、正式源码 `npx eslint --cache --quiet src`、`npm test`、`npm run build` 和 `git diff --check` 均退出码 0。全仓 lint 仍会扫描未跟踪 `work/` 临时脚本，按约束未纳入正式代码，也未提交。
+- `npm run build:win` 退出码 0，重新生成 `dist/kunyin-desktop-1.0.7-setup.exe`（98,022,405 B，SHA-256 `AE47EDA5305DA3DC4285B5C6D8554AB21DE70383246F4C8130811A260462AE77`）；解包主程序 211,232,768 B，SHA-256 `55010D36CA067C37401FCB77C2F623D4A575A18C038238681C0AECC2A66221C9`。
 - Rust 边界保持 M6 事实：共享 `aurora-core`、Electron N-API 适配和 Tauri 验证壳已完成；Electron 主壳与生产歌词链仍未全量迁移为 Rust。
