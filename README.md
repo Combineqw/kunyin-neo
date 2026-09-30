@@ -138,6 +138,11 @@ slice with `cargo check --manifest-path src-tauri/Cargo.toml`,
 `cargo test --manifest-path crates/aurora-library/Cargo.toml`, and
 `cargo test --manifest-path src-tauri/Cargo.toml`.
 
+M11 also routes Electron's local enrichment, tag reads, and local-library
+health probes through the Rust metadata bridge first. The existing TypeScript
+tag writers and `music-metadata` fallback remain available for unsupported
+containers and compatibility.
+
 ## 数据目录
 
 | 系统    | 默认目录                                                        |

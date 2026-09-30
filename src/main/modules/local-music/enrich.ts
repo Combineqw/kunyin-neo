@@ -5,6 +5,7 @@ import { EMPTY_LYRIC } from '@common'
 import { getProvider } from '../../providers'
 import { setCachedLyric } from '../../cache/lyricCache'
 import { selectEnrichmentCandidate } from './match'
+import { nativeReadAudioTags } from '../../native/bridge-runtime.js'
 
 const MATCH_SOURCES: MusicSource[] = ['wy', 'kw', 'kg', 'qq']
 
@@ -56,6 +57,15 @@ function readSidecarLyrics(filePath: string): string {
 }
 
 async function readEmbeddedTags(filePath: string): Promise<EmbeddedLocalTags | null> {
+  const native = nativeReadAudioTags(filePath)
+  if (native?.title?.trim() && native.artist?.trim()) {
+    return {
+      title: native.title.trim(),
+      artist: native.artist.trim(),
+      album: native.album?.trim() ?? '',
+      lyrics: native.lyrics?.trim() ?? ''
+    }
+  }
   try {
     const mm = await import('music-metadata')
     const meta = await mm.parseFile(filePath, { duration: false, skipCovers: true })

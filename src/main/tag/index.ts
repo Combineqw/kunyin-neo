@@ -7,12 +7,29 @@ import type { MusicMeta } from './meta'
 import { readMp3, writeMp3 } from './mp3'
 import { readFlacMeta, writeFlac } from './flac'
 import { readOggMeta, writeOgg } from './ogg'
+import { nativeReadAudioTags } from '../native/bridge-runtime.js'
 
 export type { MusicMeta, ParsedImage } from './meta'
 export { sniffImageMime } from './meta'
 export { parseImage, parseImageFile } from './image'
 
 export async function readAudioTags(filePath: string): Promise<MusicMeta | null> {
+  const native = nativeReadAudioTags(filePath)
+  if (native) {
+    return {
+      title: native.title,
+      artist: native.artist,
+      album: native.album,
+      trackNumber: native.trackNumber,
+      lyrics: native.lyrics,
+      ...(native.pictureData?.length
+        ? {
+            pictureData: Buffer.from(native.pictureData),
+            pictureMimeType: native.pictureMimeType
+          }
+        : {})
+    }
+  }
   const lower = filePath.toLowerCase()
   if (lower.endsWith('.mp3')) return readMp3(filePath)
   if (lower.endsWith('.flac')) return readFlacMeta(filePath)

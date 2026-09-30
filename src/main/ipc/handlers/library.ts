@@ -26,6 +26,7 @@ import {
   type LocalScanProgress
 } from '../../modules/local-music'
 import { enrichLocalSongs } from '../../modules/local-music/enrich'
+import { nativeReadAudioTags } from '../../native/bridge-runtime.js'
 
 let wired = false
 const activeScans = new Map<string, { playlistId: number; controller: AbortController }>()
@@ -211,8 +212,11 @@ export function registerLibraryHandlers(): void {
         const list = bySize.get(stat.size) ?? []
         list.push(item)
         bySize.set(stat.size, list)
-        const mm = await import('music-metadata')
-        await mm.parseFile(item.filePath, { duration: false, skipCovers: true })
+        const nativeMetadata = nativeReadAudioTags(item.filePath)
+        if (!nativeMetadata) {
+          const mm = await import('music-metadata')
+          await mm.parseFile(item.filePath, { duration: false, skipCovers: true })
+        }
       } catch {
         probeFailures.push(item.filePath)
       }

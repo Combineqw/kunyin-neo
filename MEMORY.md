@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.11 — 2026-10-01】
+【kunyin-neo 项目记忆 v5.12 — 2026-10-01】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -12,7 +12,8 @@
   v5.8 M7 终版构建与发布核验记档：2026-09-27；
   v5.9 M8 UI 材质与详情滚动修订记档：2026-09-30；
   v5.10 M9 Rust 原生纵向切片记档：2026-10-01；
-  v5.11 M10 Rust SQLite 曲库与 Lofty 标签桥接记档：2026-10-01）
+  v5.11 M10 Rust SQLite 曲库与 Lofty 标签桥接记档：2026-10-01；
+  v5.12 M11 本地元数据读路径桥接记档：2026-10-01）
 
 ◆ 项目身份
 - kunyin-neo，fork 自 github.com/ikunshare/kunyin-desktop
@@ -562,3 +563,9 @@
 - `aurora-core::metadata` 以 Lofty 读取标题、艺人、专辑、曲号、时长、ReplayGain、内嵌歌词和封面字节；N-API 增加 `readAudioTags`，Electron 本地歌曲解析优先调用，失败时回退 `music-metadata`。
 - `cargo test`（aurora-core 5/5、aurora-library 4/4、aurora-native 编译）、Tauri `cargo check/test`、`npm run typecheck`、`npm run native:build`、`node --check src-tauri/ui/main.js` 均通过；原生 N-API 二进制已重编译。
 - 迁移仍未全量完成：Electron provider、播放/下载/加密、标签写入、同步、桌面窗口和托盘仍由现有 TypeScript/Electron 路径负责；Tauri 数据目录尚未自动导入旧 Electron 数据库。以上为工程事实，不构成所有者验收通过结论。
+
+◆ M11 本地元数据读路径桥接（2026-10-01，事实与回执）
+- `src/main/modules/local-music/enrich.ts` 的嵌入标签、`src/main/tag/index.ts` 的标签读取和 `LIBRARY_LOCAL_HEALTH` 健康探测均先调用 Rust/Lofty；原有 TypeScript 写入器和 `music-metadata` 只作为兼容回退。
+- 修正无时长容器的 Rust DTO：Lofty 报告 0 时返回缺省 duration，避免错误地阻断 Node 时长回退。
+- `npm run typecheck`、`npm test`、`npm run build`、`npm run native:compare`（scan/lyrics/settings_io 全部 PASS）和正式源码 scoped lint 通过。
+- M11 仍是读路径迁移，不代表 Provider、播放、下载、加密、标签写入、同步和窗口已 Rust 化；不构成所有者验收通过结论。
