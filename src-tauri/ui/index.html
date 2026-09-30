@@ -3,42 +3,65 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Kunyin Tauri Core Shell</title>
+    <title>Kunyin Native Rust</title>
     <style>
       :root {
-        color-scheme: dark;
-        font-family: "Segoe UI", sans-serif;
-        background: #101517;
-        color: #e4ece8;
+        color-scheme: light;
+        font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+        background: #eef5f1;
+        color: #1e2a25;
       }
       * { box-sizing: border-box; }
       body { margin: 0; min-height: 100vh; }
-      main { max-width: 900px; margin: 0 auto; padding: 40px 28px; }
-      h1 { margin: 0; font-size: 24px; font-weight: 650; }
-      p { color: #a8b6b0; line-height: 1.5; }
-      .toolbar { display: flex; align-items: center; gap: 12px; margin: 22px 0 12px; }
-      button { border: 1px solid #77c9a1; border-radius: 5px; padding: 9px 14px; background: #18392e; color: #dcfff0; font: inherit; cursor: pointer; }
+      main { max-width: 1040px; margin: 0 auto; padding: 32px 28px; }
+      h1 { margin: 0; font-size: 28px; font-weight: 700; }
+      p { color: #63766d; line-height: 1.5; }
+      .eyebrow { margin: 0 0 6px; color: #3a9b72; font-size: 11px; letter-spacing: .18em; font-weight: 700; }
+      .toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 22px 0 12px; }
+      button { border: 1px solid #65b895; border-radius: 8px; padding: 9px 14px; background: #d9f2e5; color: #1f6247; font: inherit; cursor: pointer; }
       button:disabled { opacity: 0.55; cursor: wait; }
-      .status { min-height: 24px; color: #9fc8b4; font-size: 13px; }
-      textarea, pre { width: 100%; border: 1px solid #394944; border-radius: 5px; background: #171f21; color: #e4ece8; font: 13px/1.55 Consolas, monospace; }
+      .status { min-height: 24px; color: #347b5b; font-size: 13px; }
+      .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
+      .card { padding: 18px; border: 1px solid rgba(65, 126, 96, .18); border-radius: 16px; background: rgba(255,255,255,.62); box-shadow: 0 12px 36px rgba(38, 83, 60, .08); backdrop-filter: blur(18px); }
+      .card h2 { margin: 0 0 12px; font-size: 16px; }
+      .field { display: flex; gap: 8px; }
+      input, textarea, pre { width: 100%; border: 1px solid #c8d9d0; border-radius: 8px; background: rgba(255,255,255,.72); color: #1e2a25; font: 13px/1.55 Consolas, monospace; }
+      input { min-width: 0; padding: 9px 10px; }
+      textarea, pre { min-height: 148px; padding: 14px; }
       textarea { min-height: 180px; padding: 14px; resize: vertical; }
-      pre { min-height: 120px; padding: 14px; overflow: auto; white-space: pre-wrap; }
-      h2 { margin: 24px 0 10px; font-size: 15px; font-weight: 600; }
-      @media (max-width: 600px) { main { padding: 24px 16px; } .toolbar { align-items: flex-start; flex-direction: column; } }
+      pre { overflow: auto; white-space: pre-wrap; }
+      @media (max-width: 760px) { main { padding: 24px 16px; } .grid { grid-template-columns: 1fr; } }
     </style>
   </head>
   <body>
     <main>
-      <h1>Kunyin · Rust Core</h1>
-      <p>歌词行解析由 Tauri command 调用共享的 aurora-core。</p>
-      <textarea id="input" aria-label="LRC 歌词">[00:01.20]第一行歌词
+      <p class="eyebrow">NATIVE RUST MIGRATION · M9</p>
+      <h1>Kunyin Native Rust</h1>
+      <p>原生后端纵向切片：设置、曲库扫描和歌词解析均通过 Tauri command 调用共享的 aurora-core。</p>
+      <div class="grid">
+        <section class="card">
+          <h2>歌词解析</h2>
+          <textarea id="input" aria-label="LRC 歌词">[00:01.20]第一行歌词
 [00:02.50]第二行歌词</textarea>
-      <div class="toolbar">
-        <button id="run" type="button">解析歌词</button>
-        <span id="status" class="status" role="status"></span>
+          <div class="toolbar"><button id="run" type="button">解析歌词</button><span id="status" class="status" role="status"></span></div>
+          <pre id="output">等待解析</pre>
+        </section>
+        <section class="card">
+          <h2>曲库扫描</h2>
+          <div class="field"><input id="scan-path" type="text" placeholder="输入本地音乐目录" /><button id="scan" type="button">扫描</button></div>
+          <p id="scan-status" class="status" role="status"></p>
+          <pre id="scan-output">等待扫描</pre>
+        </section>
+        <section class="card">
+          <h2>原生设置</h2>
+          <div class="toolbar"><button id="read-settings" type="button">读取 settings.json</button><button id="write-settings" type="button">写入测试补丁</button></div>
+          <pre id="settings-output">等待读取</pre>
+        </section>
+        <section class="card">
+          <h2>迁移边界</h2>
+          <pre id="capabilities">正在读取...</pre>
+        </section>
       </div>
-      <h2>Rust 返回值</h2>
-      <pre id="output">等待解析</pre>
     </main>
     <script src="./main.js"></script>
   </body>

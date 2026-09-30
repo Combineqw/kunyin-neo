@@ -49,6 +49,7 @@
 | M4 四季极光 | 春夏秋冬主题、日期自动/手动切换与 0.28s 过渡                     | 已完成，待所有者主观验收                          |
 | M5 功能批 | F1 本地信息补全、F1.5 ReplayGain、F3' 曲库管家、F2 聚合搜索       | 已完成；F4' 仅完成 WASAPI 评估                   |
 | M6 双绑定 | `aurora-core` 共享 Electron N-API 与独立 Tauri v2 验证壳           | 已完成，未替换 Electron 主壳                     |
+| M9 原生切片 | Tauri Rust commands：设置读写、曲库扫描、歌词解析、能力探针          | 进行中，Electron 主壳仍为默认产品              |
 | 同源测试      | 将本地音乐纯逻辑抽到 `core.ts`，生产入口与 shadow 扫描共用源码       | 已完成，消除扫描模块的复刻副本漂移              |
 | 回归样本      | 固化扫描 8 条、歌词 15 条、设置回环 10 条边界用例                    | 存档记录为 33/33 PASS；用例生成与执行比对需区分 |
 | 打包修复      | 修正平台级 `files` 覆盖顶层白名单，排除测试素材、Rust 工程和工具目录 | 历史 asar 从 2844.5 MB 降至 22.2 MB             |
@@ -120,6 +121,15 @@ Windows 也可使用根目录的 `build-kunyin.cmd` / `build-kunyin.ps1`。仓�
 macOS / Linux 构建入口分别为 `npm run build:mac` 和 `npm run build:linux`；本分支的跨平台体验需分别验证。
 
 `npm run native:compare` 用于 Node/Rust 影子比对，需先准备本机对应的原生模块产物及测试素材。扫描和歌词的边界样本可通过 `node scripts/boundary-fixtures.mjs` 生成；该命令只生成样本，不代表比对测试已经执行或通过。
+
+## Native Rust migration
+
+`src-tauri/` now exposes the first native vertical slice through Tauri commands:
+`read_settings`, `update_settings`, `scan_library`, `parse_lyrics`, and
+`native_capabilities`. The shell is intentionally separate from the Electron
+product while the remaining library, provider, playback, download, and window
+contracts are migrated. `cargo check --manifest-path src-tauri/Cargo.toml`
+and `cargo test --manifest-path src-tauri/Cargo.toml` verify this slice.
 
 ## 数据目录
 

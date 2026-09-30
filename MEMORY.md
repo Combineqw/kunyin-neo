@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.9 — 2026-09-30】
+【kunyin-neo 项目记忆 v5.10 — 2026-10-01】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -10,7 +10,8 @@
   v5.6 M5 F4' WASAPI 独占评估记档：2026-09-27；
   v5.7 M6 Rust 核心双绑定记档：2026-09-27；
   v5.8 M7 终版构建与发布核验记档：2026-09-27；
-  v5.9 M8 UI 材质与详情滚动修订记档：2026-09-30）
+  v5.9 M8 UI 材质与详情滚动修订记档：2026-09-30；
+  v5.10 M9 Rust 原生纵向切片记档：2026-10-01）
 
 ◆ 项目身份
 - kunyin-neo，fork 自 github.com/ikunshare/kunyin-desktop
@@ -547,3 +548,9 @@
 - `npm run typecheck`、正式源码 `npx eslint --cache --quiet src`、`npm test`、`npm run build` 和 `git diff --check` 均退出码 0。全仓 lint 仍会扫描未跟踪 `work/` 临时脚本，按约束未纳入正式代码，也未提交。
 - `npm run build:win` 退出码 0，重新生成 `dist/kunyin-desktop-1.0.7-setup.exe`（98,022,405 B，SHA-256 `AE47EDA5305DA3DC4285B5C6D8554AB21DE70383246F4C8130811A260462AE77`）；解包主程序 211,232,768 B，SHA-256 `55010D36CA067C37401FCB77C2F623D4A575A18C038238681C0AECC2A66221C9`。
 - Rust 边界保持 M6 事实：共享 `aurora-core`、Electron N-API 适配和 Tauri 验证壳已完成；Electron 主壳与生产歌词链仍未全量迁移为 Rust。
+
+◆ M9 Rust 原生纵向切片（2026-10-01，事实与回执）
+- `src-tauri/src/main.rs` 新增 `read_settings`、`update_settings`、`scan_library`、`native_capabilities`，与既有 `parse_lyrics` 一起形成第一批可运行 Rust commands；设置写入沿用 `aurora-core::settings_io` 的深合并与原子写。
+- `src-tauri/ui/` 改为可操作的迁移状态界面，覆盖歌词解析、目录扫描、设置读写和待迁移能力展示。该界面仍是独立 Tauri 壳，不替换 Electron 主产品。
+- `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`、`cargo check --manifest-path src-tauri/Cargo.toml`、`cargo test --manifest-path src-tauri/Cargo.toml` 和 `node --check src-tauri/ui/main.js` 均通过。
+- 当前 Rust 原生化边界仍明确：库数据库、在线搜索/Provider、播放与下载、加密、桌面窗口和托盘尚未迁移；不得将本切片描述为全量 Rust 完成。

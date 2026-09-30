@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Kunyin Tauri Core Shell",
+  "productName": "Kunyin Native Rust",
   "version": "0.1.0",
   "identifier": "com.combineqw.kunyin.tauri-shell",
   "build": {
@@ -22,7 +22,7 @@
     }
   },
   "bundle": {
-    "active": false,
+    "active": true,
     "icon": ["../resources/icons/icon.ico"]
   }
 }

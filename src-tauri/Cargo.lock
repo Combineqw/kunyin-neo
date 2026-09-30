@@ -1668,6 +1668,7 @@ name = "kunyin-tauri-shell"
 version = "0.1.0"
 dependencies = [
  "aurora-core",
+ "serde_json",
  "tauri",
  "tauri-build",
 ]
