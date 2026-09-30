@@ -124,12 +124,19 @@ macOS / Linux 构建入口分别为 `npm run build:mac` 和 `npm run build:linux
 
 ## Native Rust migration
 
-`src-tauri/` now exposes the first native vertical slice through Tauri commands:
-`read_settings`, `update_settings`, `scan_library`, `parse_lyrics`, and
-`native_capabilities`. The shell is intentionally separate from the Electron
-product while the remaining library, provider, playback, download, and window
-contracts are migrated. `cargo check --manifest-path src-tauri/Cargo.toml`
-and `cargo test --manifest-path src-tauri/Cargo.toml` verify this slice.
+M10 extends the Tauri slice with a Rust SQLite repository (`aurora-library`)
+that preserves schema v9, system playlists, ordering, redirects, and JSON song
+payloads. Tauri commands now expose playlist CRUD/query operations and
+read-only Lofty metadata extraction. Electron local-song parsing tries the Rust
+metadata bridge first and keeps its existing fallback when the native module is
+unavailable or a container cannot be read.
+
+The Tauri shell remains a migration harness while providers, playback,
+downloads, tag writing, sync, and desktop window contracts are moved in later
+stages. Full Rust native migration is therefore still in progress. Verify the
+slice with `cargo check --manifest-path src-tauri/Cargo.toml`,
+`cargo test --manifest-path crates/aurora-library/Cargo.toml`, and
+`cargo test --manifest-path src-tauri/Cargo.toml`.
 
 ## 数据目录
 

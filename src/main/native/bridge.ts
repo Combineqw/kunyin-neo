@@ -7,6 +7,7 @@ type NativeBinding = {
   parseTrack(path: string): string
   scanLyrics(dir: string): string
   readSettings(path: string): string
+  readAudioTags(path: string): string
 }
 
 export type NativeScanTrack = {
@@ -39,6 +40,18 @@ export type NativeLyricLine = {
 export type NativeLyricFile = {
   path: string
   lines: NativeLyricLine[]
+}
+
+export type NativeAudioMetadata = {
+  title?: string
+  artist?: string
+  album?: string
+  trackNumber?: number
+  lyrics?: string
+  duration?: number
+  replayGain?: NativeScanTrack['replayGain']
+  pictureData?: number[]
+  pictureMimeType?: string
 }
 
 const require = createRequire(import.meta.url)
@@ -98,6 +111,17 @@ export function nativeScanLyrics(path: string): NativeLyricFile[] | null {
   try {
     const raw = loadBinding()?.scanLyrics(path)
     return raw ? (JSON.parse(raw) as NativeLyricFile[]) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeReadAudioTags(path: string): NativeAudioMetadata | null {
+  try {
+    const raw = loadBinding()?.readAudioTags(path)
+    if (!raw) return null
+    const value = JSON.parse(raw) as NativeAudioMetadata | null
+    return value ?? null
   } catch {
     return null
   }

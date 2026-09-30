@@ -19,6 +19,7 @@
 ## 2026-10-01
 
 - 工作区 M9：将 Tauri 验证壳扩展为 Rust 原生纵向切片，加入设置读写、曲库目录扫描、歌词解析和能力探针 commands，并提供可操作的迁移状态界面。Electron 仍是默认产品壳，后续按库、搜索、播放、下载和窗口边界继续迁移。
+- 工作区 M10：新增 `aurora-library` Rust SQLite 仓储，保持 schema v9、系统歌单、歌单排序、歌曲 JSON 和重定向语义；Tauri 提供歌单读写命令。`aurora-core`/N-API 新增 Lofty 音频标签读取，Electron 本地歌曲解析优先走 Rust 标签并保留兼容回退。完整 Rust 原生化仍未完成。
 
 ## 后续
 

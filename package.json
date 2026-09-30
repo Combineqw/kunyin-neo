@@ -29,7 +29,7 @@
     "build": "electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "native:build": "node scripts/native-build.mjs",
-    "native:compare": "node scripts/shadow-compare.mjs",
+    "native:compare": "node --experimental-strip-types --experimental-loader ./scripts/typescript-test-loader.mjs scripts/shadow-compare.mjs",
     "native:test": "npm run native:build && npm run native:compare",
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",

@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.10 — 2026-10-01】
+【kunyin-neo 项目记忆 v5.11 — 2026-10-01】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -11,7 +11,8 @@
   v5.7 M6 Rust 核心双绑定记档：2026-09-27；
   v5.8 M7 终版构建与发布核验记档：2026-09-27；
   v5.9 M8 UI 材质与详情滚动修订记档：2026-09-30；
-  v5.10 M9 Rust 原生纵向切片记档：2026-10-01）
+  v5.10 M9 Rust 原生纵向切片记档：2026-10-01；
+  v5.11 M10 Rust SQLite 曲库与 Lofty 标签桥接记档：2026-10-01）
 
 ◆ 项目身份
 - kunyin-neo，fork 自 github.com/ikunshare/kunyin-desktop
@@ -554,3 +555,10 @@
 - `src-tauri/ui/` 改为可操作的迁移状态界面，覆盖歌词解析、目录扫描、设置读写和待迁移能力展示。该界面仍是独立 Tauri 壳，不替换 Electron 主产品。
 - `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`、`cargo check --manifest-path src-tauri/Cargo.toml`、`cargo test --manifest-path src-tauri/Cargo.toml` 和 `node --check src-tauri/ui/main.js` 均通过。
 - 当前 Rust 原生化边界仍明确：库数据库、在线搜索/Provider、播放与下载、加密、桌面窗口和托盘尚未迁移；不得将本切片描述为全量 Rust 完成。
+
+◆ M10 Rust SQLite 曲库与音频标签桥接（2026-10-01，事实与回执）
+- 新增 `crates/aurora-library`，以 `rusqlite` 保持桌面 schema v9、WAL、foreign keys、系统歌单 seed、v6→v7 `sort_order` 迁移、歌单/歌曲 JSON CRUD、批量写入、排序与重定向语义；4 个行为测试通过。
+- Tauri `LibraryState` 通过 `library_list_playlists`、`library_create_playlist`、`library_add_song`、`library_query_songs`、`library_remove_song`、`library_move_song` 暴露这条 Rust 曲库路径；原生壳界面可直接新建/读取歌单和曲目。
+- `aurora-core::metadata` 以 Lofty 读取标题、艺人、专辑、曲号、时长、ReplayGain、内嵌歌词和封面字节；N-API 增加 `readAudioTags`，Electron 本地歌曲解析优先调用，失败时回退 `music-metadata`。
+- `cargo test`（aurora-core 5/5、aurora-library 4/4、aurora-native 编译）、Tauri `cargo check/test`、`npm run typecheck`、`npm run native:build`、`node --check src-tauri/ui/main.js` 均通过；原生 N-API 二进制已重编译。
+- 迁移仍未全量完成：Electron provider、播放/下载/加密、标签写入、同步、桌面窗口和托盘仍由现有 TypeScript/Electron 路径负责；Tauri 数据目录尚未自动导入旧 Electron 数据库。以上为工程事实，不构成所有者验收通过结论。

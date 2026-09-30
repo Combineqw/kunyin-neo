@@ -2,6 +2,7 @@
 
 pub mod error;
 pub mod lyrics;
+pub mod metadata;
 pub mod scan;
 pub mod settings_io;
 

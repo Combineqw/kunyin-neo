@@ -6,6 +6,11 @@
 /** Preserve the JSON-string API consumed by the Electron bridge and shadow tests. */
 export declare function scanDirectory(dir: string): string
 export declare function parseTrack(path: string): string
+/**
+ * Read-only Rust metadata bridge. The JSON envelope is `null` for unsupported
+ * extensions and a camelCase partial object for recognized audio files.
+ */
+export declare function readAudioTags(path: string): string
 export declare function scanLyrics(dir: string): string
 export declare function readSettings(path: string): string
 export declare function settingsRoundtrip(source: string, sandboxPath: string, keyPath: string, newValue: string): string

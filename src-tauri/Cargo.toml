@@ -10,5 +10,6 @@ tauri-build = "=2.7.0"
 
 [dependencies]
 aurora-core = { path = "../crates/aurora-core" }
+aurora-library = { path = "../crates/aurora-library" }
 serde_json = "1"
 tauri = "=2.12.0"

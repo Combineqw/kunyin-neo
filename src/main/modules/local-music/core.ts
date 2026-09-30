@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { basename, extname } from 'node:path'
 import type { LocalMusicItem } from '../../../common/types/music'
+import { nativeReadAudioTags } from '../../native/bridge-runtime.js'
 
 export const AUDIO_EXTENSIONS = ['mp3', 'flac', 'wav', 'm4a', 'aac', 'ogg', 'opus', 'wma', 'ape']
 
@@ -28,6 +29,14 @@ export async function parseLocalSong(filePath: string): Promise<LocalMusicItem> 
   let album = ''
   let duration = 0
   let replayGain: LocalMusicItem['replayGain']
+  const nativeMeta = nativeReadAudioTags(filePath)
+  if (nativeMeta) {
+    if (nativeMeta.title?.trim()) title = nativeMeta.title.trim()
+    if (nativeMeta.artist?.trim()) artist = nativeMeta.artist.trim()
+    if (nativeMeta.album?.trim()) album = nativeMeta.album.trim()
+    duration = nativeMeta.duration ?? 0
+    replayGain = nativeMeta.replayGain
+  } else {
   try {
     // music-metadata 为 ESM-only 包，主进程 CJS 侧用动态 import 加载
     const mm = await import('music-metadata')
@@ -49,6 +58,7 @@ export async function parseLocalSong(filePath: string): Promise<LocalMusicItem> 
     }
   } catch {
     /* 无标签/不支持的容器：回退文件名 + 时长 0（播放时 <audio> 会读到真实时长） */
+  }
   }
   return {
     type: 'local',

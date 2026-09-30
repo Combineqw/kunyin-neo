@@ -4,7 +4,7 @@
 
 use std::path::Path;
 
-use aurora_core::{lyrics, scan, settings_io, AuroraError};
+use aurora_core::{lyrics, metadata, scan, settings_io, AuroraError};
 use napi_derive::napi;
 
 fn to_napi_error(error: AuroraError) -> napi::Error {
@@ -20,6 +20,13 @@ pub fn scan_directory(dir: String) -> napi::Result<String> {
 #[napi]
 pub fn parse_track(path: String) -> napi::Result<String> {
     scan::parse_track_json(Path::new(&path)).map_err(to_napi_error)
+}
+
+/// Read-only Rust metadata bridge. The JSON envelope is `null` for unsupported
+/// extensions and a camelCase partial object for recognized audio files.
+#[napi]
+pub fn read_audio_tags(path: String) -> napi::Result<String> {
+    metadata::read_audio_tags_json(Path::new(&path)).map_err(to_napi_error)
 }
 
 #[napi]
