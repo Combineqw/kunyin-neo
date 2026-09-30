@@ -63,7 +63,7 @@ function toggleTab(id: TocId): void {
 
 <template>
   <div class="main">
-    <aside class="toc scroll">
+    <aside class="toc scroll glass-surface glass-thin">
       <header class="toc-head">
         <span class="eyebrow">PREFERENCES</span>
         <h1>设置</h1>
@@ -99,14 +99,16 @@ function toggleTab(id: TocId): void {
   display: flex;
   flex-flow: row nowrap;
   height: 100%;
-  background: color-mix(in srgb, var(--color-main-background) 92%, var(--color-primary) 8%);
+  background: var(--color-main-background);
 }
 .toc {
   flex: 0 0 218px;
   padding: 22px 14px 18px;
   overflow-y: auto;
   border-right: 1px solid var(--color-border);
-  background: color-mix(in srgb, var(--color-main-background) 78%, transparent);
+  background: var(--glass-thin-background);
+  backdrop-filter: blur(var(--glass-thin-blur)) saturate(var(--glass-thin-saturation));
+  -webkit-backdrop-filter: blur(var(--glass-thin-blur)) saturate(var(--glass-thin-saturation));
 }
 .toc-head {
   padding: 0 10px 20px;
@@ -203,8 +205,11 @@ function toggleTab(id: TocId): void {
   padding: 18px 20px;
   border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: color-mix(in srgb, var(--color-main-background) 90%, transparent);
-  box-shadow: 0 5px 22px rgba(0, 0, 0, 0.025);
+  background: var(--glass-regular-background);
+  border-color: var(--glass-border);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(var(--glass-regular-blur)) saturate(var(--glass-regular-saturation));
+  -webkit-backdrop-filter: blur(var(--glass-regular-blur)) saturate(var(--glass-regular-saturation));
 }
 .setting :deep(dd > div) {
   padding: 0;
@@ -245,7 +250,7 @@ function toggleTab(id: TocId): void {
   border-radius: 8px;
   outline: none;
   color: var(--color-font);
-  background: color-mix(in srgb, var(--color-main-background) 88%, var(--color-primary) 12%);
+  background: var(--color-main-background);
   transition: opacity var(--anim-dur-fast) var(--anim-ease-smooth);
 }
 .setting :deep(input[type='text']:focus),

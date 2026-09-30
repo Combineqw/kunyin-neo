@@ -33,9 +33,9 @@ watch(
 
 <template>
   <div class="shell">
-    <AppAside class="area-aside" />
-    <div class="area-main">
-      <AppToolbar />
+    <AppAside class="area-aside glass-surface glass-thin" />
+    <div class="area-main glass-surface glass-regular">
+      <AppToolbar class="glass-thin" />
       <main class="view scroll">
         <RouterView v-slot="{ Component, route: viewRoute }">
           <Transition name="page-slide" mode="out-in">
@@ -46,7 +46,7 @@ watch(
         </RouterView>
         <span v-if="wipeKey" :key="wipeKey" class="route-wipe" aria-hidden="true" />
       </main>
-      <PlayerBar />
+      <PlayerBar class="glass-surface glass-thin" />
     </div>
   </div>
 </template>
@@ -58,29 +58,34 @@ watch(
 .shell {
   display: flex;
   height: 100%;
+  gap: 10px;
+  padding: 10px;
+  box-sizing: border-box;
   background-color: var(--color-app-background);
 }
 .area-aside {
   flex: none;
   width: var(--width-aside);
+  height: 100%;
 }
 .area-main {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background-color: var(--color-main-background);
-  /* LX #right：与侧栏形成层叠分隔 */
-  border-top-left-radius: var(--radius-border);
-  border-bottom-left-radius: var(--radius-border);
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+  background-color: var(--glass-regular-background);
+  border-radius: 22px;
+  box-shadow: var(--glass-shadow);
+  border: 1px solid var(--glass-border);
   overflow: hidden;
 }
 .view {
   position: relative;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .page-slide-enter-active,

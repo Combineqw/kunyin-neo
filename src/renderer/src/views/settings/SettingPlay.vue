@@ -402,6 +402,10 @@ function setFadeDuration(event: Event): void {
   void store.update({ player: { fadeDurationMs: Math.max(0, Math.min(1000, value)) } })
 }
 
+function setMiniPlayerEnabled(enabled: boolean): void {
+  void store.update({ player: { miniPlayerEnabled: enabled } })
+}
+
 function setReplayGainEnabled(enabled: boolean): void {
   void store.update({ player: { replayGainEnabled: enabled } })
 }
@@ -424,6 +428,17 @@ function setReplayGainMax(event: Event): void {
 
 <template>
   <dt id="play">播放设置</dt>
+  <dd>
+    <h3 id="play_mini_player">迷你播放器</h3>
+    <BaseCheckbox
+      id="setting_mini_player_enabled"
+      :model-value="settings.player.miniPlayerEnabled"
+      label="显示悬浮迷你播放器"
+      @update:model-value="setMiniPlayerEnabled($event as boolean)"
+    />
+    <p class="setting-note">开启后会在桌面右下角显示可拖动的悬浮播放控制条，悬停时展开。</p>
+  </dd>
+
   <dd>
     <h3 id="play_quality">首选音质</h3>
     <div>
@@ -744,6 +759,12 @@ function setReplayGainMax(event: Event): void {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+.setting-note {
+  margin-top: 7px;
+  color: var(--color-font-label);
+  font-size: 11px;
+  line-height: 1.5;
 }
 .eq-toolbar label,
 .fade-range > span {

@@ -71,6 +71,9 @@ onUnmounted(() => window.removeEventListener('resize', updateIndicator))
   height: 100%;
   display: flex;
   flex-flow: column nowrap;
+  padding: 8px 0;
+  overflow: hidden;
+  border-radius: inherit;
   -webkit-app-region: drag;
   -webkit-user-select: none;
 }
@@ -90,6 +93,7 @@ onUnmounted(() => window.removeEventListener('resize', updateIndicator))
 }
 .menu {
   flex: auto;
+  padding-top: 4px;
 }
 .list {
   position: relative;
@@ -98,11 +102,11 @@ onUnmounted(() => window.removeEventListener('resize', updateIndicator))
 .active-indicator {
   position: absolute;
   z-index: 1;
-  left: 0;
-  width: 3px;
-  border-radius: 0 4px 4px 0;
+  left: 7px;
+  right: 7px;
+  border-radius: 16px;
   pointer-events: none;
-  background-color: var(--color-primary-dark-200-alpha-700);
+  background-color: var(--color-primary-light-300-alpha-700);
   transition:
     transform var(--anim-dur-base) var(--anim-ease-spring),
     opacity var(--anim-dur-fast) var(--anim-ease-smooth);
@@ -114,7 +118,7 @@ onUnmounted(() => window.removeEventListener('resize', updateIndicator))
   content: '';
   display: block;
   width: 100%;
-  padding-bottom: 84%;
+  padding-bottom: 74%;
 }
 .link {
   position: absolute;
@@ -131,10 +135,11 @@ onUnmounted(() => window.removeEventListener('resize', updateIndicator))
   transition: opacity var(--anim-dur-fast) var(--anim-ease-smooth);
 }
 .link.active {
-  background-color: var(--color-primary-light-300-alpha-700);
+  color: var(--color-primary-font);
+  background-color: transparent;
 }
 .link.active:hover {
-  background-color: var(--color-primary-light-300-alpha-800);
+  background-color: transparent;
 }
 .link:hover {
   color: var(--color-nav-font);

@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.8 — 2026-09-27】
+【kunyin-neo 项目记忆 v5.9 — 2026-09-30】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -9,7 +9,8 @@
   v5.5 M5 F2 聚合搜索交互与六源编排记档：2026-09-27；
   v5.6 M5 F4' WASAPI 独占评估记档：2026-09-27；
   v5.7 M6 Rust 核心双绑定记档：2026-09-27；
-  v5.8 M7 终版构建与发布核验记档：2026-09-27）
+  v5.8 M7 终版构建与发布核验记档：2026-09-27；
+  v5.9 M8 UI 材质与详情滚动修订记档：2026-09-30）
 
 ◆ 项目身份
 - kunyin-neo，fork 自 github.com/ikunshare/kunyin-desktop
@@ -538,3 +539,10 @@
 - NSIS `/S` 独立目录安装退出码 0；安装目录主程序 SHA 与解包主程序一致；原生模块存在，1,472,000 B，SHA-256 `93839E1965F8EF5402A0D43B4B64C5CBB63091C7FB0C5611B0333701FAD4CB3C`。
 - 镜像：`npm config get registry` 仍为 `https://registry.npmjs.org/`；显式 `npm ping --registry=https://registry.npmmirror.com` 返回 PONG；隔离目录 `npm ci --ignore-scripts --registry=https://registry.npmmirror.com` 成功，HTTP 日志显示包 tarball 来自 `registry.npmmirror.com`。Electron 镜像 `https://npmmirror.com/mirrors/electron/39.8.10/electron-v39.8.10-win32-x64.zip` HEAD 返回 HTTP 200；未修改 `.npmrc`。
 - 用户主观清单仍由所有者执行：20 分钟卡顿日记（补标失焦时段）、玻璃拿起手感、Network 封面查重、四季主题观感、四题各 30 秒冒烟、功能清单。以上为数据与复现记录，不构成验收通过结论。
+
+◆ M8 UI 材质与详情滚动修订（2026-09-30，事实与回执）
+- 主壳、侧栏、工具栏与底部播放器接入玻璃 surface tokens；侧栏改为带留白、圆角、活动胶囊和 backdrop blur 的悬浮浮岛布局。
+- 播放设置新增“显示悬浮迷你播放器”入口；原有独立透明 BrowserWindow、拖动、悬停展开/收缩和 IPC 播放控制保持不变，并为窗口补上半透明模糊材质。
+- 修复详情页滚动：`MainLayout` 主视图改为纵向可滚动，搜索后进入长歌单可继续浏览；设置页统一主面、目录和卡片的暖白语义表面，移除多层主色混合造成的色差。
+- `npm run typecheck`、正式源码 `npx eslint --cache --quiet src`、`npm test`、`npm run build` 和 `git diff --check` 均退出码 0。全仓 lint 仍会扫描未跟踪 `work/` 临时脚本，按约束未纳入正式代码，也未提交。
+- Rust 边界保持 M6 事实：共享 `aurora-core`、Electron N-API 适配和 Tauri 验证壳已完成；Electron 主壳与生产歌词链仍未全量迁移为 Rust。

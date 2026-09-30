@@ -146,8 +146,10 @@ onUnmounted(() => {
   color: #f8f7f1;
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 18px;
-  background: rgba(31, 33, 31, 0.93);
+  background: rgba(31, 33, 31, 0.72);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(24px) saturate(1.35);
+  -webkit-backdrop-filter: blur(24px) saturate(1.35);
   transition: opacity var(--anim-dur-fast) var(--anim-ease-smooth);
 }
 
