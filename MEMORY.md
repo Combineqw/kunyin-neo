@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.27 — 2026-10-02】
+【kunyin-neo 项目记忆 v5.28 — 2026-10-02】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -26,7 +26,12 @@
   v5.23 M22 Windows WASAPI 共享输出边界记档：2026-10-02；
   v5.24 M23 Rust 本地播放纵向切片记档：2026-10-02；
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
-  v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02）
+  v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；
+  v5.28 M27 运行时桥接降压记档：2026-10-02）
+
+◆ M27 运行时桥接降压（2026-10-02，事实与回执）
+- 迷你播放器桥与桌面歌词桥共用一个 100ms runtime scheduler，订阅为空时停止定时器，卸载和暂停均注销回调，保留切歌/状态变化的即时推送。
+- `npm run typecheck`、`npm test`、`npm run build` 和 `git diff --check` 均通过；本轮只降低 renderer IPC 唤醒与定时器重复，不改变窗口功能契约。
 
 ◆ M26 Rust FTS5 本地曲库搜索（2026-10-02，事实与回执）
 - `aurora-library` schema 从 v9 升到 v10，新增 SQLite FTS5 `song_search` 索引；歌曲写入、批量写入和 schema 迁移均保持索引一致，索引可从 canonical `songs.song_json` 重建。
