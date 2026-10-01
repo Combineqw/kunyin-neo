@@ -3,15 +3,17 @@
 #![deny(clippy::unwrap_used)]
 
 use std::path::Path;
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 
-use aurora_audio::{probe_capabilities, NativePlaybackEngine};
+use aurora_audio::{probe_capabilities, NativePlaybackEngine, Qmc2Decryptor};
 use aurora_core::{lyrics, metadata, scan, settings_io, AuroraError};
 use aurora_player::PlaybackSession;
+use napi::bindgen_prelude::Buffer;
 use napi_derive::napi;
 
 static PLAYBACK_SESSION: OnceLock<Mutex<PlaybackSession>> = OnceLock::new();
 static NATIVE_AUDIO: OnceLock<Mutex<Option<NativePlaybackEngine>>> = OnceLock::new();
+static QMC2_DECRYPTOR: OnceLock<Mutex<Option<(String, Arc<Qmc2Decryptor>)>>> = OnceLock::new();
 
 fn playback_session() -> &'static Mutex<PlaybackSession> {
     PLAYBACK_SESSION.get_or_init(|| Mutex::new(PlaybackSession::default()))
@@ -175,6 +177,47 @@ pub fn native_audio_snapshot() -> napi::Result<String> {
         .map_err(|_| napi::Error::from_reason("native audio session lock poisoned"))?;
     serde_json::to_string(&session.as_ref().map(NativePlaybackEngine::snapshot))
         .map_err(|error| napi::Error::from_reason(error.to_string()))
+}
+
+/// Best-effort native QMC2 chunk decryption for the Electron stream protocol.
+/// The caller supplies the encrypted file offset so HTTP Range responses can
+/// be decrypted independently.  Invalid keys return an error and the host
+/// keeps its TypeScript decryptor fallback.
+#[napi]
+pub fn audio_decrypt_qmc2_chunk(
+    ekey: String,
+    file_offset: i64,
+    chunk: Buffer,
+) -> napi::Result<Buffer> {
+    if file_offset < 0 {
+        return Err(napi::Error::from_reason("negative encrypted stream offset"));
+    }
+    let cache = QMC2_DECRYPTOR.get_or_init(|| Mutex::new(None));
+    let decryptor = {
+        let mut guard = cache
+            .lock()
+            .map_err(|_| napi::Error::from_reason("QMC2 decryptor lock poisoned"))?;
+        if let Some((cached_ekey, decryptor)) = guard.as_ref() {
+            if cached_ekey == &ekey {
+                Arc::clone(decryptor)
+            } else {
+                let decryptor = Arc::new(
+                    Qmc2Decryptor::from_ekey(&ekey)
+                        .ok_or_else(|| napi::Error::from_reason("invalid QMC2 ekey"))?,
+                );
+                *guard = Some((ekey, Arc::clone(&decryptor)));
+                decryptor
+            }
+        } else {
+            let decryptor = Arc::new(
+                Qmc2Decryptor::from_ekey(&ekey)
+                    .ok_or_else(|| napi::Error::from_reason("invalid QMC2 ekey"))?,
+            );
+            *guard = Some((ekey, Arc::clone(&decryptor)));
+            decryptor
+        }
+    };
+    Ok(Buffer::from(decryptor.decrypt(&chunk, file_offset as u64)))
 }
 
 fn to_napi_error(error: AuroraError) -> napi::Error {

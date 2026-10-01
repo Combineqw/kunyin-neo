@@ -23,6 +23,13 @@ export declare function nativeAudioSetVolume(volume: number, muted: boolean): st
 export declare function nativeAudioSeek(positionMs: number): string
 export declare function nativeAudioStop(): string
 export declare function nativeAudioSnapshot(): string
+/**
+ * Best-effort native QMC2 chunk decryption for the Electron stream protocol.
+ * The caller supplies the encrypted file offset so HTTP Range responses can
+ * be decrypted independently.  Invalid keys return an error and the host
+ * keeps its TypeScript decryptor fallback.
+ */
+export declare function audioDecryptQmc2Chunk(ekey: string, fileOffset: number, chunk: Buffer): Buffer
 /** Preserve the JSON-string API consumed by the Electron bridge and shadow tests. */
 export declare function scanDirectory(dir: string): string
 export declare function parseTrack(path: string): string

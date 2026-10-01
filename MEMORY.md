@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.24 — 2026-10-02】
+【kunyin-neo 项目记忆 v5.25 — 2026-10-02】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -24,7 +24,13 @@
   v5.21 M20 Rust 音频边界记档：2026-10-01；
   v5.22 M21 Rust 本地音频解码记档：2026-10-02；
   v5.23 M22 Windows WASAPI 共享输出边界记档：2026-10-02；
-  v5.24 M23 Rust 本地播放纵向切片记档：2026-10-02）
+  v5.24 M23 Rust 本地播放纵向切片记档：2026-10-02；
+  v5.25 M24 Rust QMC2 分块解密记档：2026-10-02）
+
+◆ M24 Rust QMC2 分块解密（2026-10-02，事实与回执）
+- `aurora-audio` 新增 QMC2/mflac/mgg 的 Rust 解密器，覆盖 ekey V1/V2、map 和 RC4 两类流密码；解密按加密文件绝对偏移执行，HTTP Range 分块拼接结果与整块处理一致。
+- `aurora-native` 新增 `audioDecryptQmc2Chunk` N-API 导出。Electron 音频协议优先调用 Rust；native 模块缺失、旧 binding 或无效 ekey 时回退既有 TypeScript 解密器/透传边界。N-API 仅缓存当前 ekey 的解密器，避免每个网络分块重复构造密钥流。
+- 本步只迁移 QQ 加密流解密，不包含远程 Provider、认证、下载、DSP 或窗口系统；不能据此宣称全软件 Rust 原生化完成，也不替用户下最终验收结论。
 
 ◆ M23 Rust 本地播放纵向切片（2026-10-02，事实与回执）
 - `aurora-audio` 新增 `NativePlaybackEngine`：以 Symphonia 按 packet 解码本地未加密音频，使用有界交错 `f32` PCM 队列交给 Windows CPAL/WASAPI shared 输出；播放、暂停、停止、seek 和快照均由同一 Rust 播放会话管理。

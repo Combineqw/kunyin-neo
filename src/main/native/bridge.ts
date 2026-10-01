@@ -25,6 +25,7 @@ type NativeBinding = {
   nativeAudioSeek?(positionMs: number): string
   nativeAudioStop?(): string
   nativeAudioSnapshot?(): string
+  audioDecryptQmc2Chunk?(ekey: string, fileOffset: number, chunk: Uint8Array): Uint8Array
 }
 
 export type NativeAudioBackendCapabilities = {
@@ -299,4 +300,20 @@ export function nativeAudioStop(): NativeAudioSnapshot | null {
 
 export function nativeAudioSnapshot(): NativeAudioSnapshot | null {
   return nativeAudioCall('nativeAudioSnapshot')
+}
+
+/** Decrypt one encrypted HTTP chunk through Rust when the optional binding has it. */
+export function nativeAudioDecryptQmc2Chunk(
+  ekey: string,
+  fileOffset: number,
+  chunk: Uint8Array
+): Uint8Array | null {
+  try {
+    const call = loadBinding()?.audioDecryptQmc2Chunk
+    if (typeof call !== 'function') return null
+    const output = call(ekey, Math.max(0, Math.round(fileOffset)), chunk)
+    return output instanceof Uint8Array ? output : null
+  } catch {
+    return null
+  }
 }

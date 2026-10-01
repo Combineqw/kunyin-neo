@@ -22,6 +22,14 @@ npm run native:test
 
 `native:compare` verifies the existing Node/N-API contract against the fixture set. `aurora-core` is also linked by the separate Tauri shell in `src-tauri/`.
 
+## QMC2 stream decryption
+
+`audioDecryptQmc2Chunk(ekey, fileOffset, chunk)` decrypts one QQ
+`mflac`/`mgg` range chunk through Rust. The adapter caches only the current
+ekey's decryptor, keeping repeated HTTP chunks cheap while bounding native
+memory. Invalid keys and unavailable native exports are converted to the
+existing Electron TypeScript fallback.
+
 ## 本地播放导出
 
 Windows 构建还导出本地文件播放的可选 N-API：

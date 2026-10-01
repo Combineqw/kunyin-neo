@@ -148,3 +148,15 @@ export function nativeAudioStop() {
 export function nativeAudioSnapshot() {
   return nativeAudioCall('nativeAudioSnapshot')
 }
+
+/** Optional Rust QMC2 chunk path; callers keep the TypeScript fallback. */
+export function nativeAudioDecryptQmc2Chunk(ekey, fileOffset, chunk) {
+  try {
+    const call = loadBinding()?.audioDecryptQmc2Chunk
+    if (typeof call !== 'function') return null
+    const output = call(ekey, Math.max(0, Math.round(fileOffset)), chunk)
+    return output instanceof Uint8Array ? output : null
+  } catch {
+    return null
+  }
+}

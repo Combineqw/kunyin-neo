@@ -16,6 +16,7 @@ import { createReadStream, statSync } from 'node:fs'
 import { extname } from 'node:path'
 import { Readable } from 'node:stream'
 import { createAudioDecryptor, type AudioDecryptor } from '../crypto/decryptor'
+import { nativeAudioDecryptQmc2Chunk } from '../native/bridge-runtime.js'
 
 /**
  * 注册给 `kunyin://` 的单条音频流描述。
@@ -218,14 +219,25 @@ function parseRangeStart(range: string | null): number {
 /** 用 Web TransformStream 边下边解密（按文件偏移喂流密码，天然支持 Range） */
 function decryptStream(
   src: ReadableStream<Uint8Array>,
-  decryptor: AudioDecryptor,
-  startOffset: number
+  decryptor: AudioDecryptor | null,
+  startOffset: number,
+  ekey?: string
 ): ReadableStream<Uint8Array> {
   let offset = startOffset
+  let nativeUnavailable = false
   const transform = new TransformStream<Uint8Array, Uint8Array>({
     transform(chunk, controller) {
       const buf = Buffer.from(chunk)
-      controller.enqueue(decryptor.decrypt(buf, offset))
+      let output: Uint8Array | null = null
+      if (ekey && !nativeUnavailable) {
+        output = nativeAudioDecryptQmc2Chunk(ekey, offset, buf)
+        if (!output) nativeUnavailable = true
+      }
+      if (!output && decryptor) output = decryptor.decrypt(buf, offset)
+      // Keep the existing transparent behavior for an invalid/unsupported
+      // ekey: the proven Electron path can still report/play the upstream
+      // bytes, while a missing native binary never interrupts the request.
+      controller.enqueue(output ?? buf)
       offset += buf.length
     }
   })
@@ -342,7 +354,7 @@ export function installAudioProtocol(): void {
       console.warn('[audio] ekey 流暂无解密器，透传（播放将异常）')
     }
     let body: ReadableStream<Uint8Array> = upstream.body
-    if (decryptor) body = decryptStream(body, decryptor, upstreamStart)
+    if (spec.ekey) body = decryptStream(body, decryptor, upstreamStart, spec.ekey)
 
     return new Response(body as BodyInit, { status, headers: out })
   })

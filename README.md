@@ -168,6 +168,15 @@ Remote streams and encrypted provider paths are unchanged. DSP/EQ, remote
 providers, downloads, encryption, and WASAPI exclusive mode remain later
 slices, so the complete application is still a staged migration.
 
+M24 moves QQ QMC2 (`mflac`/`mgg`) stream decryption into the shared Rust audio
+crate. The decryptor handles ekey V1/V2 and map/RC4 range chunks by absolute
+encrypted-file offset, so HTTP range requests can be decrypted independently.
+Electron prefers the `audioDecryptQmc2Chunk` N-API export and keeps the
+existing TypeScript decryptor as a compatibility fallback for missing native
+modules, stale bindings, or invalid keys. Remote provider requests,
+authentication, downloads, DSP, and desktop window integration remain staged
+work; this slice does not claim complete Rust migration.
+
 M11 also routes Electron's local enrichment, tag reads, and local-library
 health probes through the Rust metadata bridge first. The existing TypeScript
 tag writers and `music-metadata` fallback remain available for unsupported

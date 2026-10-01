@@ -28,3 +28,9 @@ lock miss or queue underrun, so it never waits behind decoder work. The native
 host adapter opts into this engine for local files and keeps the existing
 HTMLAudio fallback when native startup fails. Remote streams, provider
 encryption, DSP, and WASAPI exclusive mode remain outside this slice.
+
+The crate also provides `Qmc2Decryptor` and `decrypt_qmc2_chunk` for QQ
+`mflac`/`mgg` streams. It supports ekey V1/V2 and map/RC4 modes, and takes the
+absolute encrypted-file offset so HTTP Range chunks remain independently
+decryptable. The Electron adapter uses the native path first and keeps its
+TypeScript fallback for compatibility.
