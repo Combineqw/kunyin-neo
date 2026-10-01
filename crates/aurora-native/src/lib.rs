@@ -446,5 +446,5 @@ pub fn sync_normalize_base_url(url: String) -> napi::Result<String> {
 #[napi]
 pub fn sync_validate_session(session_json: String) -> napi::Result<String> {
     let value = sync::session_json(&session_json).map_err(to_napi_error)?;
-    serde_json::to_string(&value).map_err(|error| napi::Error::from_reason(error.to_string()))
+    Ok(value.unwrap_or_else(|| "null".to_string()))
 }

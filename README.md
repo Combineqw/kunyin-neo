@@ -193,6 +193,14 @@ validation shell exposes the paginated `library_search_songs` command and keeps
 the existing JSON DTO shape. Remote providers, authentication, synchronization,
 and the Electron production shell remain staged migration work.
 
+M27 shares one 100 ms renderer scheduler between the mini-player and desktop
+lyrics state bridges, avoiding duplicate timers while keeping their immediate
+state pushes. M28 moves LX sync server URL normalization and persisted-session
+validation into `aurora-core::sync`, exposed through N-API and Tauri commands;
+Electron retains a TypeScript fallback. HTTP/WebSocket transport, credentials,
+encryption, compression, and full sync orchestration remain on the existing
+Electron path, so the full application has not yet completed Rust migration.
+
 M11 also routes Electron's local enrichment, tag reads, and local-library
 health probes through the Rust metadata bridge first. The existing TypeScript
 tag writers and `music-metadata` fallback remain available for unsupported

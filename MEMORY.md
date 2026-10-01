@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.28 — 2026-10-02】
+【kunyin-neo 项目记忆 v5.29 — 2026-10-02】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -26,8 +26,14 @@
   v5.23 M22 Windows WASAPI 共享输出边界记档：2026-10-02；
   v5.24 M23 Rust 本地播放纵向切片记档：2026-10-02；
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
-  v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；
-  v5.28 M27 运行时桥接降压记档：2026-10-02）
+  v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
+  v5.29 M28 Rust 同步协议边界记档：2026-10-02）
+
+◆ M28 Rust 同步协议边界（2026-10-02，事实与回执）
+- `aurora-core::sync` 新增同步服务器地址规范化、持久化会话 JSON 校验和 canonical 序列化；覆盖空地址、`ws(s)` 输入、缺字段和额外字段等单测。
+- `aurora-native` 与 Tauri shell 暴露同步边界命令；Electron `SyncClient` 与会话状态读取优先调用 Rust，native 缺失或失败时继续使用原 TypeScript fallback。
+- `cargo test --manifest-path crates/aurora-core/Cargo.toml`（13/13）、`cargo test --manifest-path src-tauri/Cargo.toml --bin kunyin-tauri-shell`（1/1）、`cargo test --manifest-path crates/aurora-native/Cargo.toml`、N-API release 构建和 native sync bridge smoke test、`npm run typecheck`、`npm test`、`npm run native:compare`、`npm run build` 和 `git diff --check` 均通过。
+- 本切片只迁移纯同步协议契约；HTTP/WebSocket、认证、AES/RSA、压缩和完整同步调度仍在 TypeScript/Electron，未构成全量 Rust 原生化验收结论。
 
 ◆ M27 运行时桥接降压（2026-10-02，事实与回执）
 - 迷你播放器桥与桌面歌词桥共用一个 100ms runtime scheduler，订阅为空时停止定时器，卸载和暂停均注销回调，保留切歌/状态变化的即时推送。

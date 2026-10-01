@@ -65,5 +65,13 @@ export declare function readSettings(path: string): string
 export declare function writeSettings(path: string, settingsJson: string): boolean
 export declare function settingsRoundtrip(source: string, sandboxPath: string, keyPath: string, newValue: string): string
 export declare function nativeVersion(): string
+/**
+ * Normalize an LX sync server URL while preserving the TypeScript fallback
+ * when the optional native module is unavailable.
+ */
 export declare function syncNormalizeBaseUrl(url: string): string
+/**
+ * Validate and canonicalize a persisted LX sync session JSON document.
+ * `null` means that the session is absent or malformed.
+ */
 export declare function syncValidateSession(sessionJson: string): string
