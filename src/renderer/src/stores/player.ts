@@ -298,8 +298,8 @@ export const usePlayerStore = defineStore('player', () => {
     currentTime.value = Math.floor(audio.currentTime * 1000)
     sessionMaxPositionMs = Math.max(sessionMaxPositionMs, currentTime.value)
     if (audio.paused) return
-    // 进度实时落盘：独立小 key（每次约几十字节，timeupdate ~4 次/s 可忽略），
-    // 完整状态含整个队列，高频序列化太贵，仍每 5s 兜底一次
+    // 进度小存档按 500ms 节流，避免同步 localStorage 写入阻塞播放线程；
+    // 完整状态含整个队列，高频序列化太贵，仍每 5s 兜底一次。
     persistPosition()
     if (Date.now() - lastPersistAt > 5000) persistState()
   })
@@ -375,6 +375,7 @@ export const usePlayerStore = defineStore('player', () => {
   /** 加载序号：并发的 loadAndPlay / loadForResume 只认最后一次（见 loadAndPlay 注释） */
   let loadToken = 0
   let lastPersistAt = 0
+  let lastPositionPersistAt = 0
   let persistTimer: ReturnType<typeof setTimeout> | null = null
 
   interface SavedPlayback {
@@ -391,7 +392,7 @@ export const usePlayerStore = defineStore('player', () => {
   function persistState(): void {
     lastPersistAt = Date.now()
     if (!current.value) return
-    persistPosition() // 同步小存档，保证它永远不比完整存档旧（如暂停态拖进度条）
+    persistPosition(true) // 强制同步小存档，保证它永远不比完整存档旧（如暂停态拖进度条）
     const state: SavedPlayback = {
       item: current.value,
       queue: queue.value,
@@ -407,15 +408,18 @@ export const usePlayerStore = defineStore('player', () => {
       /* 队列过大写不下则放弃 */
     }
   }
-  /** 只写歌曲身份 + 进度的小存档（timeupdate 每次都调，恢复时校验身份再采用） */
-  function persistPosition(): void {
+  /** 只写歌曲身份 + 进度的小存档；播放态节流，交互和退出时可强制写入。 */
+  function persistPosition(force = false): void {
     const c = current.value
     if (!c) return
+    const now = Date.now()
+    if (!force && now - lastPositionPersistAt < 500) return
     try {
       localStorage.setItem(
         POS_KEY,
         JSON.stringify({ id: c.id, type: c.type, positionMs: currentTime.value })
       )
+      lastPositionPersistAt = now
     } catch {
       /* ignore */
     }
@@ -798,7 +802,8 @@ export const usePlayerStore = defineStore('player', () => {
     if (!current.value) return
     audio.currentTime = Math.max(0, ms) / 1000
     currentTime.value = Math.max(0, ms)
-    // 暂停态拖进度条后 timeupdate 不跑、pause 也不会再触发，异常退出就会丢掉新位置
+    // 暂停态拖进度条后 timeupdate 不跑、pause 也不会再触发，立即写一次避免位置丢失。
+    persistPosition(true)
     schedulePersist()
   }
 

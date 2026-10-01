@@ -509,7 +509,7 @@ export const THEMES: ThemeDef[] = [
   },
   {
     id: 'aurora_winter',
-    name: '冬冰蓝雪白',
+    name: '冬日极光',
     // 冬季主题使用雪白浅色面，避免季节自动主题在冬季突然切入深色界面。
     isDark: false,
     isDarkFont: false,
