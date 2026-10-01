@@ -7,6 +7,7 @@ import { storeToRefs } from 'pinia'
 import { usePlayerStore } from '../stores/player'
 import { useSettingsStore } from '../stores/settings'
 import type { DesktopLyricState, Lyric } from '@common'
+import { subscribeRuntimeSync } from './runtimeSyncScheduler'
 
 /**
  * 桌面歌词桥：主窗口侧全程运行，把当前歌词/进度/播放态推送给桌面歌词悬浮窗（经主进程转发）�?
@@ -74,13 +75,13 @@ export function useDesktopLyricBridge(): void {
     push()
   }
 
-  let syncTimer: ReturnType<typeof setInterval> | null = null
+  let unsubscribeSync: (() => void) | null = null
   function syncTimerState(): void {
-    if (syncTimer) clearInterval(syncTimer)
-    syncTimer = null
+    unsubscribeSync?.()
+    unsubscribeSync = null
     if (settings.settings.lyrics.desktopEnabled && playing.value) {
       // 播放时每 100ms 读取一次媒体元素真实时间；暂停态由状�?/seek 事件即时推送�?
-      syncTimer = setInterval(push, 100)
+      unsubscribeSync = subscribeRuntimeSync(push)
     }
   }
 
@@ -105,6 +106,6 @@ export function useDesktopLyricBridge(): void {
   syncTimerState()
 
   onUnmounted(() => {
-    if (syncTimer) clearInterval(syncTimer)
+    unsubscribeSync?.()
   })
 }

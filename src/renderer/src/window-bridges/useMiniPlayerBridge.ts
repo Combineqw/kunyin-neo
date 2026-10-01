@@ -8,6 +8,7 @@ import { usePlayerStore } from '../stores/player'
 import { useSettingsStore } from '../stores/settings'
 import { useLibraryStore } from '../stores/library'
 import type { MiniPlayerState } from '@common'
+import { subscribeRuntimeSync } from './runtimeSyncScheduler'
 
 /**
  * 主窗口到迷你播放器的轻量状态桥。
@@ -23,7 +24,7 @@ export function useMiniPlayerBridge(): void {
   const settings = useSettingsStore()
   const library = useLibraryStore()
   const { current, playing, currentTime, duration } = storeToRefs(player)
-  let syncTimer: ReturnType<typeof setInterval> | null = null
+  let unsubscribeSync: (() => void) | null = null
   let cachedTrack: unknown = undefined
   let cachedItem: MiniPlayerState['item'] = null
 
@@ -56,9 +57,9 @@ export function useMiniPlayerBridge(): void {
   }
 
   function syncTimerState(): void {
-    if (syncTimer) clearInterval(syncTimer)
-    syncTimer = null
-    if (enabled() && playing.value) syncTimer = setInterval(push, 100)
+    unsubscribeSync?.()
+    unsubscribeSync = null
+    if (enabled() && playing.value) unsubscribeSync = subscribeRuntimeSync(push)
   }
 
   watch(current, push)
@@ -81,6 +82,6 @@ export function useMiniPlayerBridge(): void {
   syncTimerState()
 
   onUnmounted(() => {
-    if (syncTimer) clearInterval(syncTimer)
+    unsubscribeSync?.()
   })
 }
