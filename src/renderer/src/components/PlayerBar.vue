@@ -9,13 +9,16 @@ import { useRouter } from 'vue-router'
 import AppIcon from './AppIcon.vue'
 import { usePlayerStore } from '../stores/player'
 import { useLibraryStore } from '../stores/library'
+import { useSettingsStore } from '../stores/settings'
 import { coverUrl } from '../utils/cover'
 
 const router = useRouter()
 const player = usePlayerStore()
 const library = useLibraryStore()
+const settingsStore = useSettingsStore()
 const { current, playing, currentTime, duration, volume, muted, playMode, error } =
   storeToRefs(player)
+const { settings } = storeToRefs(settingsStore)
 
 const liked = computed(() => (current.value ? library.isFavorite(current.value) : false))
 function toggleLike(): void {
@@ -35,6 +38,11 @@ const timeText = computed(() => `${fmt(currentTime.value)} / ${fmt(duration.valu
 
 function openPlayer(): void {
   if (current.value) void router.push({ name: 'player' })
+}
+
+const miniPlayerEnabled = computed(() => settings.value.player.miniPlayerEnabled)
+function toggleMiniPlayer(): void {
+  void window.api.miniPlayer.toggle(!miniPlayerEnabled.value)
 }
 
 function onProgressInput(event: Event): void {
@@ -139,6 +147,16 @@ async function cyclePlayMode(): Promise<void> {
       </button>
       <button class="act pressable" :title="modeMeta.label" @click="cyclePlayMode">
         <AppIcon :name="modeMeta.icon" :size="17" />
+      </button>
+      <button
+        class="act pressable"
+        :class="{ on: miniPlayerEnabled }"
+        :title="miniPlayerEnabled ? '关闭迷你播放器' : '打开迷你播放器'"
+        :aria-label="miniPlayerEnabled ? '关闭迷你播放器' : '打开迷你播放器'"
+        :aria-pressed="miniPlayerEnabled"
+        @click="toggleMiniPlayer"
+      >
+        <AppIcon name="picture-in-picture" :size="17" />
       </button>
       <!-- .vol-wrap 是 .vol-pop 的定位祖先，不能缩放；只把按钮做成 pressable -->
       <div class="vol-wrap" @mouseenter="openVol" @mouseleave="closeVol">
@@ -301,6 +319,10 @@ async function cyclePlayMode(): Promise<void> {
   opacity: 1;
 }
 .act.liked {
+  color: var(--color-primary-font);
+  opacity: 1;
+}
+.act.on {
   color: var(--color-primary-font);
   opacity: 1;
 }

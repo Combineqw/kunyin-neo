@@ -37,6 +37,28 @@ function setAppFont(font: string): void {
       <ThemePicker />
     </div>
   </dd>
+  <dd class="glass-setting">
+    <h3 id="basic_glass">玻璃材质</h3>
+    <div class="glass-state">
+      <span class="glass-state-dot" aria-hidden="true" />
+      <strong>已应用</strong>
+      <span>主窗口、设置卡片和播放条会根据当前主题使用分层玻璃表面。</span>
+    </div>
+    <div class="glass-preview" aria-label="玻璃材质预览">
+      <div class="glass-sample glass-thin">
+        <strong>薄</strong>
+        <span>侧栏</span>
+      </div>
+      <div class="glass-sample glass-regular">
+        <strong>中</strong>
+        <span>主区</span>
+      </div>
+      <div class="glass-sample glass-thick">
+        <strong>厚</strong>
+        <span>浮层</span>
+      </div>
+    </div>
+  </dd>
   <dd>
     <h3 id="basic_behavior">动画与窗口</h3>
     <div class="behavior-options">
@@ -148,5 +170,70 @@ function setAppFont(font: string): void {
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
+}
+.glass-setting {
+  overflow: hidden;
+}
+.glass-state {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--color-font-label);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.glass-state strong {
+  color: var(--color-primary-font);
+  font-weight: 650;
+}
+.glass-state-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-alpha-100);
+}
+.glass-preview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+  padding: 9px;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  background: var(--color-primary-background);
+}
+.glass-sample {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-height: 52px;
+  padding: 9px 11px;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  color: var(--color-font);
+  box-shadow: none;
+}
+.glass-sample strong {
+  font-size: 12px;
+  font-weight: 650;
+}
+.glass-sample span {
+  color: var(--color-font-label);
+  font-size: 10px;
+}
+@media (max-width: 560px) {
+  .glass-state {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .glass-preview {
+    grid-template-columns: 1fr;
+  }
+  .glass-sample {
+    min-height: 42px;
+  }
 }
 </style>

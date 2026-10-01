@@ -99,7 +99,11 @@ function toggleTab(id: TocId): void {
   display: flex;
   flex-flow: row nowrap;
   height: 100%;
-  background: var(--color-main-background);
+  min-width: 0;
+  min-height: 0;
+  /* Let the window's glass layer show through the settings surface. An opaque
+     main background made the cards look like a flat white page. */
+  background: transparent;
 }
 .toc {
   flex: 0 0 218px;
@@ -179,6 +183,8 @@ function toggleTab(id: TocId): void {
 }
 
 .setting {
+  min-width: 0;
+  min-height: 0;
   padding: 26px clamp(24px, 5vw, 64px) 48px;
   font-size: 14px;
   overflow-y: auto;
@@ -205,7 +211,11 @@ function toggleTab(id: TocId): void {
   padding: 18px 20px;
   border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: var(--glass-regular-background);
+  /* The settings page already sits inside area-main's glass surface. A second
+     76% layer composites to an almost opaque warm card and causes the visible
+     cyan-to-cream mismatch. Keep a light translucent card wash so borders,
+     blur and shadows still read as glass without stacking the full surface. */
+  background: color-mix(in srgb, var(--color-main-background) 20%, transparent);
   border-color: var(--glass-border);
   box-shadow: 0 8px 26px rgba(0, 0, 0, 0.06);
   backdrop-filter: blur(var(--glass-regular-blur)) saturate(var(--glass-regular-saturation));

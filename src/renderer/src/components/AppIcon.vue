@@ -76,6 +76,9 @@ const ICONS: Record<string, IconDef> = {
   close: { inner: '<path d="M6 6l12 12M18 6 6 18"/>' },
   minus: { inner: '<path d="M5 12h14"/>' },
   maximize: { inner: '<rect x="5" y="5" width="14" height="14" rx="1"/>' },
+  'picture-in-picture': {
+    inner: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M13 13h6v4h-6z"/>'
+  },
   restore: {
     inner: '<path d="M8 8V5h11v11h-3"/><rect x="5" y="8" width="11" height="11" rx="1"/>'
   },

@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.13 — 2026-10-01】
+【kunyin-neo 项目记忆 v5.14 — 2026-10-01】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -13,7 +13,8 @@
   v5.9 M8 UI 材质与详情滚动修订记档：2026-09-30；
   v5.10 M9 Rust 原生纵向切片记档：2026-10-01；
   v5.11 M10 Rust SQLite 曲库与 Lofty 标签桥接记档：2026-10-01；
-  v5.12 M11 本地元数据读路径桥接记档：2026-10-01；v5.13 M12 Rust 原生音频标签写入影子路径记档：2026-10-01）
+  v5.12 M11 本地元数据读路径桥接记档：2026-10-01；v5.13 M12 Rust 原生音频标签写入影子路径记档：2026-10-01；
+  v5.14 M13 UI 材质、迷你播放器与歌单详情滚动修订记档：2026-10-01）
 
 ◆ 项目身份
 - kunyin-neo，fork 自 github.com/ikunshare/kunyin-desktop
@@ -578,3 +579,10 @@
 - `cargo fmt`、`cargo test`（aurora-core 6/6）、aurora-native 测试、`npm run native:build`、标签 roundtrip（MP3/FLAC/OGG、fill、尾部保留）均通过；生成的临时 bundle 未纳入仓库。
 - 当前 M12 Windows 安装器构建 `npm run build:win` 退出码 0；`dist/kunyin-desktop-1.0.7-setup.exe` 大小 98,125,787 B，SHA-256 `E523B7E2E8057B55847CC0FB92D3320A37DC206E6E2585FC57206128A80634A1`。
 - M12 仍未全量 Rust 化：Provider、播放、下载、加密、窗口、托盘、同步等能力仍保留现有 TypeScript/Electron 路径；不构成所有者验收通过结论。
+
+◆ M13 UI 材质、迷你播放器与歌单详情滚动修订（2026-10-01，事实与回执）
+- 设置页主面改为透明透出外层玻璃层，设置卡片改为低透明度玻璃叠层；基础设置新增“玻璃材质”状态与薄/中/厚三档预览，减少主区与卡片的青绿/暖白色差。
+- 底部播放条新增画中画入口，按钮直接调用既有 `window.api.miniPlayer.toggle` IPC，并提供启用态、标题和无障碍标签；独立迷你播放器窗口的拖动、悬停展开/收缩与播放控制链路保持不变。
+- 在线歌单详情按 `hasNext` 分页合并并去重，增加空页终止和路由加载序列保护；详情页增加最小高度与底部留白，避免长列表无法继续滚动或最后一首被播放条遮挡。
+- `npm run typecheck`、`npm test`、正式源码 `npx eslint --cache --quiet src`、`npm run build` 和 `git diff --check` 均退出码 0；全仓 lint 仍会扫描未跟踪 `work/` 临时脚本，按约束未纳入正式代码。
+- M13 只修订 Electron/Vue 现有界面与交互，不代表 Provider、播放、下载、加密、窗口、托盘和同步已全量 Rust 化；不构成所有者验收通过结论。

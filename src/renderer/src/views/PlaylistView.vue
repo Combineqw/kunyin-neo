@@ -14,8 +14,36 @@ const library = useLibraryStore()
 const info = ref<{ name: string; cover?: string; creator?: string; total?: number }>({ name: '' })
 const tracks = ref<MusicItem[]>([])
 const loading = ref(false)
+let loadSerial = 0
+
+/**
+ * 在线歌单接口按页返回歌曲。详情页此前只取第一页；接口在歌曲详情补全失败、
+ * 限流或返回稀疏结果时，首屏可能只有几行，既看起来像不能滚动，也漏掉后续歌曲。
+ * 这里在进入详情时把分页结果合并，列表滚动仍由布局层的 .view 统一处理。
+ */
+async function loadOnlineTracks(source: MusicSource, id: string): Promise<MusicItem[]> {
+  const all: MusicItem[] = []
+  const seen = new Set<string>()
+
+  // 100 页是防护上限，正常歌单只需数次请求；hasNext 由 provider 根据真实总数给出。
+  for (let page = 0; page < 100; page++) {
+    const res = await window.api.discover.playlistSongs(source, id, page, 100)
+    for (const item of res.result) {
+      const key = getMusicItemKey(item)
+      if (seen.has(key)) continue
+      seen.add(key)
+      all.push(item)
+    }
+    // Providers should report hasNext accurately, but an empty page is always
+    // a terminal condition and prevents a broken endpoint from causing 100
+    // redundant requests while opening the detail page.
+    if (!res.hasNext || !res.result.length) break
+  }
+  return all
+}
 
 async function load(): Promise<void> {
+  const serial = ++loadSerial
   loading.value = true
   tracks.value = []
   const source = route.query.source as MusicSource | undefined
@@ -27,17 +55,18 @@ async function load(): Promise<void> {
       info.value = detail
         ? { name: detail.name, cover: detail.cover, creator: detail.creator, total: detail.total }
         : { name: '歌单' }
-      const res = await window.api.discover.playlistSongs(source, id, 0, 100)
-      tracks.value = res.result
+      const result = await loadOnlineTracks(source, id)
+      if (serial === loadSerial) tracks.value = result
     } else {
       // 本地歌单
       const pid = Number(id)
       const pl = library.playlists.find((p) => p.id === pid)
       info.value = { name: pl?.name ?? '歌单', cover: pl?.coverUrl, total: pl?.songCount }
-      tracks.value = await library.playlistSongs(pid)
+      const result = await library.playlistSongs(pid)
+      if (serial === loadSerial) tracks.value = result
     }
   } finally {
-    loading.value = false
+    if (serial === loadSerial) loading.value = false
   }
 }
 
@@ -86,6 +115,11 @@ function playAll(): void {
 </template>
 
 <style scoped>
+.page {
+  min-height: 100%;
+  box-sizing: border-box;
+  padding-bottom: 16px;
+}
 .list {
   display: flex;
   flex-direction: column;
