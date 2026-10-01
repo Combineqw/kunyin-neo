@@ -7,6 +7,7 @@ type NativeBinding = {
   parseTrack(path: string): string
   scanLyrics(dir: string): string
   readSettings(path: string): string
+  writeSettings(path: string, settingsJson: string): boolean
   readAudioTags(path: string): string
   writeAudioTags(path: string, metadataJson: string): unknown
 }
@@ -87,6 +88,17 @@ export function nativeReadSettings(path: string): string | null {
     return loadBinding()?.readSettings(path) ?? null
   } catch {
     return null
+  }
+}
+
+export function nativeWriteSettings(path: string, settings: object): boolean {
+  try {
+    const write = loadBinding()?.writeSettings
+    if (typeof write !== 'function') return false
+    const result = write(path, JSON.stringify(settings))
+    return result === true
+  } catch {
+    return false
   }
 }
 

@@ -35,4 +35,24 @@ mod tests {
             json!({"player": {"volume": 0.8, "modes": ["c"]}})
         );
     }
+
+    #[test]
+    fn settings_write_json_roundtrips_atomically() {
+        let suffix = format!(
+            "kunyin-settings-test-{}-{}.json",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("clock before unix epoch")
+                .as_nanos()
+        );
+        let path = std::env::temp_dir().join(suffix);
+        let source = json!({"version": 4, "player": {"volume": 0.8}});
+
+        settings_io::write_settings_json(&path, &source.to_string()).expect("write settings");
+        let written = settings_io::read_json(&path).expect("read settings");
+
+        assert_eq!(written, source);
+        let _ = std::fs::remove_file(path);
+    }
 }

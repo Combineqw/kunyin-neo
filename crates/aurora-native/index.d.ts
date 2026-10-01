@@ -19,5 +19,11 @@ export declare function readAudioTags(path: string): string
 export declare function writeAudioTags(path: string, metadataJson: string): boolean
 export declare function scanLyrics(dir: string): string
 export declare function readSettings(path: string): string
+/**
+ * Atomically persist a complete settings JSON document through the shared
+ * Rust core.  The Electron caller keeps its existing Node fallback when the
+ * optional native module is unavailable or rejects the payload.
+ */
+export declare function writeSettings(path: string, settingsJson: string): boolean
 export declare function settingsRoundtrip(source: string, sandboxPath: string, keyPath: string, newValue: string): string
 export declare function nativeVersion(): string

@@ -108,6 +108,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "aurora-player"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1720,6 +1727,7 @@ version = "0.1.0"
 dependencies = [
  "aurora-core",
  "aurora-library",
+ "aurora-player",
  "serde_json",
  "tauri",
  "tauri-build",

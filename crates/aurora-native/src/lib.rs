@@ -48,6 +48,16 @@ pub fn read_settings(path: String) -> napi::Result<String> {
     settings_io::read_settings_json(Path::new(&path)).map_err(to_napi_error)
 }
 
+/// Atomically persist a complete settings JSON document through the shared
+/// Rust core.  The Electron caller keeps its existing Node fallback when the
+/// optional native module is unavailable or rejects the payload.
+#[napi]
+pub fn write_settings(path: String, settings_json: String) -> napi::Result<bool> {
+    settings_io::write_settings_json(Path::new(&path), &settings_json)
+        .map(|()| true)
+        .map_err(to_napi_error)
+}
+
 #[napi]
 pub fn settings_roundtrip(
     source: String,

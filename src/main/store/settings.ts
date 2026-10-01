@@ -6,7 +6,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { DEFAULT_SETTINGS, type AppSettings, type DeepPartial } from '@common'
 import { appDataPath } from '../core/paths'
-import { nativeReadSettings } from '../native/bridge'
+import { nativeReadSettings, nativeWriteSettings } from '../native/bridge'
 
 let cache: AppSettings | null = null
 
@@ -124,6 +124,7 @@ function load(): AppSettings {
 function persist(settings: AppSettings): void {
   const path = filePath()
   const dir = appDataPath()
+  if (nativeWriteSettings(path, settings)) return
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
   const tmp = `${path}.tmp`
   writeFileSync(tmp, JSON.stringify(settings, null, 2), 'utf-8')

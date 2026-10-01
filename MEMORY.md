@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.16 — 2026-10-01】
+【kunyin-neo 项目记忆 v5.19 — 2026-10-01】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -18,11 +18,19 @@
   v5.15 M14 iOS 圆角与长列表性能修订记档：2026-10-01；
   v5.16 M15 高频桥接与长列表降压修订记档：2026-10-01；
   v5.17 M16 冬季浅色与歌词桥接降频修订记档：2026-10-01；
-  v5.18 M17 播放进度落盘降频修订记档：2026-10-01）
+  v5.18 M17 播放进度落盘降频修订记档：2026-10-01；
+  v5.19 M18 Rust 播放会话边界记档：2026-10-01）
 
 ◆ M17 播放进度落盘降频修订（2026-10-01）
 - 冬季主题名称调整为四字“冬日极光”，保留雪白浅色与冰蓝光带。
 - 播放进度小存档由每次 `timeupdate` 同步写入改为 500ms 节流；暂停、拖动、切歌和退出仍强制落盘，减少同步 localStorage 对播放线程的阻塞。
+
+◆ M18 Rust 播放会话边界（2026-10-01，事实与回执）
+- 新增宿主无关 `crates/aurora-player`，以确定性的 `PlaybackSession` 承载 load/play/pause/seek/tick/stop 与 `PlaybackSnapshot` 状态时间线；3 个 Rust 单元测试通过。
+- Tauri 验证壳新增对应 commands 和 `native_capabilities()` 能力标记；`cargo test --manifest-path src-tauri/Cargo.toml` 通过（当前壳无业务测试）。
+- Rust 设置原子写路径新增 `aurora-core::settings_io::write_settings_json`、`aurora-native::write_settings` 与 Electron `persist()` 优先调用，native 不可用或失败时保留 Node 写路径回退。
+- `npm run native:build`、`npm run typecheck`、`node --check src-tauri/ui/main.js`、两套 Rust fmt/check/test 与 `git diff --check` 均通过。
+- 本步没有替换 Electron 的 HTMLAudioElement/Web Audio 输出，也没有把播放器、Provider、下载、加密、窗口或托盘描述为全量 Rust 化；不构成所有者验收通过结论。
 
 ◆ M16 冬季浅色与歌词桥接降频修订（2026-10-01）
 - 冬季极光主题切换为雪白浅色语义，使用深色文字与冰蓝光带，避免季节自动主题与深色界面冲突。

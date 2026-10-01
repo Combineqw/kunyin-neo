@@ -149,3 +149,14 @@ pub fn roundtrip(
 pub fn read_settings_json(path: &Path) -> Result<String> {
     to_pretty_json(&read_json(path)?)
 }
+
+/// Parse and atomically persist a complete settings JSON document.
+///
+/// The Electron adapter still owns migrations and validation, but the final
+/// serialization and filesystem write now share this Rust implementation with
+/// the Tauri adapter.  Keeping parsing here prevents malformed payloads from
+/// reaching the atomic writer while preserving the adapter's fallback path.
+pub fn write_settings_json(path: &Path, json: &str) -> Result<()> {
+    let value: Value = serde_json::from_str(json)?;
+    write_json_atomic(path, &value)
+}

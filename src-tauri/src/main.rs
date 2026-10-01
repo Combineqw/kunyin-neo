@@ -4,6 +4,7 @@ use aurora_core::{
     settings_io::{deep_merge, read_json, write_json_atomic},
 };
 use aurora_library::{Library, PlaylistOptions};
+use aurora_player::{PlaybackSession, PlaybackSnapshot};
 use serde_json::{json, Value};
 use std::{fs, path::PathBuf, sync::Mutex};
 use tauri::{AppHandle, Manager, State};
@@ -11,6 +12,11 @@ use tauri::{AppHandle, Manager, State};
 #[derive(Default)]
 struct LibraryState {
     library: Mutex<Option<Library>>,
+}
+
+#[derive(Default)]
+struct PlaybackState {
+    session: Mutex<PlaybackSession>,
 }
 
 fn settings_path(app: &AppHandle) -> Result<PathBuf, String> {
@@ -187,6 +193,62 @@ fn library_move_song(
     })
 }
 
+fn with_playback<T>(
+    state: &State<'_, PlaybackState>,
+    f: impl FnOnce(&mut PlaybackSession) -> T,
+) -> Result<T, String> {
+    let mut session = state
+        .session
+        .lock()
+        .map_err(|_| "播放状态锁已失效".to_string())?;
+    Ok(f(&mut session))
+}
+
+#[tauri::command]
+fn player_snapshot(state: State<'_, PlaybackState>) -> Result<PlaybackSnapshot, String> {
+    with_playback(&state, |session| session.snapshot())
+}
+
+#[tauri::command]
+fn player_load(
+    state: State<'_, PlaybackState>,
+    track_id: String,
+    duration_ms: u64,
+) -> Result<PlaybackSnapshot, String> {
+    with_playback(&state, |session| session.load(track_id, duration_ms))
+}
+
+#[tauri::command]
+fn player_play(state: State<'_, PlaybackState>) -> Result<PlaybackSnapshot, String> {
+    with_playback(&state, PlaybackSession::play)
+}
+
+#[tauri::command]
+fn player_pause(state: State<'_, PlaybackState>) -> Result<PlaybackSnapshot, String> {
+    with_playback(&state, PlaybackSession::pause)
+}
+
+#[tauri::command]
+fn player_seek(
+    state: State<'_, PlaybackState>,
+    position_ms: u64,
+) -> Result<PlaybackSnapshot, String> {
+    with_playback(&state, |session| session.seek(position_ms))
+}
+
+#[tauri::command]
+fn player_tick(
+    state: State<'_, PlaybackState>,
+    elapsed_ms: u64,
+) -> Result<PlaybackSnapshot, String> {
+    with_playback(&state, |session| session.tick(elapsed_ms))
+}
+
+#[tauri::command]
+fn player_stop(state: State<'_, PlaybackState>) -> Result<PlaybackSnapshot, String> {
+    with_playback(&state, PlaybackSession::stop)
+}
+
 fn chrono_like_now() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -199,8 +261,8 @@ fn native_capabilities() -> Value {
     json!({
         "host": "tauri",
         "backend": "rust",
-        "implemented": ["settings", "scan", "lyrics", "library", "audio_metadata"],
-        "pending": ["search", "playback", "downloads", "desktop_windows"],
+        "implemented": ["settings", "scan", "lyrics", "library", "audio_metadata", "playback_session"],
+        "pending": ["search", "playback_audio_backend", "downloads", "desktop_windows"],
         "productionReady": false
     })
 }
@@ -208,6 +270,7 @@ fn native_capabilities() -> Value {
 fn main() {
     tauri::Builder::default()
         .manage(LibraryState::default())
+        .manage(PlaybackState::default())
         .invoke_handler(tauri::generate_handler![
             parse_lyrics,
             read_settings,
@@ -220,6 +283,13 @@ fn main() {
             library_query_songs,
             library_remove_song,
             library_move_song,
+            player_snapshot,
+            player_load,
+            player_play,
+            player_pause,
+            player_seek,
+            player_tick,
+            player_stop,
             native_capabilities
         ])
         .run(tauri::generate_context!())
