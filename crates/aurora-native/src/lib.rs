@@ -5,15 +5,31 @@
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 
+use aurora_audio::{probe_capabilities, NativePlaybackEngine};
 use aurora_core::{lyrics, metadata, scan, settings_io, AuroraError};
-use aurora_audio::probe_capabilities;
 use aurora_player::PlaybackSession;
 use napi_derive::napi;
 
 static PLAYBACK_SESSION: OnceLock<Mutex<PlaybackSession>> = OnceLock::new();
+static NATIVE_AUDIO: OnceLock<Mutex<Option<NativePlaybackEngine>>> = OnceLock::new();
 
 fn playback_session() -> &'static Mutex<PlaybackSession> {
     PLAYBACK_SESSION.get_or_init(|| Mutex::new(PlaybackSession::default()))
+}
+
+fn native_audio_session() -> &'static Mutex<Option<NativePlaybackEngine>> {
+    NATIVE_AUDIO.get_or_init(|| Mutex::new(None))
+}
+
+fn native_audio_json(
+    update: impl FnOnce(&mut Option<NativePlaybackEngine>) -> Result<(), String>,
+) -> napi::Result<String> {
+    let mut session = native_audio_session()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("native audio session lock poisoned"))?;
+    update(&mut session).map_err(napi::Error::from_reason)?;
+    serde_json::to_string(&session.as_ref().map(NativePlaybackEngine::snapshot))
+        .map_err(|error| napi::Error::from_reason(error.to_string()))
 }
 
 fn playback_json(update: impl FnOnce(&mut PlaybackSession)) -> napi::Result<String> {
@@ -78,6 +94,86 @@ pub fn playback_stop() -> napi::Result<String> {
 #[napi]
 pub fn audio_backend_capabilities() -> napi::Result<String> {
     serde_json::to_string(&probe_capabilities())
+        .map_err(|error| napi::Error::from_reason(error.to_string()))
+}
+
+#[napi]
+pub fn native_audio_start_file(path: String) -> napi::Result<String> {
+    let mut session = native_audio_session()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("native audio session lock poisoned"))?;
+    if let Some(previous) = session.as_mut() {
+        previous
+            .stop()
+            .map_err(|error| napi::Error::from_reason(error.to_string()))?;
+    }
+    let engine = NativePlaybackEngine::open(path)
+        .map_err(|error| napi::Error::from_reason(error.to_string()))?;
+    *session = Some(engine);
+    serde_json::to_string(&session.as_ref().map(NativePlaybackEngine::snapshot))
+        .map_err(|error| napi::Error::from_reason(error.to_string()))
+}
+
+#[napi]
+pub fn native_audio_play() -> napi::Result<String> {
+    native_audio_json(|session| {
+        session
+            .as_mut()
+            .ok_or_else(|| "native audio file is not loaded".to_string())?
+            .play()
+            .map_err(|error| error.to_string())
+    })
+}
+
+#[napi]
+pub fn native_audio_pause() -> napi::Result<String> {
+    native_audio_json(|session| {
+        session
+            .as_mut()
+            .ok_or_else(|| "native audio file is not loaded".to_string())?
+            .pause()
+            .map_err(|error| error.to_string())
+    })
+}
+
+#[napi]
+pub fn native_audio_set_volume(volume: f64, muted: bool) -> napi::Result<String> {
+    native_audio_json(|session| {
+        if let Some(engine) = session.as_ref() {
+            engine.set_volume(volume as f32, muted);
+        }
+        Ok(())
+    })
+}
+
+#[napi]
+pub fn native_audio_seek(position_ms: i64) -> napi::Result<String> {
+    native_audio_json(|session| {
+        session
+            .as_mut()
+            .ok_or_else(|| "native audio file is not loaded".to_string())?
+            .seek(position_ms.max(0) as u64)
+            .map_err(|error| error.to_string())
+    })
+}
+
+#[napi]
+pub fn native_audio_stop() -> napi::Result<String> {
+    native_audio_json(|session| {
+        if let Some(engine) = session.as_mut() {
+            engine.stop().map_err(|error| error.to_string())?;
+        }
+        *session = None;
+        Ok(())
+    })
+}
+
+#[napi]
+pub fn native_audio_snapshot() -> napi::Result<String> {
+    let session = native_audio_session()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("native audio session lock poisoned"))?;
+    serde_json::to_string(&session.as_ref().map(NativePlaybackEngine::snapshot))
         .map_err(|error| napi::Error::from_reason(error.to_string()))
 }
 

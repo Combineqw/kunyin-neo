@@ -60,6 +60,8 @@ export interface AudioStreamResult {
   /** 实际命中的音质 id */
   quality: string
   reason?: string
+  /** Native Windows output owns local playback when true; url remains empty. */
+  native?: boolean
 }
 
 /** 歌单信息 */

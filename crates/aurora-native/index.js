@@ -310,7 +310,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { playbackSnapshot, playbackLoad, playbackPlay, playbackPause, playbackSeek, playbackTick, playbackStop, audioBackendCapabilities, scanDirectory, parseTrack, readAudioTags, writeAudioTags, scanLyrics, readSettings, writeSettings, settingsRoundtrip, nativeVersion } = nativeBinding
+const { playbackSnapshot, playbackLoad, playbackPlay, playbackPause, playbackSeek, playbackTick, playbackStop, audioBackendCapabilities, nativeAudioStartFile, nativeAudioPlay, nativeAudioPause, nativeAudioSetVolume, nativeAudioSeek, nativeAudioStop, nativeAudioSnapshot, scanDirectory, parseTrack, readAudioTags, writeAudioTags, scanLyrics, readSettings, writeSettings, settingsRoundtrip, nativeVersion } = nativeBinding
 
 module.exports.playbackSnapshot = playbackSnapshot
 module.exports.playbackLoad = playbackLoad
@@ -320,6 +320,13 @@ module.exports.playbackSeek = playbackSeek
 module.exports.playbackTick = playbackTick
 module.exports.playbackStop = playbackStop
 module.exports.audioBackendCapabilities = audioBackendCapabilities
+module.exports.nativeAudioStartFile = nativeAudioStartFile
+module.exports.nativeAudioPlay = nativeAudioPlay
+module.exports.nativeAudioPause = nativeAudioPause
+module.exports.nativeAudioSetVolume = nativeAudioSetVolume
+module.exports.nativeAudioSeek = nativeAudioSeek
+module.exports.nativeAudioStop = nativeAudioStop
+module.exports.nativeAudioSnapshot = nativeAudioSnapshot
 module.exports.scanDirectory = scanDirectory
 module.exports.parseTrack = parseTrack
 module.exports.readAudioTags = readAudioTags

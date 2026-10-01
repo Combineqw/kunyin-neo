@@ -16,6 +16,13 @@ export declare function playbackStop(): string
  * attached to this contract.
  */
 export declare function audioBackendCapabilities(): string
+export declare function nativeAudioStartFile(path: string): string
+export declare function nativeAudioPlay(): string
+export declare function nativeAudioPause(): string
+export declare function nativeAudioSetVolume(volume: number, muted: boolean): string
+export declare function nativeAudioSeek(positionMs: number): string
+export declare function nativeAudioStop(): string
+export declare function nativeAudioSnapshot(): string
 /** Preserve the JSON-string API consumed by the Electron bridge and shadow tests. */
 export declare function scanDirectory(dir: string): string
 export declare function parseTrack(path: string): string

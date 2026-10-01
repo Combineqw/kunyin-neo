@@ -13,7 +13,15 @@ import { join } from 'node:path'
 import { IpcChannels, type MediaCommand } from '@common'
 import { getMainWindow, createMainWindow } from '../../windows/main'
 import { appEvent } from '../../core/events'
-import { nativePlaybackPause, nativePlaybackPlay, nativePlaybackStop } from '../../native/bridge-runtime.js'
+import {
+  nativeAudioPause,
+  nativeAudioPlay,
+  nativeAudioSetVolume,
+  nativeAudioStop,
+  nativePlaybackPause,
+  nativePlaybackPlay,
+  nativePlaybackStop
+} from '../../native/bridge-runtime.js'
 
 const iconDirectory = app.isPackaged
   ? join(process.resourcesPath, 'assets', 'icons')
@@ -152,8 +160,17 @@ export function registerMediaModule(): void {
   // 渲染层推送播放状态 → 刷新缩略图工具栏的播放/暂停按钮
   ipcMain.on(IpcChannels.MEDIA_SET_STATE, (_e, playing: boolean) => {
     setThumbarPlaying(!!playing)
-    if (playing) nativePlaybackPlay()
-    else nativePlaybackPause()
+    if (playing) {
+      nativePlaybackPlay()
+      nativeAudioPlay()
+    } else {
+      nativePlaybackPause()
+      nativeAudioPause()
+    }
+  })
+
+  ipcMain.on(IpcChannels.MEDIA_SET_VOLUME, (_e, volume: number, muted: boolean) => {
+    nativeAudioSetVolume(volume, muted)
   })
 
   // 窗口创建后挂缩略图工具栏（Windows 专属；主窗口可能被销毁后重建）
@@ -170,6 +187,7 @@ export function registerMediaModule(): void {
 
   app.on('will-quit', () => {
     globalShortcut.unregisterAll()
+    nativeAudioStop()
     nativePlaybackStop()
   })
 }

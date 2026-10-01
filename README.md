@@ -53,10 +53,11 @@
 | M10-M12 Rust 数据与标签 | SQLite 曲库 CRUD、Lofty 标签读写、Electron 本地元数据桥接 | 已完成影子路径，保留兼容回退                  |
 | M18-M21 Rust 播放与解码边界 | 播放会话、Electron 播放影子桥、Symphonia 本地解码 | 已完成边界，实际声音仍由 HTMLAudio 输出        |
 | M22 Rust 设备输出 | Windows CPAL/WASAPI shared 默认设备、有界 PCM 队列、输出快照 | 已完成输出边界，尚未接入生产播放生命周期      |
+| M23 Rust 本地播放 | Symphonia 解码、CPAL/WASAPI shared 输出、播放控制与快照；本地文件原生优先、失败回退 HTMLAudio | 已完成纵向切片；远程/加密流与 DSP 仍由现有路径负责 |
 | 同源测试      | 将本地音乐纯逻辑抽到 `core.ts`，生产入口与 shadow 扫描共用源码       | 已完成，消除扫描模块的复刻副本漂移              |
 | 回归样本      | 固化扫描 8 条、歌词 15 条、设置回环 10 条边界用例                    | 存档记录为 33/33 PASS；用例生成与执行比对需区分 |
 | 打包修复      | 修正平台级 `files` 覆盖顶层白名单，排除测试素材、Rust 工程和工具目录 | 历史 asar 从 2844.5 MB 降至 22.2 MB             |
-| 工程存档      | `MEMORY.md` 记录决策与里程碑事实，随升版提交                         | 当前档案版本 v5.23；验收结论由项目所有者作出     |
+| 工程存档      | `MEMORY.md` 记录决策与里程碑事实，随升版提交                         | 当前档案版本 v5.24；验收结论由项目所有者作出     |
 
 2026-09-04 的 Windows 安装包记录为 **97,099,765 字节**（按 1024 换算约 **92.6 MiB**）。这是指定历史构建的记录，后续构建需重新核验，不能据此推断当前机器的性能或体验。
 
@@ -155,6 +156,17 @@ lock contention. This is an output boundary for the next playback slice;
 Electron playback, resampling, remote/encrypted streams, and lifecycle
 integration still need to move over before native output can be enabled in
 production.
+
+M23 adds the first native local-file playback slice. `NativePlaybackEngine`
+combines the Symphonia decoder with a bounded PCM queue and Windows shared
+output, including bounded linear resampling and deterministic channel mapping
+to the default device format. It exposes play, pause, stop, seek, and snapshot
+operations through six optional N-API functions. Electron tries this path for
+local files and falls back immediately to its existing `kunyin://` + HTMLAudio
+route when the native module cannot open the file or the native start fails.
+Remote streams and encrypted provider paths are unchanged. DSP/EQ, remote
+providers, downloads, encryption, and WASAPI exclusive mode remain later
+slices, so the complete application is still a staged migration.
 
 M11 also routes Electron's local enrichment, tag reads, and local-library
 health probes through the Rust metadata bridge first. The existing TypeScript

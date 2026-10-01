@@ -16,7 +16,13 @@ import { registerAudioStream } from '../../audio/protocol'
 import { getCachedLyric, setCachedLyric } from '../../cache/lyricCache'
 import { getRedirect } from '../../store/library'
 import { getKgFallbackLyric } from '../../providers/kg/lyric'
-import { nativePlaybackLoad } from '../../native/bridge-runtime.js'
+import {
+  nativeAudioSeek,
+  nativeAudioSnapshot,
+  nativeAudioStartFile,
+  nativeAudioStop,
+  nativePlaybackLoad
+} from '../../native/bridge-runtime.js'
 
 /**
  * 播放/歌词相关 IPC。
@@ -52,6 +58,9 @@ async function loadKgFallback(item: MusicItem): Promise<Lyric> {
 }
 
 export function registerPlayerHandlers(): void {
+  handle(IpcChannels.NATIVE_AUDIO_SNAPSHOT, () => nativeAudioSnapshot())
+  handle(IpcChannels.NATIVE_AUDIO_SEEK, (positionMs: number) => nativeAudioSeek(positionMs))
+
   handle(
     IpcChannels.PLAYER_RESOLVE_URL,
     (item: MusicItem, qualityId: string): Promise<MediaInfoResult> => resolveMedia(item, qualityId)
@@ -60,11 +69,22 @@ export function registerPlayerHandlers(): void {
   handle(
     IpcChannels.PLAYER_STREAM,
     async (item: MusicItem, qualityId: string): Promise<AudioStreamResult> => {
+      // A new stream always owns the output session. Remote/provider playback
+      // remains on the existing protocol path and explicitly releases native output.
+      nativeAudioStop()
       // 本地歌曲：不走解析后端，直接注册文件流
       if (item.type === 'local') {
         if (!item.filePath || !existsSync(item.filePath)) {
           return { ok: false, url: '', expire: 0, quality: qualityId, reason: '本地文件不存在' }
         }
+        const nativeSnapshot = nativeAudioStartFile(item.filePath)
+        if (nativeSnapshot) {
+          nativePlaybackLoad(getMusicItemKey(item), item.duration)
+          return { ok: true, url: '', expire: 0, quality: qualityId, native: true }
+        }
+        // Native output is opt-in by capability and format. Any open/play
+        // failure falls back immediately to the proven HTMLAudio protocol.
+        nativeAudioStop()
         const url = registerAudioStream({ filePath: item.filePath })
         nativePlaybackLoad(getMusicItemKey(item), item.duration)
         return { ok: true, url, expire: 0, quality: qualityId }

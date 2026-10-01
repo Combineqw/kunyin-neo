@@ -18,6 +18,13 @@ type NativeBinding = {
   playbackTick?(elapsedMs: number): string
   playbackStop?(): string
   audioBackendCapabilities?(): string
+  nativeAudioStartFile?(path: string): string
+  nativeAudioPlay?(): string
+  nativeAudioPause?(): string
+  nativeAudioSetVolume?(volume: number, muted: boolean): string
+  nativeAudioSeek?(positionMs: number): string
+  nativeAudioStop?(): string
+  nativeAudioSnapshot?(): string
 }
 
 export type NativeAudioBackendCapabilities = {
@@ -36,6 +43,16 @@ export type NativePlaybackSnapshot = {
   status: 'idle' | 'paused' | 'playing' | 'ended'
   positionMs: number
   durationMs: number
+}
+
+export type NativeAudioSnapshot = {
+  status: 'idle' | 'paused' | 'playing' | 'ended'
+  positionMs: number
+  durationMs: number | null
+  format: { sampleRate: number; channels: number }
+  deviceName: string | null
+  queuedFrames: number
+  droppedFrames: number
 }
 
 export type NativeScanTrack = {
@@ -230,4 +247,56 @@ export function nativeAudioBackendCapabilities(): NativeAudioBackendCapabilities
   } catch {
     return null
   }
+}
+
+function nativeAudioCall(
+  method: keyof Pick<
+    NativeBinding,
+    | 'nativeAudioStartFile'
+    | 'nativeAudioPlay'
+    | 'nativeAudioPause'
+    | 'nativeAudioSetVolume'
+    | 'nativeAudioSeek'
+    | 'nativeAudioStop'
+    | 'nativeAudioSnapshot'
+  >,
+  ...args: unknown[]
+): NativeAudioSnapshot | null {
+  try {
+    const call = loadBinding()?.[method] as ((...params: unknown[]) => string) | undefined
+    if (typeof call !== 'function') return null
+    const raw = call(...args)
+    if (!raw) return null
+    return JSON.parse(raw) as NativeAudioSnapshot | null
+  } catch {
+    return null
+  }
+}
+
+export function nativeAudioStartFile(path: string): NativeAudioSnapshot | null {
+  return nativeAudioCall('nativeAudioStartFile', path)
+}
+
+export function nativeAudioPlay(): NativeAudioSnapshot | null {
+  return nativeAudioCall('nativeAudioPlay')
+}
+
+export function nativeAudioPause(): NativeAudioSnapshot | null {
+  return nativeAudioCall('nativeAudioPause')
+}
+
+export function nativeAudioSetVolume(volume: number, muted: boolean): NativeAudioSnapshot | null {
+  return nativeAudioCall('nativeAudioSetVolume', Math.max(0, Math.min(1, volume)), muted)
+}
+
+export function nativeAudioSeek(positionMs: number): NativeAudioSnapshot | null {
+  return nativeAudioCall('nativeAudioSeek', Math.max(0, Math.round(positionMs)))
+}
+
+export function nativeAudioStop(): NativeAudioSnapshot | null {
+  return nativeAudioCall('nativeAudioStop')
+}
+
+export function nativeAudioSnapshot(): NativeAudioSnapshot | null {
+  return nativeAudioCall('nativeAudioSnapshot')
 }

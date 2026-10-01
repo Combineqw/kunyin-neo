@@ -10,7 +10,12 @@
 use std::collections::VecDeque;
 use std::fs::File;
 use std::path::Path;
-use std::sync::{Arc, Mutex};
+use std::sync::{
+    atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering},
+    Arc, Condvar, Mutex,
+};
+use std::thread::{self, JoinHandle};
+use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use symphonia::core::audio::GenericAudioBufferRef;
@@ -20,6 +25,9 @@ use symphonia::core::formats::probe::Hint;
 use symphonia::core::formats::{FormatOptions, FormatReader, TrackType};
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
+
+mod qmc2;
+pub use qmc2::{decrypt_qmc2_chunk, Qmc2Decryptor};
 
 #[cfg(windows)]
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
@@ -190,12 +198,18 @@ impl PcmRingBuffer {
 #[derive(Clone, Debug)]
 pub struct SharedPcmQueue {
     inner: Arc<Mutex<PcmRingBuffer>>,
+    consumed_frames: Arc<AtomicU64>,
+    gain_bits: Arc<AtomicU32>,
+    muted: Arc<AtomicBool>,
 }
 
 impl SharedPcmQueue {
     pub fn new(format: PcmFormat, capacity_frames: usize) -> Self {
         Self {
             inner: Arc::new(Mutex::new(PcmRingBuffer::new(format, capacity_frames))),
+            consumed_frames: Arc::new(AtomicU64::new(0)),
+            gain_bits: Arc::new(AtomicU32::new(1.0f32.to_bits())),
+            muted: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -215,16 +229,34 @@ impl SharedPcmQueue {
         self.with_queue(|queue| queue.dropped_frames())
     }
 
+    pub fn consumed_frames(&self) -> u64 {
+        self.consumed_frames.load(Ordering::Relaxed)
+    }
+
+    pub fn set_volume(&self, volume: f32, muted: bool) {
+        let volume = if volume.is_finite() {
+            volume.clamp(0.0, 1.0)
+        } else {
+            1.0
+        };
+        self.gain_bits.store(volume.to_bits(), Ordering::Relaxed);
+        self.muted.store(muted, Ordering::Relaxed);
+    }
+
     pub fn push_interleaved(&self, input: &[f32]) -> usize {
         self.with_queue_mut(|queue| queue.push_interleaved(input))
     }
 
     pub fn pop_interleaved(&self, output: &mut [f32]) -> usize {
-        self.with_queue_mut(|queue| queue.pop_interleaved(output))
+        let frames = self.with_queue_mut(|queue| queue.pop_interleaved(output));
+        self.consumed_frames
+            .fetch_add(frames as u64, Ordering::Relaxed);
+        frames
     }
 
     pub fn clear(&self) {
-        self.with_queue_mut(PcmRingBuffer::clear)
+        self.with_queue_mut(PcmRingBuffer::clear);
+        self.consumed_frames.store(0, Ordering::Relaxed);
     }
 
     fn with_queue<T>(&self, callback: impl FnOnce(&PcmRingBuffer) -> T) -> T {
@@ -261,10 +293,22 @@ impl SharedPcmQueue {
         if queue.format().frame_samples() == 0 {
             return;
         }
+        let gain = if self.muted.load(Ordering::Relaxed) {
+            0.0
+        } else {
+            f32::from_bits(self.gain_bits.load(Ordering::Relaxed))
+        };
+        let mut consumed_samples = 0usize;
         for sample in output.iter_mut() {
             if let Some(value) = queue.pop_sample() {
-                *sample = T::from_sample(value);
+                *sample = T::from_sample((value * gain).clamp(-1.0, 1.0));
+                consumed_samples += 1;
             }
+        }
+        let channels = queue.format().frame_samples();
+        if channels != 0 {
+            self.consumed_frames
+                .fetch_add((consumed_samples / channels) as u64, Ordering::Relaxed);
         }
     }
 }
@@ -410,6 +454,10 @@ impl NativeOutputController {
 
     pub fn dropped_frames(&self) -> u64 {
         self.queue.dropped_frames()
+    }
+
+    pub fn set_volume(&self, volume: f32, muted: bool) {
+        self.queue.set_volume(volume, muted);
     }
 
     pub fn is_running(&self) -> bool {
@@ -686,6 +734,401 @@ impl NativeAudioDecoder {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum NativePlaybackStatus {
+    Idle,
+    Paused,
+    Playing,
+    Ended,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NativePlaybackSnapshot {
+    pub status: NativePlaybackStatus,
+    pub position_ms: u64,
+    pub duration_ms: Option<u64>,
+    pub format: PcmFormat,
+    pub device_name: Option<String>,
+    pub queued_frames: usize,
+    pub dropped_frames: u64,
+}
+
+#[derive(Debug)]
+pub enum NativePlaybackError {
+    Decode(AudioDecodeError),
+    Output(NativeOutputError),
+    FormatMismatch {
+        source: PcmFormat,
+        output: PcmFormat,
+    },
+    UnsupportedSeek,
+    NotLoaded,
+    Ended,
+    Worker(String),
+}
+
+impl std::fmt::Display for NativePlaybackError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Decode(error) => write!(f, "{error}"),
+            Self::Output(error) => write!(f, "{error}"),
+            Self::FormatMismatch { source, output } => write!(
+                f,
+                "audio format mismatch: source {} Hz/{} ch, output {} Hz/{} ch",
+                source.sample_rate, source.channels, output.sample_rate, output.channels
+            ),
+            Self::UnsupportedSeek => write!(f, "native audio seek is unavailable"),
+            Self::NotLoaded => write!(f, "native audio file is not loaded"),
+            Self::Ended => write!(f, "native audio track has ended"),
+            Self::Worker(message) => write!(f, "native audio worker error: {message}"),
+        }
+    }
+}
+
+impl std::error::Error for NativePlaybackError {}
+
+impl From<AudioDecodeError> for NativePlaybackError {
+    fn from(error: AudioDecodeError) -> Self {
+        Self::Decode(error)
+    }
+}
+
+impl From<NativeOutputError> for NativePlaybackError {
+    fn from(error: NativeOutputError) -> Self {
+        Self::Output(error)
+    }
+}
+
+/// Convert decoder PCM to the system shared-mode format with bounded linear
+/// interpolation and deterministic channel mapping. Decoder packets are
+/// already bounded, so the temporary buffer remains proportional to one
+/// packet rather than the full track.
+fn resample_interleaved(
+    input: &[f32],
+    input_frames: usize,
+    input_format: PcmFormat,
+    output_format: PcmFormat,
+) -> Vec<f32> {
+    let input_channels = usize::from(input_format.channels);
+    let output_channels = usize::from(output_format.channels);
+    if input_frames == 0 || input_channels == 0 || output_channels == 0 {
+        return Vec::new();
+    }
+    if input_format == output_format {
+        return input.to_vec();
+    }
+    let output_frames = if input_format.sample_rate == output_format.sample_rate {
+        input_frames
+    } else {
+        ((input_frames as u64)
+            .saturating_mul(u64::from(output_format.sample_rate))
+            .saturating_add(u64::from(input_format.sample_rate).saturating_sub(1))
+            / u64::from(input_format.sample_rate)) as usize
+    };
+    let mut output = vec![0.0; output_frames.saturating_mul(output_channels)];
+    let rate_ratio = f64::from(input_format.sample_rate) / f64::from(output_format.sample_rate);
+    for output_frame in 0..output_frames {
+        let source_position = (output_frame as f64) * rate_ratio;
+        let source_index = (source_position.floor() as usize).min(input_frames - 1);
+        let next_index = (source_index + 1).min(input_frames - 1);
+        let fraction = (source_position - source_index as f64) as f32;
+        for output_channel in 0..output_channels {
+            let sample = |frame: usize, channel: usize| {
+                let source_channel = if input_channels == 1 {
+                    0
+                } else if output_channels == 1 {
+                    channel.min(input_channels - 1)
+                } else {
+                    channel.min(input_channels - 1)
+                };
+                input[frame * input_channels + source_channel]
+            };
+            let value = if output_channels == 1 && input_channels > 1 {
+                let mut current = 0.0;
+                let mut next = 0.0;
+                for channel in 0..input_channels {
+                    current += input[source_index * input_channels + channel];
+                    next += input[next_index * input_channels + channel];
+                }
+                ((current / input_channels as f32) * (1.0 - fraction))
+                    + ((next / input_channels as f32) * fraction)
+            } else {
+                sample(source_index, output_channel) * (1.0 - fraction)
+                    + sample(next_index, output_channel) * fraction
+            };
+            output[output_frame * output_channels + output_channel] = value;
+        }
+    }
+    output
+}
+
+#[derive(Debug)]
+struct NativeWorkerState {
+    status: NativePlaybackStatus,
+    position_frames: u64,
+    skip_frames: u64,
+}
+
+/// A complete local-file playback session for native adapters.
+///
+/// Decoder work runs on a normal worker thread and only ever feeds the bounded
+/// queue. The device callback never waits for this worker; pause and stop wake
+/// the worker and join it before a session is replaced.
+pub struct NativePlaybackEngine {
+    path: std::path::PathBuf,
+    output: NativeOutputController,
+    source_format: PcmFormat,
+    duration_frames: Option<u64>,
+    state: Arc<(Mutex<NativeWorkerState>, Condvar)>,
+    stop: Arc<AtomicBool>,
+    decoder: Option<NativeAudioDecoder>,
+    worker: Option<JoinHandle<()>>,
+}
+
+impl std::fmt::Debug for NativePlaybackEngine {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("NativePlaybackEngine")
+            .field("path", &self.path)
+            .field("source_format", &self.source_format)
+            .field("duration_frames", &self.duration_frames)
+            .field("snapshot", &self.snapshot())
+            .finish()
+    }
+}
+
+impl NativePlaybackEngine {
+    pub fn open(path: impl AsRef<Path>) -> Result<Self, NativePlaybackError> {
+        let path = path.as_ref().to_path_buf();
+        let decoder = NativeAudioDecoder::open(&path)?;
+        let source_format = decoder.info().format;
+        let duration_frames = decoder.info().duration_frames;
+        let capacity_frames = source_format.sample_rate.saturating_mul(2) as usize;
+        let output = NativeOutputController::open(capacity_frames.max(1))?;
+        Ok(Self {
+            path,
+            output,
+            source_format,
+            duration_frames,
+            state: Arc::new((
+                Mutex::new(NativeWorkerState {
+                    status: NativePlaybackStatus::Paused,
+                    position_frames: 0,
+                    skip_frames: 0,
+                }),
+                Condvar::new(),
+            )),
+            stop: Arc::new(AtomicBool::new(false)),
+            decoder: Some(decoder),
+            worker: None,
+        })
+    }
+
+    pub fn snapshot(&self) -> NativePlaybackSnapshot {
+        let (lock, _) = &*self.state;
+        let state = lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let output_format = self.output.format();
+        let consumed_source_frames = (self.output.queue().consumed_frames() as u128)
+            .saturating_mul(u128::from(self.source_format.sample_rate))
+            .saturating_div(u128::from(output_format.sample_rate.max(1)))
+            as u64;
+        let position_frames = state.position_frames.saturating_add(consumed_source_frames);
+        NativePlaybackSnapshot {
+            status: state.status,
+            position_ms: position_frames
+                .saturating_mul(1_000)
+                .saturating_div(u64::from(self.source_format.sample_rate)),
+            duration_ms: self.duration_frames.map(|frames| {
+                frames
+                    .saturating_mul(1_000)
+                    .saturating_div(u64::from(self.source_format.sample_rate))
+            }),
+            format: self.source_format,
+            device_name: self.output.device_name().map(str::to_string),
+            queued_frames: self.output.queued_frames(),
+            dropped_frames: self.output.dropped_frames(),
+        }
+    }
+
+    pub fn play(&mut self) -> Result<(), NativePlaybackError> {
+        {
+            let (lock, _) = &*self.state;
+            let state = lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+            if state.status == NativePlaybackStatus::Ended {
+                return Err(NativePlaybackError::Ended);
+            }
+        }
+        self.output.start()?;
+        let (lock, wake) = &*self.state;
+        {
+            let mut state = lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+            state.status = NativePlaybackStatus::Playing;
+        }
+        wake.notify_all();
+        if self.worker.is_none() {
+            let Some(decoder) = self.decoder.take() else {
+                return Err(NativePlaybackError::NotLoaded);
+            };
+            self.spawn_worker(decoder);
+        }
+        Ok(())
+    }
+
+    pub fn pause(&mut self) -> Result<(), NativePlaybackError> {
+        self.output.pause()?;
+        let (lock, wake) = &*self.state;
+        let mut state = lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        if state.status == NativePlaybackStatus::Playing {
+            state.status = NativePlaybackStatus::Paused;
+        }
+        wake.notify_all();
+        Ok(())
+    }
+
+    pub fn stop(&mut self) -> Result<(), NativePlaybackError> {
+        self.stop_worker();
+        self.output.stop()?;
+        let (lock, _) = &*self.state;
+        let mut state = lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        state.status = NativePlaybackStatus::Idle;
+        state.position_frames = 0;
+        state.skip_frames = 0;
+        self.decoder = Some(NativeAudioDecoder::open(&self.path)?);
+        Ok(())
+    }
+
+    pub fn seek(&mut self, position_ms: u64) -> Result<(), NativePlaybackError> {
+        let was_playing = {
+            let (lock, _) = &*self.state;
+            lock.lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .status
+                == NativePlaybackStatus::Playing
+        };
+        self.stop_worker();
+        self.output.pause()?;
+        self.output.queue().clear();
+        let decoder = NativeAudioDecoder::open(&self.path)?;
+        let target = position_ms
+            .saturating_mul(u64::from(self.source_format.sample_rate))
+            .saturating_div(1_000);
+        let (lock, _) = &*self.state;
+        let mut state = lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        state.position_frames = self
+            .duration_frames
+            .map_or(target, |duration| target.min(duration));
+        state.skip_frames = state.position_frames;
+        state.status = NativePlaybackStatus::Paused;
+        drop(state);
+        self.decoder = Some(decoder);
+        if was_playing {
+            self.play()?;
+        }
+        Ok(())
+    }
+
+    pub fn set_volume(&self, volume: f32, muted: bool) {
+        self.output.set_volume(volume, muted);
+    }
+
+    fn spawn_worker(&mut self, mut decoder: NativeAudioDecoder) {
+        let state = Arc::clone(&self.state);
+        let stop = Arc::clone(&self.stop);
+        let queue = self.output.queue();
+        let format = self.source_format;
+        let output_format = self.output.format();
+        self.worker = Some(thread::spawn(move || loop {
+            if stop.load(Ordering::Acquire) {
+                break;
+            }
+            let (lock, wake) = &*state;
+            let mut worker_state = lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+            while worker_state.status != NativePlaybackStatus::Playing
+                && !stop.load(Ordering::Acquire)
+            {
+                worker_state = wake
+                    .wait(worker_state)
+                    .unwrap_or_else(|poisoned| poisoned.into_inner());
+            }
+            if stop.load(Ordering::Acquire) {
+                break;
+            }
+            drop(worker_state);
+            if queue.queued_frames() >= queue.capacity_frames().saturating_mul(3) / 4 {
+                thread::sleep(Duration::from_millis(5));
+                continue;
+            }
+            match decoder.next_chunk() {
+                Ok(Some(chunk)) if chunk.end_of_stream => {
+                    // The decoder can reach EOF while the device still has a
+                    // bounded tail queued. Wait for that tail to drain before
+                    // exposing `Ended`, otherwise the renderer advances early
+                    // and truncates the last packet.
+                    while queue.queued_frames() > 0 && !stop.load(Ordering::Acquire) {
+                        thread::sleep(Duration::from_millis(10));
+                    }
+                    if stop.load(Ordering::Acquire) {
+                        break;
+                    }
+                    let mut state = lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+                    state.status = NativePlaybackStatus::Ended;
+                    wake.notify_all();
+                    break;
+                }
+                Ok(Some(chunk)) => {
+                    if chunk.format != format {
+                        let mut state =
+                            lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+                        state.status = NativePlaybackStatus::Ended;
+                        wake.notify_all();
+                        break;
+                    }
+                    let mut state = lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+                    let skip = state.skip_frames.min(chunk.frames as u64) as usize;
+                    state.skip_frames -= skip as u64;
+                    let start = skip.saturating_mul(usize::from(format.channels));
+                    let converted = resample_interleaved(
+                        &chunk.samples[start..],
+                        chunk.frames.saturating_sub(skip),
+                        format,
+                        output_format,
+                    );
+                    queue.push_interleaved(&converted);
+                }
+                Ok(None) => {
+                    let mut state = lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+                    state.status = NativePlaybackStatus::Ended;
+                    wake.notify_all();
+                    break;
+                }
+                Err(_) => {
+                    let mut state = lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+                    state.status = NativePlaybackStatus::Ended;
+                    wake.notify_all();
+                    break;
+                }
+            }
+        }));
+    }
+
+    fn stop_worker(&mut self) {
+        self.stop.store(true, Ordering::Release);
+        let (_, wake) = &*self.state;
+        wake.notify_all();
+        if let Some(worker) = self.worker.take() {
+            let _ = worker.join();
+        }
+        self.stop.store(false, Ordering::Release);
+    }
+}
+
+impl Drop for NativePlaybackEngine {
+    fn drop(&mut self) {
+        self.stop_worker();
+    }
+}
+
 /// Decode a bounded number of frames for probes and tests without retaining a
 /// complete track. A zero limit returns metadata only.
 pub fn decode_frames(
@@ -717,12 +1160,12 @@ mod tests {
     use std::fs;
     use std::io::Write;
 
-    use super::{
-        decode_frames, probe_capabilities, AudioOutputMode, PcmFormat, PcmRingBuffer,
-        SharedPcmQueue,
-    };
     #[cfg(not(windows))]
     use super::NativeOutputController;
+    use super::{
+        decode_frames, probe_capabilities, resample_interleaved, AudioOutputMode, PcmFormat,
+        PcmRingBuffer, SharedPcmQueue,
+    };
 
     #[cfg(not(windows))]
     #[test]
@@ -804,6 +1247,28 @@ mod tests {
         assert_eq!(output, [0.1, 0.2]);
         assert_eq!(producer.dropped_frames(), 0);
         assert_eq!(producer.capacity_frames(), 2);
+        assert_eq!(producer.consumed_frames(), 1);
+    }
+
+    #[test]
+    fn resamples_rate_and_maps_channels_for_shared_output() {
+        let input = [0.0, 1.0, 1.0, 0.0];
+        let converted = resample_interleaved(
+            &input,
+            2,
+            PcmFormat {
+                sample_rate: 44_100,
+                channels: 2,
+            },
+            PcmFormat {
+                sample_rate: 48_000,
+                channels: 1,
+            },
+        );
+        assert_eq!(converted.len(), 3);
+        assert!((converted[0] - 0.5).abs() < 0.0001);
+        assert!((converted[1] - 0.5).abs() < 0.0001);
+        assert!((converted[2] - 0.5).abs() < 0.0001);
     }
 
     #[cfg(not(windows))]

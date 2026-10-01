@@ -109,3 +109,42 @@ export function nativeAudioBackendCapabilities() {
     return null
   }
 }
+
+function nativeAudioCall(method, ...args) {
+  try {
+    const call = loadBinding()?.[method]
+    if (typeof call !== 'function') return null
+    const raw = call(...args)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeAudioStartFile(path) {
+  return nativeAudioCall('nativeAudioStartFile', path)
+}
+
+export function nativeAudioPlay() {
+  return nativeAudioCall('nativeAudioPlay')
+}
+
+export function nativeAudioPause() {
+  return nativeAudioCall('nativeAudioPause')
+}
+
+export function nativeAudioSetVolume(volume, muted) {
+  return nativeAudioCall('nativeAudioSetVolume', Math.max(0, Math.min(1, Number(volume) || 0)), !!muted)
+}
+
+export function nativeAudioSeek(positionMs) {
+  return nativeAudioCall('nativeAudioSeek', Math.max(0, Math.round(positionMs)))
+}
+
+export function nativeAudioStop() {
+  return nativeAudioCall('nativeAudioStop')
+}
+
+export function nativeAudioSnapshot() {
+  return nativeAudioCall('nativeAudioSnapshot')
+}

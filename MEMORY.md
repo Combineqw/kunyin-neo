@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.23 — 2026-10-02】
+【kunyin-neo 项目记忆 v5.24 — 2026-10-02】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -23,7 +23,15 @@
   v5.20 M19 Electron 播放影子桥记档：2026-10-01；
   v5.21 M20 Rust 音频边界记档：2026-10-01；
   v5.22 M21 Rust 本地音频解码记档：2026-10-02；
-  v5.23 M22 Windows WASAPI 共享输出边界记档：2026-10-02）
+  v5.23 M22 Windows WASAPI 共享输出边界记档：2026-10-02；
+  v5.24 M23 Rust 本地播放纵向切片记档：2026-10-02）
+
+◆ M23 Rust 本地播放纵向切片（2026-10-02，事实与回执）
+- `aurora-audio` 新增 `NativePlaybackEngine`：以 Symphonia 按 packet 解码本地未加密音频，使用有界交错 `f32` PCM 队列交给 Windows CPAL/WASAPI shared 输出；播放、暂停、停止、seek 和快照均由同一 Rust 播放会话管理。
+- 解码工作运行在可唤醒、可 join 的普通线程，设备回调只消费有界队列；队列欠载或锁竞争时填充静音，避免实时线程等待解码器。送入设备前按 packet 做有界线性重采样和声道映射，快照位置按输出队列已消费帧计算，报告播放状态、位置、时长、设备、排队帧和丢帧数。
+- `aurora-native` 新增 `nativeAudioStartFile`、`nativeAudioPlay`、`nativeAudioPause`、`nativeAudioSeek`、`nativeAudioStop` 和 `nativeAudioSnapshot` 六个 N-API 导出。Electron 本地文件优先尝试原生播放，原生模块缺失或启动失败时立即回退既有 `kunyin://` + HTMLAudio 路径；远程流和加密流保持原路径。
+- 播放器 renderer、媒体键、托盘控制和 IPC 已同步 native 状态与 seek；当前仍未迁移远程 Provider、QQ 加密流、下载、DSP/EQ、WASAPI 独占、同步、窗口和托盘实现，不能宣称全软件 Rust 原生化完成。
+- `cargo fmt`、`cargo test --manifest-path crates/aurora-audio/Cargo.toml`（7/7）、`cargo check --manifest-path crates/aurora-native/Cargo.toml`、`npm run typecheck`、`npm run native:build` 和 `git diff --check` 通过；本轮没有以此替代所有者真机验收结论。
 
 ◆ M22 Windows WASAPI 共享输出边界（2026-10-02，事实与回执）
 - `aurora-audio` 在 Windows 目标下接入 CPAL 0.18.2 WASAPI shared-mode 默认输出设备；非 Windows 目标显式返回 `UnsupportedPlatform`，保留 HTMLAudio 回退。

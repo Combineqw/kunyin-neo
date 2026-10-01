@@ -69,6 +69,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   function applyAudioVolume(): void {
     audio.volume = muted.value ? 0 : volume.value
+    window.api.media.setVolume(volume.value, muted.value)
   }
 
   function persistVolume(value: number): void {
@@ -102,9 +103,43 @@ export const usePlayerStore = defineStore('player', () => {
   let irsLoadToken = 0
   let transitionToken = 0
   let activeMediaUrl = ''
+  let nativeAudioActive = false
+  let nativeAudioPollTimer: ReturnType<typeof setInterval> | null = null
   let sessionItem: MusicItem | null = null
   let sessionStartedAt = 0
   let sessionMaxPositionMs = 0
+
+  function stopNativeAudioPolling(): void {
+    if (nativeAudioPollTimer !== null) {
+      clearInterval(nativeAudioPollTimer)
+      nativeAudioPollTimer = null
+    }
+  }
+
+  function startNativeAudioPolling(): void {
+    stopNativeAudioPolling()
+    nativeAudioPollTimer = setInterval(() => {
+      if (!nativeAudioActive) return
+      void window.api.nativeAudio
+        .snapshot()
+        .then((snapshot) => {
+          if (!nativeAudioActive || !snapshot) return
+          currentTime.value = snapshot.positionMs
+          if (snapshot.durationMs != null) duration.value = snapshot.durationMs
+          sessionMaxPositionMs = Math.max(sessionMaxPositionMs, currentTime.value)
+          if (snapshot.status === 'ended') {
+            nativeAudioActive = false
+            stopNativeAudioPolling()
+            playing.value = false
+            recordCurrentSession(true)
+            next()
+          } else if (snapshot.status === 'playing') {
+            persistPosition()
+          }
+        })
+        .catch(() => {})
+    }, 250)
+  }
 
   /**
    * 延迟创建唯一共享音频图。
@@ -517,6 +552,11 @@ export const usePlayerStore = defineStore('player', () => {
       token !== loadToken || transition !== transitionToken || !isCurrent(item)
 
     if (stale()) return
+    if (nativeAudioActive) {
+      nativeAudioActive = false
+      stopNativeAudioPolling()
+      window.api.media.setState(false)
+    }
     loading.value = true
     error.value = ''
     currentTime.value = 0
@@ -530,6 +570,23 @@ export const usePlayerStore = defineStore('player', () => {
         if (stale()) return
         if (res.ok) {
           quality.value = q
+          if (res.native) {
+            nativeAudioActive = true
+            activeMediaUrl = ''
+            audio.pause()
+            audio.removeAttribute('src')
+            audio.load()
+            duration.value = item.duration
+            currentTime.value = 0
+            playing.value = true
+            applyAudioVolume()
+            window.api.media.setState(true)
+            startNativeAudioPolling()
+            loading.value = false
+            return
+          }
+          nativeAudioActive = false
+          stopNativeAudioPolling()
           activeMediaUrl = res.url
           audio.src = res.url
           audio.volume = muted.value ? 0 : volume.value
@@ -571,6 +628,11 @@ export const usePlayerStore = defineStore('player', () => {
       token !== loadToken || transition !== transitionToken || !isCurrent(item)
 
     if (stale()) return
+    if (nativeAudioActive) {
+      nativeAudioActive = false
+      stopNativeAudioPolling()
+      window.api.media.setState(false)
+    }
     loading.value = true
     const plain = JSON.parse(JSON.stringify(item)) as MusicItem
     const base = qualityOrder(item)
@@ -585,6 +647,29 @@ export const usePlayerStore = defineStore('player', () => {
         if (stale()) return
         if (res.ok) {
           quality.value = q
+          if (res.native) {
+            nativeAudioActive = true
+            activeMediaUrl = ''
+            audio.pause()
+            audio.removeAttribute('src')
+            audio.load()
+            duration.value = item.duration
+            currentTime.value = Math.max(0, positionMs)
+            playing.value = false
+            applyAudioVolume()
+            startNativeAudioPolling()
+            if (positionMs > 0) {
+              void window.api.nativeAudio.seek(positionMs).catch(() => {})
+            }
+            if (autoplay) {
+              playing.value = true
+              window.api.media.setState(true)
+            }
+            loading.value = false
+            return
+          }
+          nativeAudioActive = false
+          stopNativeAudioPolling()
           activeMediaUrl = res.url
           audio.src = res.url
           audio.volume = muted.value ? 0 : volume.value
@@ -744,6 +829,11 @@ export const usePlayerStore = defineStore('player', () => {
 
   function toggle(): void {
     if (!current.value) return
+    if (nativeAudioActive) {
+      playing.value = !playing.value
+      window.api.media.setState(playing.value)
+      return
+    }
     enableAudioSpectrum()
     if (audio.paused) {
       const token = ++transitionToken
@@ -800,8 +890,14 @@ export const usePlayerStore = defineStore('player', () => {
 
   function seek(ms: number): void {
     if (!current.value) return
-    audio.currentTime = Math.max(0, ms) / 1000
-    currentTime.value = Math.max(0, ms)
+    const positionMs = Math.max(0, ms)
+    if (nativeAudioActive) {
+      currentTime.value = positionMs
+      void window.api.nativeAudio.seek(positionMs).catch(() => {})
+    } else {
+      audio.currentTime = positionMs / 1000
+      currentTime.value = positionMs
+    }
     // 暂停态拖进度条后 timeupdate 不跑、pause 也不会再触发，立即写一次避免位置丢失。
     persistPosition(true)
     schedulePersist()
@@ -953,6 +1049,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   /** 跨窗口同步读取媒体元素的真实进度，避免受 timeupdate 约 4Hz 的更新频率限制。 */
   function getAccurateCurrentTime(): number {
+    if (nativeAudioActive) return currentTime.value
     if ((!audio.currentSrc && !audio.src) || audio.readyState === 0) return currentTime.value
     const mediaTime = audio.currentTime * 1000
     return Number.isFinite(mediaTime) ? Math.max(0, Math.floor(mediaTime)) : currentTime.value

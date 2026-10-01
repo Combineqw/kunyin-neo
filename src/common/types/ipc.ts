@@ -143,6 +143,9 @@ export const IpcChannels = {
   MEDIA_COMMAND: 'media:command',
   /** 渲染 → 主：推送播放状态（用于更新任务栏缩略图工具栏的播放/暂停按钮） */
   MEDIA_SET_STATE: 'media:setState',
+  MEDIA_SET_VOLUME: 'media:setVolume',
+  NATIVE_AUDIO_SNAPSHOT: 'native-audio:snapshot',
+  NATIVE_AUDIO_SEEK: 'native-audio:seek',
 
   // 桌面歌词悬浮窗
   DESKTOP_LYRIC_TOGGLE: 'desktopLyric:toggle', // 渲染 → 主：开/关窗口
@@ -420,6 +423,16 @@ export interface QQQRStatusEvent {
 /**
  * `window.api` 的类型。渲染层通过它调用主进程能力，不直接触网。
  */
+export interface NativeAudioSnapshot {
+  status: 'idle' | 'paused' | 'playing' | 'ended'
+  positionMs: number
+  durationMs: number | null
+  format: { sampleRate: number; channels: number }
+  deviceName: string | null
+  queuedFrames: number
+  droppedFrames: number
+}
+
 export interface WindowApi {
   app: {
     getVersion(): Promise<string>
@@ -649,6 +662,12 @@ export interface WindowApi {
     onCommand(cb: (cmd: MediaCommand) => void): Unsubscribe
     /** 推送播放状态给主进程（更新任务栏缩略图工具栏的播放/暂停按钮） */
     setState(playing: boolean): void
+    setVolume(volume: number, muted: boolean): void
+  }
+
+  nativeAudio: {
+    snapshot(): Promise<NativeAudioSnapshot | null>
+    seek(positionMs: number): Promise<NativeAudioSnapshot | null>
   }
 
   /** 桌面歌词悬浮窗 */

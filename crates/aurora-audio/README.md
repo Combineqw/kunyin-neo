@@ -14,10 +14,17 @@ It currently provides these deliberately small contracts:
 - `NativeAudioDecoder` pulls one packet at a time and emits packet-sized
   interleaved `f32` chunks. `decode_frames()` is a bounded probe helper for
   tests and metadata inspection; it never loads a complete track.
+- `NativePlaybackEngine` owns a local-file session around the decoder and
+  output controller. It provides play, pause, stop, seek, and snapshot
+  operations. Decoder work runs on a joinable worker and feeds the bounded
+  queue; the device callback remains non-blocking and reports silence on an
+  underrun or lock miss. Source packets are linearly resampled and mapped to
+  the device channel count before they enter the output queue.
 
 `NativeOutputController` selects the Windows default output endpoint and its
 default shared-mode format, then exposes `start`, `pause`, `stop`, `snapshot`,
 and bounded queue methods. The callback uses `try_lock` and writes silence on a
 lock miss or queue underrun, so it never waits behind decoder work. The native
-host adapter still decides when to opt in; remote streams, provider encryption,
-resampling, and actual Electron playback integration remain outside this slice.
+host adapter opts into this engine for local files and keeps the existing
+HTMLAudio fallback when native startup fails. Remote streams, provider
+encryption, DSP, and WASAPI exclusive mode remain outside this slice.

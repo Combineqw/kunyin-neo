@@ -202,7 +202,13 @@ const api: WindowApi = {
         ipcRenderer.off(IpcChannels.MEDIA_COMMAND, listener)
       }
     },
-    setState: (playing) => ipcRenderer.send(IpcChannels.MEDIA_SET_STATE, playing)
+    setState: (playing) => ipcRenderer.send(IpcChannels.MEDIA_SET_STATE, playing),
+    setVolume: (volume, muted) =>
+      ipcRenderer.send(IpcChannels.MEDIA_SET_VOLUME, Math.max(0, Math.min(1, volume)), !!muted)
+  },
+  nativeAudio: {
+    snapshot: () => ipcRenderer.invoke(IpcChannels.NATIVE_AUDIO_SNAPSHOT),
+    seek: (positionMs) => ipcRenderer.invoke(IpcChannels.NATIVE_AUDIO_SEEK, Math.max(0, Math.round(positionMs)))
   },
   desktopLyric: {
     toggle: (enabled) => ipcRenderer.invoke(IpcChannels.DESKTOP_LYRIC_TOGGLE, enabled),
