@@ -1,21 +1,23 @@
 # aurora-audio
 
 `aurora-audio` is the host-neutral boundary for the native playback migration.
-It currently provides three deliberately small contracts:
+It currently provides these deliberately small contracts:
 
 - `probe_capabilities()` reports the implementation that is actually present.
-  Local, unencrypted files can now be decoded by Symphonia, while desktop
-  output remains Chromium `HTMLAudioElement` with an explicit fallback. The
-  probe does not claim device output or WASAPI exclusive mode.
-- `PcmRingBuffer` is a bounded interleaved `f32` transport for a future
-  decoder/output pair. It drops whole oldest frames when a device consumer is
-  stalled, keeping memory bounded and exposing the dropped-frame count.
+  Local, unencrypted files can now be decoded by Symphonia. Windows builds
+  expose a CPAL/WASAPI shared-mode output boundary; other hosts retain the
+  Chromium `HTMLAudioElement` fallback. WASAPI exclusive mode is not claimed.
+- `PcmRingBuffer` is a bounded interleaved `f32` transport for a decoder/output
+  pair. It drops whole oldest frames when a device consumer is stalled, keeping
+  memory bounded and exposing the dropped-frame count. `SharedPcmQueue` wraps
+  it for a decoder thread and a non-blocking real-time callback.
 - `NativeAudioDecoder` pulls one packet at a time and emits packet-sized
   interleaved `f32` chunks. `decode_frames()` is a bounded probe helper for
   tests and metadata inspection; it never loads a complete track.
 
-The crate has no device output implementation yet, so tests run without an
-audio device. Remote streams, provider encryption, and actual Electron audio
-output remain outside this slice. A future Windows output implementation can
-add an adapter over this boundary without changing Electron's fallback
-contract.
+`NativeOutputController` selects the Windows default output endpoint and its
+default shared-mode format, then exposes `start`, `pause`, `stop`, `snapshot`,
+and bounded queue methods. The callback uses `try_lock` and writes silence on a
+lock miss or queue underrun, so it never waits behind decoder work. The native
+host adapter still decides when to opt in; remote streams, provider encryption,
+resampling, and actual Electron playback integration remain outside this slice.

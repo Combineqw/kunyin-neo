@@ -10,6 +10,7 @@
 use std::collections::VecDeque;
 use std::fs::File;
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
 use symphonia::core::audio::GenericAudioBufferRef;
@@ -19,6 +20,9 @@ use symphonia::core::formats::probe::Hint;
 use symphonia::core::formats::{FormatOptions, FormatReader, TrackType};
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
+
+#[cfg(windows)]
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -48,19 +52,39 @@ pub struct AudioBackendCapabilities {
 /// later slices.  The explicit fallback is part of the contract so a missing
 /// or stale native binary cannot silently disable playback.
 pub fn probe_capabilities() -> AudioBackendCapabilities {
-    AudioBackendCapabilities {
-        backend: "symphonia-decoder+html-audio".to_string(),
-        output_mode: AudioOutputMode::HtmlAudioFallback,
-        can_decode_local_files: true,
-        can_output_to_device: false,
-        supports_exclusive_output: false,
-        bounded_pcm_queue: true,
-        production_ready: false,
-        fallback: "chromium-html-audio".to_string(),
+    #[cfg(windows)]
+    {
+        AudioBackendCapabilities {
+            backend: "symphonia-decoder+cpal-wasapi".to_string(),
+            output_mode: AudioOutputMode::NativeShared,
+            can_decode_local_files: true,
+            can_output_to_device: true,
+            supports_exclusive_output: false,
+            bounded_pcm_queue: true,
+            // The output controller is available, but playback integration and
+            // format conversion policy still belong to the host adapter.
+            production_ready: false,
+            fallback: "chromium-html-audio".to_string(),
+        }
+    }
+
+    #[cfg(not(windows))]
+    {
+        AudioBackendCapabilities {
+            backend: "symphonia-decoder+html-audio".to_string(),
+            output_mode: AudioOutputMode::HtmlAudioFallback,
+            can_decode_local_files: true,
+            can_output_to_device: false,
+            supports_exclusive_output: false,
+            bounded_pcm_queue: true,
+            production_ready: false,
+            fallback: "chromium-html-audio".to_string(),
+        }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PcmFormat {
     pub sample_rate: u32,
     pub channels: u16,
@@ -150,6 +174,320 @@ impl PcmRingBuffer {
         }
         count / channels
     }
+
+    pub fn clear(&mut self) {
+        self.samples.clear();
+    }
+
+    fn pop_sample(&mut self) -> Option<f32> {
+        self.samples.pop_front()
+    }
+}
+
+/// Thread-safe handle shared by a decoder producer and a real-time output
+/// callback. The mutex is held only while copying a bounded callback-sized
+/// slice; callers should keep decode work outside this object.
+#[derive(Clone, Debug)]
+pub struct SharedPcmQueue {
+    inner: Arc<Mutex<PcmRingBuffer>>,
+}
+
+impl SharedPcmQueue {
+    pub fn new(format: PcmFormat, capacity_frames: usize) -> Self {
+        Self {
+            inner: Arc::new(Mutex::new(PcmRingBuffer::new(format, capacity_frames))),
+        }
+    }
+
+    pub fn format(&self) -> PcmFormat {
+        self.with_queue(|queue| queue.format())
+    }
+
+    pub fn capacity_frames(&self) -> usize {
+        self.with_queue(|queue| queue.capacity_frames())
+    }
+
+    pub fn queued_frames(&self) -> usize {
+        self.with_queue(|queue| queue.queued_frames())
+    }
+
+    pub fn dropped_frames(&self) -> u64 {
+        self.with_queue(|queue| queue.dropped_frames())
+    }
+
+    pub fn push_interleaved(&self, input: &[f32]) -> usize {
+        self.with_queue_mut(|queue| queue.push_interleaved(input))
+    }
+
+    pub fn pop_interleaved(&self, output: &mut [f32]) -> usize {
+        self.with_queue_mut(|queue| queue.pop_interleaved(output))
+    }
+
+    pub fn clear(&self) {
+        self.with_queue_mut(PcmRingBuffer::clear)
+    }
+
+    fn with_queue<T>(&self, callback: impl FnOnce(&PcmRingBuffer) -> T) -> T {
+        match self.inner.lock() {
+            Ok(queue) => callback(&queue),
+            // A panic in an unrelated producer must not permanently disable
+            // playback; recover the still-valid bounded buffer instead.
+            Err(poisoned) => callback(&poisoned.into_inner()),
+        }
+    }
+
+    fn with_queue_mut<T>(&self, callback: impl FnOnce(&mut PcmRingBuffer) -> T) -> T {
+        match self.inner.lock() {
+            Ok(mut queue) => callback(&mut queue),
+            Err(poisoned) => callback(&mut poisoned.into_inner()),
+        }
+    }
+
+    #[cfg(windows)]
+    fn fill_output<T>(&self, output: &mut [T])
+    where
+        T: cpal::Sample + cpal::FromSample<f32>,
+    {
+        // CPAL documents callback buffers as pre-filled with silence, but
+        // explicitly setting it also covers custom hosts and partial queues.
+        for sample in output.iter_mut() {
+            *sample = T::from_sample(0.0);
+        }
+        let Ok(mut queue) = self.inner.try_lock() else {
+            // Never block the device callback behind a decode burst. The
+            // pre-filled silence is preferable to a real-time priority stall.
+            return;
+        };
+        if queue.format().frame_samples() == 0 {
+            return;
+        }
+        for sample in output.iter_mut() {
+            if let Some(value) = queue.pop_sample() {
+                *sample = T::from_sample(value);
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum NativeOutputError {
+    UnsupportedPlatform,
+    NoOutputDevice,
+    Device(String),
+    Stream(String),
+    UnsupportedSampleFormat(String),
+}
+
+impl std::fmt::Display for NativeOutputError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::UnsupportedPlatform => {
+                write!(f, "native audio output is unavailable on this platform")
+            }
+            Self::NoOutputDevice => write!(f, "no default output device is available"),
+            Self::Device(message) => write!(f, "audio device error: {message}"),
+            Self::Stream(message) => write!(f, "audio output stream error: {message}"),
+            Self::UnsupportedSampleFormat(format) => {
+                write!(f, "unsupported output sample format: {format}")
+            }
+        }
+    }
+}
+
+impl std::error::Error for NativeOutputError {}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NativeOutputSnapshot {
+    pub format: PcmFormat,
+    pub device_name: Option<String>,
+    pub running: bool,
+    pub queued_frames: usize,
+    pub dropped_frames: u64,
+}
+
+/// A Windows WASAPI shared-mode output stream backed by a bounded PCM queue.
+///
+/// `open` selects the system default output device and its default shared-mode
+/// format. The caller should decode/resample into [`format`](Self::format),
+/// enqueue with [`push_interleaved`](Self::push_interleaved), then call
+/// [`start`](Self::start). The non-Windows implementation is an explicit
+/// unsupported-platform result so host adapters can retain their fallback.
+pub struct NativeOutputController {
+    queue: SharedPcmQueue,
+    format: PcmFormat,
+    device_name: Option<String>,
+    running: bool,
+    #[cfg(windows)]
+    stream: cpal::Stream,
+}
+
+impl std::fmt::Debug for NativeOutputController {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("NativeOutputController")
+            .field("format", &self.format)
+            .field("device_name", &self.device_name)
+            .field("running", &self.running)
+            .finish_non_exhaustive()
+    }
+}
+
+impl NativeOutputController {
+    pub fn open(capacity_frames: usize) -> Result<Self, NativeOutputError> {
+        #[cfg(windows)]
+        {
+            let host = cpal::default_host();
+            let device = host
+                .default_output_device()
+                .ok_or(NativeOutputError::NoOutputDevice)?;
+            let device_name = Some(device.to_string());
+            let supported = device
+                .default_output_config()
+                .map_err(|error| NativeOutputError::Device(error.to_string()))?;
+            let format = PcmFormat {
+                sample_rate: supported.sample_rate(),
+                channels: supported.channels(),
+            };
+            if format.channels == 0 || format.sample_rate == 0 {
+                return Err(NativeOutputError::Device(
+                    "default output config has an invalid format".to_string(),
+                ));
+            }
+            let queue = SharedPcmQueue::new(format, capacity_frames);
+            let sample_format = supported.sample_format();
+            let stream_config: cpal::StreamConfig = supported.into();
+            let stream = match sample_format {
+                cpal::SampleFormat::F32 => {
+                    build_cpal_stream::<f32>(&device, &stream_config, queue.clone())?
+                }
+                cpal::SampleFormat::I16 => {
+                    build_cpal_stream::<i16>(&device, &stream_config, queue.clone())?
+                }
+                cpal::SampleFormat::U16 => {
+                    build_cpal_stream::<u16>(&device, &stream_config, queue.clone())?
+                }
+                other => {
+                    return Err(NativeOutputError::UnsupportedSampleFormat(
+                        other.to_string(),
+                    ))
+                }
+            };
+            return Ok(Self {
+                queue,
+                format,
+                device_name,
+                running: false,
+                stream,
+            });
+        }
+
+        #[cfg(not(windows))]
+        {
+            let _ = capacity_frames;
+            Err(NativeOutputError::UnsupportedPlatform)
+        }
+    }
+
+    pub fn format(&self) -> PcmFormat {
+        self.format
+    }
+
+    pub fn device_name(&self) -> Option<&str> {
+        self.device_name.as_deref()
+    }
+
+    pub fn queue(&self) -> SharedPcmQueue {
+        self.queue.clone()
+    }
+
+    pub fn push_interleaved(&self, input: &[f32]) -> usize {
+        self.queue.push_interleaved(input)
+    }
+
+    pub fn queued_frames(&self) -> usize {
+        self.queue.queued_frames()
+    }
+
+    pub fn dropped_frames(&self) -> u64 {
+        self.queue.dropped_frames()
+    }
+
+    pub fn is_running(&self) -> bool {
+        self.running
+    }
+
+    pub fn snapshot(&self) -> NativeOutputSnapshot {
+        NativeOutputSnapshot {
+            format: self.format,
+            device_name: self.device_name.clone(),
+            running: self.running,
+            queued_frames: self.queued_frames(),
+            dropped_frames: self.dropped_frames(),
+        }
+    }
+
+    pub fn start(&mut self) -> Result<(), NativeOutputError> {
+        #[cfg(windows)]
+        {
+            self.stream
+                .play()
+                .map_err(|error| NativeOutputError::Stream(error.to_string()))?;
+            self.running = true;
+            return Ok(());
+        }
+
+        #[cfg(not(windows))]
+        {
+            Err(NativeOutputError::UnsupportedPlatform)
+        }
+    }
+
+    pub fn pause(&mut self) -> Result<(), NativeOutputError> {
+        #[cfg(windows)]
+        {
+            self.stream
+                .pause()
+                .map_err(|error| NativeOutputError::Stream(error.to_string()))?;
+            self.running = false;
+            return Ok(());
+        }
+
+        #[cfg(not(windows))]
+        {
+            Err(NativeOutputError::UnsupportedPlatform)
+        }
+    }
+
+    pub fn stop(&mut self) -> Result<(), NativeOutputError> {
+        let result = self.pause();
+        self.queue.clear();
+        result
+    }
+}
+
+#[cfg(windows)]
+fn build_cpal_stream<T>(
+    device: &cpal::Device,
+    config: &cpal::StreamConfig,
+    queue: SharedPcmQueue,
+) -> Result<cpal::Stream, NativeOutputError>
+where
+    T: cpal::SizedSample + cpal::FromSample<f32>,
+{
+    let error_callback = |error| {
+        // CPAL invokes this on its own error path. The controller exposes
+        // stream errors through the normal callback lifecycle; avoid locking
+        // or allocating here so recovery remains host-owned.
+        eprintln!("native audio output stream error: {error}");
+    };
+    device
+        .build_output_stream(
+            config.clone(),
+            move |data: &mut [T], _| queue.fill_output(data),
+            error_callback,
+            None,
+        )
+        .map_err(|error| NativeOutputError::Stream(error.to_string()))
 }
 
 /// A decoded PCM chunk produced by the native decoder.
@@ -379,8 +717,14 @@ mod tests {
     use std::fs;
     use std::io::Write;
 
-    use super::{decode_frames, probe_capabilities, AudioOutputMode, PcmFormat, PcmRingBuffer};
+    use super::{
+        decode_frames, probe_capabilities, AudioOutputMode, PcmFormat, PcmRingBuffer,
+        SharedPcmQueue,
+    };
+    #[cfg(not(windows))]
+    use super::NativeOutputController;
 
+    #[cfg(not(windows))]
     #[test]
     fn probe_is_explicit_about_html_audio_fallback() {
         let capabilities = probe_capabilities();
@@ -388,6 +732,19 @@ mod tests {
         assert_eq!(capabilities.output_mode, AudioOutputMode::HtmlAudioFallback);
         assert!(capabilities.can_decode_local_files);
         assert!(!capabilities.can_output_to_device);
+        assert!(capabilities.bounded_pcm_queue);
+        assert!(!capabilities.production_ready);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn probe_exposes_wasapi_shared_output_boundary() {
+        let capabilities = probe_capabilities();
+        assert_eq!(capabilities.backend, "symphonia-decoder+cpal-wasapi");
+        assert_eq!(capabilities.output_mode, AudioOutputMode::NativeShared);
+        assert!(capabilities.can_decode_local_files);
+        assert!(capabilities.can_output_to_device);
+        assert!(!capabilities.supports_exclusive_output);
         assert!(capabilities.bounded_pcm_queue);
         assert!(!capabilities.production_ready);
     }
@@ -430,6 +787,32 @@ mod tests {
         assert_eq!(queue.queued_frames(), 0);
         let mut output = [0.0; 2];
         assert_eq!(queue.pop_interleaved(&mut output), 0);
+    }
+
+    #[test]
+    fn shared_queue_preserves_bounded_transport_across_handles() {
+        let format = PcmFormat {
+            sample_rate: 48_000,
+            channels: 2,
+        };
+        let producer = SharedPcmQueue::new(format, 2);
+        let consumer = producer.clone();
+        assert_eq!(producer.push_interleaved(&[0.1, 0.2, 0.3, 0.4]), 2);
+        assert_eq!(consumer.queued_frames(), 2);
+        let mut output = [0.0; 2];
+        assert_eq!(consumer.pop_interleaved(&mut output), 1);
+        assert_eq!(output, [0.1, 0.2]);
+        assert_eq!(producer.dropped_frames(), 0);
+        assert_eq!(producer.capacity_frames(), 2);
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn native_output_is_explicitly_unavailable_outside_windows() {
+        assert!(matches!(
+            NativeOutputController::open(48_000),
+            Err(super::NativeOutputError::UnsupportedPlatform)
+        ));
     }
 
     #[test]

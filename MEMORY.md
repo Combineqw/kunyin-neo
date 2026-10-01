@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.22 — 2026-10-02】
+【kunyin-neo 项目记忆 v5.23 — 2026-10-02】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -22,7 +22,15 @@
   v5.19 M18 Rust 播放会话边界记档：2026-10-01；
   v5.20 M19 Electron 播放影子桥记档：2026-10-01；
   v5.21 M20 Rust 音频边界记档：2026-10-01；
-  v5.22 M21 Rust 本地音频解码记档：2026-10-02）
+  v5.22 M21 Rust 本地音频解码记档：2026-10-02；
+  v5.23 M22 Windows WASAPI 共享输出边界记档：2026-10-02）
+
+◆ M22 Windows WASAPI 共享输出边界（2026-10-02，事实与回执）
+- `aurora-audio` 在 Windows 目标下接入 CPAL 0.18.2 WASAPI shared-mode 默认输出设备；非 Windows 目标显式返回 `UnsupportedPlatform`，保留 HTMLAudio 回退。
+- 新增 `SharedPcmQueue` 与 `NativeOutputController`：解码生产者向有界交错 `f32` PCM 队列写入，CPAL 回调使用 `try_lock` 消费；锁竞争、队列欠载时填充静音，避免实时线程等待解码线程。输出格式、设备名、运行状态、排队帧和丢帧数可通过快照读取。
+- `probe_capabilities()` 在 Windows 报告 `symphonia-decoder+cpal-wasapi` / `nativeShared` / `canOutputToDevice=true`；`productionReady` 仍为 false，因为尚未接入 Electron 播放生命周期、重采样、格式转换和远程/加密流。
+- `cargo fmt --manifest-path crates/aurora-audio/Cargo.toml -- --check`、`cargo test --manifest-path crates/aurora-audio/Cargo.toml`（6/6）、`cargo check --manifest-path crates/aurora-native/Cargo.toml` 和 `git diff --check` 通过。
+- 本步只交付 Windows 输出控制器边界，不宣称 Rust 已接管实际播放或完成全软件原生化；不得据此下所有者验收通过结论。
 
 ◆ M21 Rust 本地音频解码（2026-10-02，事实与回执）
 - `aurora-audio` 接入 Symphonia 0.6.1，支持本地未加密 WAV/MP3/FLAC/OGG/AAC/ALAC 等容器与编解码组合的按 packet 拉取，输出交错 `f32` PCM；`decode_frames` 仅保留调用者要求的有界帧数，不整轨载入内存。

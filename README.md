@@ -49,11 +49,14 @@
 | M4 四季极光 | 春夏秋冬主题、日期自动/手动切换与 0.28s 过渡                     | 已完成，待所有者主观验收                          |
 | M5 功能批 | F1 本地信息补全、F1.5 ReplayGain、F3' 曲库管家、F2 聚合搜索       | 已完成；F4' 仅完成 WASAPI 评估                   |
 | M6 双绑定 | `aurora-core` 共享 Electron N-API 与独立 Tauri v2 验证壳           | 已完成，未替换 Electron 主壳                     |
-| M9 原生切片 | Tauri Rust commands：设置读写、曲库扫描、歌词解析、能力探针          | 进行中，Electron 主壳仍为默认产品              |
+| M9 原生切片 | Tauri Rust commands：设置读写、曲库扫描、歌词解析、能力探针          | 已完成切片，Electron 主壳仍为默认产品          |
+| M10-M12 Rust 数据与标签 | SQLite 曲库 CRUD、Lofty 标签读写、Electron 本地元数据桥接 | 已完成影子路径，保留兼容回退                  |
+| M18-M21 Rust 播放与解码边界 | 播放会话、Electron 播放影子桥、Symphonia 本地解码 | 已完成边界，实际声音仍由 HTMLAudio 输出        |
+| M22 Rust 设备输出 | Windows CPAL/WASAPI shared 默认设备、有界 PCM 队列、输出快照 | 已完成输出边界，尚未接入生产播放生命周期      |
 | 同源测试      | 将本地音乐纯逻辑抽到 `core.ts`，生产入口与 shadow 扫描共用源码       | 已完成，消除扫描模块的复刻副本漂移              |
 | 回归样本      | 固化扫描 8 条、歌词 15 条、设置回环 10 条边界用例                    | 存档记录为 33/33 PASS；用例生成与执行比对需区分 |
 | 打包修复      | 修正平台级 `files` 覆盖顶层白名单，排除测试素材、Rust 工程和工具目录 | 历史 asar 从 2844.5 MB 降至 22.2 MB             |
-| 工程存档      | `MEMORY.md` 记录决策与里程碑事实，随升版提交                         | 当前档案版本 v5.7；验收结论由项目所有者作出      |
+| 工程存档      | `MEMORY.md` 记录决策与里程碑事实，随升版提交                         | 当前档案版本 v5.23；验收结论由项目所有者作出     |
 
 2026-09-04 的 Windows 安装包记录为 **97,099,765 字节**（按 1024 换算约 **92.6 MiB**）。这是指定历史构建的记录，后续构建需重新核验，不能据此推断当前机器的性能或体验。
 
@@ -144,6 +147,14 @@ a time into bounded interleaved `f32` PCM chunks, and exposes that capability to
 the N-API adapter and Tauri shell. Desktop playback still uses the existing
 Chromium HTMLAudio fallback; remote streams, provider encryption, device
 output, and WASAPI exclusive mode remain later slices.
+
+M22 adds a Windows CPAL/WASAPI shared-mode output controller. It selects the
+default endpoint, exposes its sample format and bounded PCM queue, and keeps
+the real-time callback non-blocking by emitting silence on queue underrun or
+lock contention. This is an output boundary for the next playback slice;
+Electron playback, resampling, remote/encrypted streams, and lifecycle
+integration still need to move over before native output can be enabled in
+production.
 
 M11 also routes Electron's local enrichment, tag reads, and local-library
 health probes through the Rust metadata bridge first. The existing TypeScript

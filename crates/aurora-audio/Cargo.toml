@@ -19,3 +19,9 @@ symphonia = { version = "0.6.1", default-features = false, features = [
     "vorbis",
     "wav",
 ] }
+
+# cpal's Windows backend is WASAPI shared mode by default. Keep this target
+# specific so Linux/macOS checks and the host-neutral decoder do not pull in a
+# platform output stack before their native adapters are ready.
+[target.'cfg(windows)'.dependencies]
+cpal = "0.18.2"
