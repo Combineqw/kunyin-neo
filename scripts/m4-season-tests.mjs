@@ -17,6 +17,14 @@ const themes = readFileSync(join(process.cwd(), 'src/renderer/src/theme/themes.t
 for (const id of ['aurora_spring', 'aurora_summer', 'aurora_autumn', 'aurora_winter']) {
   assert.match(themes, new RegExp(`id: '${id}'`))
 }
+assert.doesNotMatch(themes, /id: 'aurora_deep_sea'/)
+assert.match(themes, /id: 'aurora_spring'[\s\S]*?name: '花朝春色'/)
+assert.match(themes, /id: 'aurora_summer'[\s\S]*?name: '江南清夏'/)
+assert.match(themes, /id: 'aurora_autumn'[\s\S]*?name: '枫红秋韵'/)
+assert.match(
+  themes,
+  /id: 'aurora_polar_night'[\s\S]*?--color-app-background': 'rgb\(34, 39, 47\)'[\s\S]*?--color-content-background': 'rgb\(34, 39, 47\)'/
+)
 const css = readFileSync(join(process.cwd(), 'src/renderer/src/assets/base.css'), 'utf8')
 assert.match(css, /--anim-dur-theme:\s*0\.28s/)
 assert.match(css, /html\.theme-transition[\s\S]*var\(--anim-dur-theme\)/)

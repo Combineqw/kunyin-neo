@@ -119,15 +119,14 @@ const lightExt = (badgeSecondary: string, badgeTertiary: string): ThemeColors =>
   '--color-badge-tertiary': badgeTertiary
 })
 
-/* ---- 深色主题眩光：三个深色主题共有的问题 ----
+/* ---- 深色主题眩光：两个深色主题共有的问题 ----
 
-   用户先反馈极夜/深海伤眼，我改完后又指出黑灯瞎火同样伤眼——说明这不是个别主题
-   配色跑偏，而是三者共有的结构问题。实测（卡片面为背景合成后的真实像素）：
+   用户先反馈极夜伤眼，我改完后又指出黑灯瞎火同样伤眼——说明这不是个别主题
+   配色跑偏，而是两者共有的结构问题。实测（卡片面为背景合成后的真实像素）：
 
      主题        面 L      峰值(1000档)   正文(850)   字色饱和
      黑灯瞎火    0.0074    14.51:1        10.59:1     0%
      极夜        0.0074    13.94:1        12.68:1     64%（改前）
-     深海        0.0074    13.56:1        12.37:1     50%（改前）
 
    两条共性：
      1) 面太黑。0.0074 远低于 Material 深色基准面 #121212（L≈0.0116），
@@ -140,10 +139,10 @@ const lightExt = (badgeSecondary: string, badgeTertiary: string): ThemeColors =>
    会透到文字底下，同屏底色亮度差 3.2 倍（0.0074 vs 0.0238），眼睛要反复重新适应。
 
    改法：
-     - 三者主区面一律抬到不透明、L≈0.019~0.021，峰值压到 11.2:1 附近。
-       不透明同时消掉月亮透字的问题；侧栏仍用全透明的 app-background，
-       月亮从那条窄带露出，主题辨识度不丢。
-     - 极夜/深海的字色额外从高饱和青色降到近中性冷灰（22% / 16%），
+     - 两者主区面一律抬到不透明、L≈0.019~0.021，峰值压到 11.2:1 附近。
+       不透明同时消掉月亮透字的问题；黑灯瞎火侧栏仍用全透明的 app-background，
+       月亮从那条窄带露出，极夜则使用与主区一致的冷灰蓝基底。
+     - 极夜的字色额外从高饱和青色降到近中性冷灰（22%），
        彩色字叠近黑底是它们额外多出来的一层光渗。颜色改由背景色相与
        极光光带承担——光带是小面积装饰，保持原本高饱和不动。
    在用的四个字档（1000/850/750/550，深色下 font-label 被覆盖到 550）全部过 AA，
@@ -404,6 +403,10 @@ export const THEMES: ThemeDef[] = [
     font: 'rgb(214, 224, 232)',
     ext: {
       ...darkExt('#8f8fd0', '#7abed6'),
+      // 侧栏与主区共用同一冷灰蓝基底，避免透明 app-background 透出
+      // primary-light-1000 后与主区深蓝灰面形成明显色断层。
+      '--color-app-background': 'rgb(34, 39, 47)',
+      '--color-content-background': 'rgb(34, 39, 47)',
       // 主区面抬到不透明 rgb(34,39,47)（L=0.0200）：第一轮改到 0.0110 仍低于
       // Material 深色基准面 #121212（L≈0.0116），峰值 12.87:1 也还偏高。
       '--color-main-background': 'rgb(34, 39, 47)',
@@ -448,72 +451,60 @@ export const THEMES: ThemeDef[] = [
     }
   },
   {
-    id: 'aurora_deep_sea',
-    name: '深海',
-    isDark: true,
-    isDarkFont: true,
-    primary: 'rgb(110, 185, 182)',
-    font: 'rgb(212, 226, 226)',
-    ext: {
-      ...darkExt('#7f9fd0', '#6eb9b6'),
-      '--color-main-background': 'rgb(31, 41, 45)',
-      '--aurora-c1': '#7fe0d8',
-      '--aurora-c3': '#a8c8ff',
-      '--aurora-glow': 'rgba(127, 224, 216, 0.4)'
-    }
-  },
-  {
     id: 'aurora_spring',
-    name: '春樱嫩绿',
+    name: '花朝春色',
     isDark: false,
     isDarkFont: false,
-    primary: 'rgb(244, 190, 211)',
+    primary: 'rgb(232, 145, 177)',
     font: 'rgb(33, 33, 33)',
     ext: {
-      ...lightExt('#cf8fac', '#8cae7d'),
+      ...lightExt('#c36f93', '#709d72'),
       '--color-nav-font': 'var(--color-primary-dark-700)',
       '--color-primary-font': 'var(--color-primary-dark-700)',
       '--color-button-font': 'var(--color-primary-dark-800)',
       '--color-badge-primary': 'var(--color-primary-dark-700)',
-      '--aurora-c1': '#f4bed3',
-      '--aurora-c3': '#c8e6b8',
-      '--aurora-glow': 'rgba(244, 190, 211, 0.46)'
+      // 春季花色：樱粉/桃粉配新叶绿，避免只剩一条单色粉带。
+      '--aurora-c1': '#f3a9c3',
+      '--aurora-c3': '#b9dca6',
+      '--aurora-glow': 'rgba(243, 169, 195, 0.46)'
     }
   },
   {
     id: 'aurora_summer',
-    name: '夏碧蓝青翠',
+    name: '江南清夏',
     isDark: false,
     isDarkFont: false,
-    primary: 'rgb(137, 211, 224)',
+    primary: 'rgb(82, 164, 176)',
     font: 'rgb(33, 33, 33)',
     ext: {
-      ...lightExt('#4a9fae', '#68ac78'),
+      ...lightExt('#367f8c', '#4f8c62'),
       '--color-nav-font': 'var(--color-primary-dark-700)',
       '--color-primary-font': 'var(--color-primary-dark-700)',
       '--color-button-font': 'var(--color-primary-dark-800)',
       '--color-badge-primary': 'var(--color-primary-dark-700)',
-      '--aurora-c1': '#89d3e0',
-      '--aurora-c3': '#b5e4b5',
-      '--aurora-glow': 'rgba(137, 211, 224, 0.44)'
+      // 江浙沪水乡景观：湖水青、竹叶绿与薄雾白。
+      '--aurora-c1': '#70c8d2',
+      '--aurora-c3': '#a8d39e',
+      '--aurora-glow': 'rgba(112, 200, 210, 0.44)'
     }
   },
   {
     id: 'aurora_autumn',
-    name: '秋橙绯红',
+    name: '枫红秋韵',
     isDark: false,
     isDarkFont: false,
-    primary: 'rgb(239, 169, 91)',
+    primary: 'rgb(194, 76, 57)',
     font: 'rgb(33, 33, 33)',
     ext: {
-      ...lightExt('#bd6d35', '#b64c48'),
+      ...lightExt('#9d4d32', '#a53d3a'),
       '--color-nav-font': 'var(--color-primary-dark-700)',
       '--color-primary-font': 'var(--color-primary-dark-700)',
       '--color-button-font': 'var(--color-primary-dark-800)',
       '--color-badge-primary': 'var(--color-primary-dark-700)',
-      '--aurora-c1': '#efa95b',
-      '--aurora-c3': '#e78672',
-      '--aurora-glow': 'rgba(239, 169, 91, 0.44)'
+      // 中国传统秋色：枫红、朱砂与赭金，借白色节点保留宣纸留白感。
+      '--aurora-c1': '#d96a43',
+      '--aurora-c3': '#b83e43',
+      '--aurora-glow': 'rgba(217, 106, 67, 0.44)'
     }
   },
   {

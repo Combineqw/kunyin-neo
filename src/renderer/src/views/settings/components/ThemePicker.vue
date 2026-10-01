@@ -40,6 +40,8 @@ const customDefs = computed<ThemeDef[]>(() =>
 function themePreviewStyles(theme: ThemeDef): Record<string, string> {
   return {
     '--color-primary-theme': buildThemeColors(theme)['--color-theme'] ?? theme.primary,
+    '--aurora-c1-theme': theme.ext['--aurora-c1'] ?? theme.primary,
+    '--aurora-c3-theme': theme.ext['--aurora-c3'] ?? theme.primary,
     '--background-image-theme': theme.ext['--background-image'] ?? 'none'
   }
 }
@@ -318,7 +320,9 @@ async function removeTheme(theme: ThemeDef): Promise<void> {
   display: block;
   height: 72px;
   overflow: hidden;
-  background-color: var(--color-primary-theme);
+  background:
+    linear-gradient(118deg, var(--aurora-c1-theme), var(--aurora-c3-theme)),
+    var(--color-primary-theme);
 }
 .preview-image {
   position: absolute;

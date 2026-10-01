@@ -116,6 +116,7 @@ function playAll(): void {
 
 <style scoped>
 .page {
+  width: 100%;
   min-height: 100%;
   box-sizing: border-box;
   padding-bottom: 16px;

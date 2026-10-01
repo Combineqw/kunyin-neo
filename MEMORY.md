@@ -586,3 +586,10 @@
 - 在线歌单详情按 `hasNext` 分页合并并去重，增加空页终止和路由加载序列保护；详情页增加最小高度与底部留白，避免长列表无法继续滚动或最后一首被播放条遮挡。
 - `npm run typecheck`、`npm test`、正式源码 `npx eslint --cache --quiet src`、`npm run build` 和 `git diff --check` 均退出码 0；全仓 lint 仍会扫描未跟踪 `work/` 临时脚本，按约束未纳入正式代码。
 - M13 只修订 Electron/Vue 现有界面与交互，不代表 Provider、播放、下载、加密、窗口、托盘和同步已全量 Rust 化；不构成所有者验收通过结论。
+
+◆ M14 极光主题可见性、季节主题与歌单滚动加固（2026-10-01，事实与回执）
+- 极光背景层提高明暗主题可见度；侧栏与主区统一透明玻璃比例，让动态光带能透过两块表面，同时保留极夜冷灰蓝基底的一致性。
+- 主题选择卡改为显示主题的 `--aurora-c1` / `--aurora-c3` 双色渐变；删除深海主题，季节主题当前命名与配色为花朝春色、江南清夏、枫红秋韵，分别取花色、江南水乡与中国传统秋色/枫红灵感。
+- 主视图明确使用纵向 flex 滚动容器，歌单详情页保留最小高度、分页合并、去重与路由加载序列保护，搜索后进入长歌单可继续滚动。
+- `npm run typecheck`、`npm test`、正式源码 `npx eslint --cache --quiet src`、`npm run build`、`npm run build:win` 与 `git diff --check` 均退出码 0；安装器 `dist/kunyin-desktop-1.0.7-setup.exe` 大小 `98,229,163 B`，SHA-256 `7BB8CC448B261B01F9A70D18032DC359C7F81CED7D755DF7F72581DD80C4C5A3`。
+- 本轮仍只修订 Electron/Vue 界面与交互；Rust 已完成共享核心、曲库 CRUD、元数据读写影子路径和 Tauri 验证壳，Provider、播放、下载、加密、同步、生产桌面主壳与托盘尚未全量迁移，不构成所有者验收通过结论。

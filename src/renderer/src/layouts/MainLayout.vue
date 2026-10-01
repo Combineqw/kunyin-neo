@@ -33,17 +33,20 @@ watch(
 
 <template>
   <div class="shell">
+    <div class="aurora-backdrop" aria-hidden="true" />
     <AppAside class="area-aside glass-surface glass-thin" />
     <div class="area-main glass-surface glass-regular">
       <AppToolbar class="glass-thin" />
       <main class="view scroll">
-        <RouterView v-slot="{ Component, route: viewRoute }">
-          <Transition name="page-slide" mode="out-in">
-            <KeepAlive :include="KEEP_ALIVE">
-              <component :is="Component" :key="viewRoute.fullPath" />
-            </KeepAlive>
-          </Transition>
-        </RouterView>
+        <div class="view-content">
+          <RouterView v-slot="{ Component, route: viewRoute }">
+            <Transition name="page-slide" mode="out-in">
+              <KeepAlive :include="KEEP_ALIVE">
+                <component :is="Component" :key="viewRoute.fullPath" />
+              </KeepAlive>
+            </Transition>
+          </RouterView>
+        </div>
         <span v-if="wipeKey" :key="wipeKey" class="route-wipe" aria-hidden="true" />
       </main>
       <PlayerBar class="glass-surface glass-thin" />
@@ -56,12 +59,42 @@ watch(
 /* 高度用 100%（跟随被 zoom 缩放的 #app），不能用 100vh——vh 是视口单位不随 zoom 缩放，
    字体大小档位改变 zoom 后会与 #app 高度失配，导致底部露白。 */
 .shell {
+  position: relative;
   display: flex;
   height: 100%;
   gap: 10px;
   padding: 10px;
   box-sizing: border-box;
   background-color: var(--color-app-background);
+  isolation: isolate;
+}
+.aurora-backdrop {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(ellipse 70% 62% at 10% 5%, color-mix(in srgb, var(--aurora-c1) 86%, transparent), transparent 70%),
+    radial-gradient(ellipse 68% 58% at 92% 12%, color-mix(in srgb, var(--aurora-c3) 82%, transparent), transparent 70%),
+    radial-gradient(ellipse 80% 65% at 45% 100%, color-mix(in srgb, var(--aurora-c1) 58%, transparent), transparent 74%);
+  filter: saturate(1.12);
+  animation: aurora-backdrop-drift var(--anim-dur-aurora) ease-in-out infinite alternate;
+  transition: opacity var(--anim-dur-theme) var(--anim-ease-smooth);
+}
+html[data-theme^='aurora'] .aurora-backdrop {
+  opacity: 0.86;
+}
+html.theme-dark[data-theme^='aurora'] .aurora-backdrop {
+  opacity: 0.48;
+}
+@keyframes aurora-backdrop-drift {
+  from { transform: scale(1) translate3d(-1%, -1%, 0); }
+  to { transform: scale(1.08) translate3d(1%, 1%, 0); }
+}
+.shell > *:not(.aurora-backdrop) {
+  position: relative;
+  z-index: 1;
 }
 .area-aside {
   flex: none;
@@ -70,6 +103,7 @@ watch(
 }
 .area-main {
   flex: 1;
+  min-height: 0;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -81,11 +115,33 @@ watch(
 }
 .view {
   position: relative;
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
   overflow-x: hidden;
-  overflow-y: auto;
+  /* Keep a stable vertical track so detail pages expose their scroll affordance
+     even while async playlist rows are still being populated. */
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
   overscroll-behavior: contain;
+}
+html[data-theme^='aurora'] .area-main {
+  background: color-mix(in srgb, var(--color-main-background) 44%, transparent);
+}
+html[data-theme^='aurora'] .area-aside {
+  background: color-mix(in srgb, var(--color-main-background) 44%, transparent);
+}
+html[data-theme^='aurora'] .view {
+  background: transparent;
+}
+.view-content {
+  /* Keep the routed page's intrinsic height in the scroll container. A bare
+     RouterView/Transition is not a flex item, so its page can otherwise be
+     measured against the shrinking .view during route changes. */
+  flex: 0 0 auto;
+  min-height: 100%;
+  width: 100%;
 }
 
 .page-slide-enter-active,
