@@ -79,8 +79,8 @@ export function useDesktopLyricBridge(): void {
     if (syncTimer) clearInterval(syncTimer)
     syncTimer = null
     if (settings.settings.lyrics.desktopEnabled && playing.value) {
-      // 播放时每 80ms 读取一次媒体元素真实时间；暂停态由状�?/seek 事件即时推送�?
-      syncTimer = setInterval(push, 80)
+      // 播放时每 100ms 读取一次媒体元素真实时间；暂停态由状�?/seek 事件即时推送�?
+      syncTimer = setInterval(push, 100)
     }
   }
 
@@ -89,11 +89,11 @@ export function useDesktopLyricBridge(): void {
     push()
     syncTimerState()
   })
-  // 暂停�? seek 后立即推送；播放态由 80ms 定时器读取更准确�? audio.currentTime�?
+  // 暂停�? seek 后立即推送；播放态由 100ms 定时器读取更准确�? audio.currentTime�?
   watch(currentTime, () => {
     if (!playing.value) push()
   })
-  // 开关打开时立即拉一次；频谱开关变化时下一�? 80ms 推送自然应用�?
+  // 开关打开时立即拉一次；频谱开关变化时下一�? 100ms 推送自然应用�?
 
   watch(
     () => settings.settings.lyrics.desktopEnabled,

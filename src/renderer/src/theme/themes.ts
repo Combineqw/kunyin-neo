@@ -510,13 +510,18 @@ export const THEMES: ThemeDef[] = [
   {
     id: 'aurora_winter',
     name: '冬冰蓝雪白',
-    isDark: true,
-    isDarkFont: true,
+    // 冬季主题使用雪白浅色面，避免季节自动主题在冬季突然切入深色界面。
+    isDark: false,
+    isDarkFont: false,
     primary: 'rgb(160, 206, 235)',
-    font: 'rgb(224, 236, 245)',
+    font: 'rgb(33, 33, 33)',
     ext: {
-      ...darkExt('#8eb5d4', '#c5d8e8'),
-      '--color-main-background': 'rgb(32, 43, 54)',
+      ...lightExt('#6e9fc5', '#8fa9be'),
+      // 冰蓝主色用于光带与强调，文字语义降到深色梯度以保证浅色面可读性。
+      '--color-nav-font': 'var(--color-primary-dark-700)',
+      '--color-primary-font': 'var(--color-primary-dark-700)',
+      '--color-button-font': 'var(--color-primary-dark-800)',
+      '--color-badge-primary': 'var(--color-primary-dark-700)',
       '--aurora-c1': '#a0ceeb',
       '--aurora-c3': '#f3f7fb',
       '--aurora-glow': 'rgba(160, 206, 235, 0.42)'

@@ -805,7 +805,10 @@ export class MeshGradientRenderer extends BaseRenderer {
 
     this.frameTime += frameDelta * this.flowSpeed
 
-    if (!(this.onRedraw(this.frameTime, frameDelta) && this.staticMode)) {
+    const canBeStatic = this.onRedraw(this.frameTime, frameDelta)
+    // 没有网格状态时没有可见内容需要重绘。停止 RAF，避免无封面或淡出完成后
+    // 仍以背景帧率持续清屏；setAlbum() 添加新状态时会再次 requestTick() 唤醒。
+    if (!(canBeStatic && (this.staticMode || this.meshStates.length === 0))) {
       this.requestTick()
     } else if (this.staticMode) {
       this.lastFrameTime = Number.NaN
@@ -850,7 +853,8 @@ export class MeshGradientRenderer extends BaseRenderer {
 
   private onRedraw(tickTime: number, delta: number) {
     const latestMeshState = this.meshStates[this.meshStates.length - 1]
-    let canBeStatic = false
+    // 空网格没有可见内容，允许调度器在清理完成后停止帧循环。
+    let canBeStatic = this.meshStates.length === 0
 
     // 预计算常用值
     const deltaFactor = delta / 500
