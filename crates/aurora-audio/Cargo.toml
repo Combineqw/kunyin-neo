@@ -7,3 +7,15 @@ description = "Host-neutral audio backend boundary and bounded PCM transport"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
+symphonia = { version = "0.6.1", default-features = false, features = [
+    "aac",
+    "alac",
+    "flac",
+    "isomp4",
+    "mp3",
+    "ogg",
+    "opt-simd",
+    "pcm",
+    "vorbis",
+    "wav",
+] }

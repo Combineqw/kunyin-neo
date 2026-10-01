@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.20 — 2026-10-01】
+【kunyin-neo 项目记忆 v5.22 — 2026-10-02】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -21,7 +21,14 @@
   v5.18 M17 播放进度落盘降频修订记档：2026-10-01；
   v5.19 M18 Rust 播放会话边界记档：2026-10-01；
   v5.20 M19 Electron 播放影子桥记档：2026-10-01；
-  v5.21 M20 Rust 音频边界记档：2026-10-01）
+  v5.21 M20 Rust 音频边界记档：2026-10-01；
+  v5.22 M21 Rust 本地音频解码记档：2026-10-02）
+
+◆ M21 Rust 本地音频解码（2026-10-02，事实与回执）
+- `aurora-audio` 接入 Symphonia 0.6.1，支持本地未加密 WAV/MP3/FLAC/OGG/AAC/ALAC 等容器与编解码组合的按 packet 拉取，输出交错 `f32` PCM；`decode_frames` 仅保留调用者要求的有界帧数，不整轨载入内存。
+- 能力探针改为 `symphonia-decoder+html-audio`，报告 `canDecodeLocalFiles=true`；设备输出、WASAPI 独占和生产就绪仍为 false。Electron 实际播放仍走 HTMLAudio/Web Audio，未把未经验证的解码结果接管到用户声音输出。
+- 新增临时 PCM WAV 单测，覆盖采样率、声道数、采样值和范围；`cargo test --manifest-path crates/aurora-audio/Cargo.toml` 5/5 通过。
+- 本步不包含远程 Provider、QQ 加密流、下载、设备输出或 DSP 迁移；不构成全软件 Rust 原生化完成或所有者验收通过结论。
 
 ◆ M20 Rust 音频边界（2026-10-01，事实与回执）
 - 新增宿主无关 `crates/aurora-audio`，提供 `AudioBackendCapabilities` 能力探针、明确的 `htmlAudioFallback` 输出模式和有界交错 `f32` PCM 队列；队列满时丢弃最旧帧，避免设备停顿导致内存无界增长。

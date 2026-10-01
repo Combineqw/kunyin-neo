@@ -138,11 +138,12 @@ slice with `cargo check --manifest-path src-tauri/Cargo.toml`,
 `cargo test --manifest-path crates/aurora-library/Cargo.toml`, and
 `cargo test --manifest-path src-tauri/Cargo.toml`.
 
-The next audio slice adds the shared `aurora-audio` boundary. It exposes an
-explicit capability probe and a bounded interleaved PCM queue to both the N-API
-adapter and Tauri shell. The probe currently reports the existing Chromium
-HTMLAudio fallback; no decoder or device output is claimed until the following
-backend slice is installed and verified.
+The audio migration now includes a Symphonia-backed local decoder in the
+shared `aurora-audio` crate. It decodes local, unencrypted files one packet at
+a time into bounded interleaved `f32` PCM chunks, and exposes that capability to
+the N-API adapter and Tauri shell. Desktop playback still uses the existing
+Chromium HTMLAudio fallback; remote streams, provider encryption, device
+output, and WASAPI exclusive mode remain later slices.
 
 M11 also routes Electron's local enrichment, tag reads, and local-library
 health probes through the Rust metadata bridge first. The existing TypeScript
