@@ -6,6 +6,7 @@ use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 
 use aurora_core::{lyrics, metadata, scan, settings_io, AuroraError};
+use aurora_audio::probe_capabilities;
 use aurora_player::PlaybackSession;
 use napi_derive::napi;
 
@@ -69,6 +70,15 @@ pub fn playback_stop() -> napi::Result<String> {
     playback_json(|session| {
         session.stop();
     })
+}
+
+/// Return the implemented native-audio boundary and its explicit fallback.
+/// The Electron player remains on HTMLAudio until a decoder/output backend is
+/// attached to this contract.
+#[napi]
+pub fn audio_backend_capabilities() -> napi::Result<String> {
+    serde_json::to_string(&probe_capabilities())
+        .map_err(|error| napi::Error::from_reason(error.to_string()))
 }
 
 fn to_napi_error(error: AuroraError) -> napi::Error {

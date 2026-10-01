@@ -20,6 +20,7 @@ napi = { version = "2.16", default-features = false, features = ["napi8", "serde
 napi-derive = "2.16"
 aurora-core = { path = "../aurora-core" }
 aurora-player = { path = "../aurora-player" }
+aurora-audio = { path = "../aurora-audio" }
 serde_json = "1"
 
 [build-dependencies]

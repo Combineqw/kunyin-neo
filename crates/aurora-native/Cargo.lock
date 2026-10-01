@@ -18,6 +18,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "aurora-audio"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "aurora-core"
 version = "0.1.0"
 dependencies = [
@@ -31,6 +38,7 @@ dependencies = [
 name = "aurora-native"
 version = "0.1.0"
 dependencies = [
+ "aurora-audio",
  "aurora-core",
  "aurora-player",
  "napi",

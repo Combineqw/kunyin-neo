@@ -20,7 +20,13 @@
   v5.17 M16 冬季浅色与歌词桥接降频修订记档：2026-10-01；
   v5.18 M17 播放进度落盘降频修订记档：2026-10-01；
   v5.19 M18 Rust 播放会话边界记档：2026-10-01；
-  v5.20 M19 Electron 播放影子桥记档：2026-10-01）
+  v5.20 M19 Electron 播放影子桥记档：2026-10-01；
+  v5.21 M20 Rust 音频边界记档：2026-10-01）
+
+◆ M20 Rust 音频边界（2026-10-01，事实与回执）
+- 新增宿主无关 `crates/aurora-audio`，提供 `AudioBackendCapabilities` 能力探针、明确的 `htmlAudioFallback` 输出模式和有界交错 `f32` PCM 队列；队列满时丢弃最旧帧，避免设备停顿导致内存无界增长。
+- `aurora-native` 新增 `audioBackendCapabilities` N-API 导出，Electron bridge 能读取探针；Tauri 新增同名 command。旧二进制缺少导出时 bridge 返回 `null`，既有 HTMLAudio/Web Audio 播放链不受影响。
+- 本步只建立可验证的 Rust 音频后端契约，能力探针明确报告尚未具备本地解码、设备输出和 WASAPI 独占；不将 PCM 队列描述为可播放后端，也不构成全软件 Rust 原生化完成或所有者验收通过结论。
 
 ◆ M17 播放进度落盘降频修订（2026-10-01）
 - 冬季主题名称调整为四字“冬日极光”，保留雪白浅色与冰蓝光带。

@@ -98,3 +98,14 @@ export function nativePlaybackTick(elapsedMs) {
 export function nativePlaybackStop() {
   return nativePlaybackCall('playbackStop')
 }
+
+export function nativeAudioBackendCapabilities() {
+  try {
+    const call = loadBinding()?.audioBackendCapabilities
+    if (typeof call !== 'function') return null
+    const raw = call()
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}

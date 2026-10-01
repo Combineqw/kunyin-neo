@@ -12,5 +12,6 @@ tauri-build = "=2.7.0"
 aurora-core = { path = "../crates/aurora-core" }
 aurora-library = { path = "../crates/aurora-library" }
 aurora-player = { path = "../crates/aurora-player" }
+aurora-audio = { path = "../crates/aurora-audio" }
 serde_json = "1"
 tauri = "=2.12.0"

@@ -17,6 +17,18 @@ type NativeBinding = {
   playbackSeek?(positionMs: number): string
   playbackTick?(elapsedMs: number): string
   playbackStop?(): string
+  audioBackendCapabilities?(): string
+}
+
+export type NativeAudioBackendCapabilities = {
+  backend: string
+  outputMode: 'htmlAudioFallback' | 'nativeShared' | 'nativeExclusive'
+  canDecodeLocalFiles: boolean
+  canOutputToDevice: boolean
+  supportsExclusiveOutput: boolean
+  boundedPcmQueue: boolean
+  productionReady: boolean
+  fallback: string
 }
 
 export type NativePlaybackSnapshot = {
@@ -207,4 +219,15 @@ export function nativePlaybackTick(elapsedMs: number): NativePlaybackSnapshot | 
 
 export function nativePlaybackStop(): NativePlaybackSnapshot | null {
   return nativePlaybackCall('playbackStop')
+}
+
+export function nativeAudioBackendCapabilities(): NativeAudioBackendCapabilities | null {
+  try {
+    const call = loadBinding()?.audioBackendCapabilities
+    if (typeof call !== 'function') return null
+    const raw = call()
+    return raw ? (JSON.parse(raw) as NativeAudioBackendCapabilities) : null
+  } catch {
+    return null
+  }
 }

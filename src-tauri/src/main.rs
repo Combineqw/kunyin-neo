@@ -267,6 +267,11 @@ fn native_capabilities() -> Value {
     })
 }
 
+#[tauri::command]
+fn audio_backend_capabilities() -> Value {
+    serde_json::to_value(aurora_audio::probe_capabilities()).unwrap_or_else(|_| json!({}))
+}
+
 fn main() {
     tauri::Builder::default()
         .manage(LibraryState::default())
@@ -290,7 +295,8 @@ fn main() {
             player_seek,
             player_tick,
             player_stop,
-            native_capabilities
+            native_capabilities,
+            audio_backend_capabilities
         ])
         .run(tauri::generate_context!())
         .expect("failed to run the Tauri shell");

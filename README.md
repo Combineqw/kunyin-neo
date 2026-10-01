@@ -138,6 +138,12 @@ slice with `cargo check --manifest-path src-tauri/Cargo.toml`,
 `cargo test --manifest-path crates/aurora-library/Cargo.toml`, and
 `cargo test --manifest-path src-tauri/Cargo.toml`.
 
+The next audio slice adds the shared `aurora-audio` boundary. It exposes an
+explicit capability probe and a bounded interleaved PCM queue to both the N-API
+adapter and Tauri shell. The probe currently reports the existing Chromium
+HTMLAudio fallback; no decoder or device output is claimed until the following
+backend slice is installed and verified.
+
 M11 also routes Electron's local enrichment, tag reads, and local-library
 health probes through the Rust metadata bridge first. The existing TypeScript
 tag writers and `music-metadata` fallback remain available for unsupported

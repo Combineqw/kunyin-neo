@@ -7,6 +7,7 @@ const scanStatus = document.getElementById('scan-status')
 const scanOutput = document.getElementById('scan-output')
 const settingsOutput = document.getElementById('settings-output')
 const capabilities = document.getElementById('capabilities')
+const audioCapabilities = document.getElementById('audio-capabilities')
 const libraryStatus = document.getElementById('library-status')
 const libraryOutput = document.getElementById('library-output')
 const playlistSelect = document.getElementById('playlist-select')
@@ -136,4 +137,10 @@ invoke('native_capabilities').then((value) => {
   capabilities.textContent = JSON.stringify(value, null, 2)
 }).catch((error) => {
   capabilities.textContent = String(error)
+})
+
+invoke('audio_backend_capabilities').then((value) => {
+  audioCapabilities.textContent = JSON.stringify(value, null, 2)
+}).catch((error) => {
+  audioCapabilities.textContent = String(error)
 })

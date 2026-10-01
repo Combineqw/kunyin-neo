@@ -10,6 +10,12 @@ export declare function playbackPause(): string
 export declare function playbackSeek(positionMs: number): string
 export declare function playbackTick(elapsedMs: number): string
 export declare function playbackStop(): string
+/**
+ * Return the implemented native-audio boundary and its explicit fallback.
+ * The Electron player remains on HTMLAudio until a decoder/output backend is
+ * attached to this contract.
+ */
+export declare function audioBackendCapabilities(): string
 /** Preserve the JSON-string API consumed by the Electron bridge and shadow tests. */
 export declare function scanDirectory(dir: string): string
 export declare function parseTrack(path: string): string
