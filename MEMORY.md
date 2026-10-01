@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.25 — 2026-10-02】
+【kunyin-neo 项目记忆 v5.26 — 2026-10-02】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -25,7 +25,12 @@
   v5.22 M21 Rust 本地音频解码记档：2026-10-02；
   v5.23 M22 Windows WASAPI 共享输出边界记档：2026-10-02；
   v5.24 M23 Rust 本地播放纵向切片记档：2026-10-02；
-  v5.25 M24 Rust QMC2 分块解密记档：2026-10-02）
+  v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02）
+
+◆ M25 Rust 下载解密降内存（2026-10-02，事实与回执）
+- `aurora-native` 新增 `audioDecryptQmc2File(path, ekey)`，使用 256 KiB 有界缓冲区按绝对文件偏移原地处理 QQ `mflac`/`mgg` 下载文件，避免 TypeScript 旧路径读入整文件并同时保留明文副本。
+- Electron 下载完成后优先调用 Rust 原地解密；旧 `.node`、无效 ekey 或 native 调用失败时回退既有 TypeScript 整文件解密，下载语义保持不变。
+- 本步只降低 QQ 加密下载的内存峰值，不包含远程 Provider、认证、DSP、窗口系统或全软件 Rust 原生化；不替用户下最终验收结论。
 
 ◆ M24 Rust QMC2 分块解密（2026-10-02，事实与回执）
 - `aurora-audio` 新增 QMC2/mflac/mgg 的 Rust 解密器，覆盖 ekey V1/V2、map 和 RC4 两类流密码；解密按加密文件绝对偏移执行，HTTP Range 分块拼接结果与整块处理一致。

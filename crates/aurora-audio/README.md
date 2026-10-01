@@ -34,3 +34,7 @@ The crate also provides `Qmc2Decryptor` and `decrypt_qmc2_chunk` for QQ
 absolute encrypted-file offset so HTTP Range chunks remain independently
 decryptable. The Electron adapter uses the native path first and keeps its
 TypeScript fallback for compatibility.
+
+The N-API adapter also exposes a bounded 256 KiB in-place file operation for
+completed downloads. It reuses the same offset-based decryptor and never loads
+the complete encrypted file into one native buffer.

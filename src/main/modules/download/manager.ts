@@ -27,6 +27,12 @@ import {
 } from 'node:fs'
 import { pipeline } from 'node:stream/promises'
 import { Readable } from 'node:stream'
+import {
+  nativeDownloadAbort,
+  nativeDownloadCommit,
+  nativeDownloadCreate,
+  nativeDownloadWrite
+} from '../../native/bridge-runtime.js'
 import type {
   AddDownloadInput,
   DownloadTask,
@@ -47,6 +53,7 @@ import { getSettings } from '../../store/settings'
 import { resolveMediaInfo } from '../../providers/getUrl'
 import { getProvider } from '../../providers'
 import { decryptAudioFile } from '../../crypto/decryptor'
+import { nativeAudioDecryptQmc2File } from '../../native/bridge'
 import { fillAudioTags, sniffImageMime } from '../../tag'
 import { requestBuffer, requestRaw } from '../../net/request'
 import { appDataPath } from '../../core/paths'
@@ -488,17 +495,31 @@ async function executeDownload(taskKey: string): Promise<void> {
     if (existsSync(tmpPath)) unlinkSync(tmpPath)
 
     // 流式下载到 .tmp（支持刷新一次播放链接重试）
-    await downloadToFile(taskKey, info.playUrl, tmpPath, totalBytes, controller.signal, () =>
+    const nativeCommitted = await downloadToFile(
+      taskKey,
+      info.playUrl,
+      tmpPath,
+      finalPath,
+      totalBytes,
+      controller.signal,
+      () =>
       resolveMediaInfo(song, actualQuality)
     )
 
     // .tmp → 最终文件
-    if (existsSync(finalPath)) unlinkSync(finalPath)
-    renameSync(tmpPath, finalPath)
+    if (!nativeCommitted) {
+      if (existsSync(finalPath)) unlinkSync(finalPath)
+      renameSync(tmpPath, finalPath)
+    }
 
     // 加密流：原地解密 + 容器嗅探修正扩展名
     if (ekey) {
-      await decryptAudioFile(finalPath, ekey)
+      // Prefer the Rust bounded-buffer path so large encrypted downloads do
+      // not require a second full-file Buffer allocation. Older native
+      // binaries and unsupported keys retain the proven TypeScript fallback.
+      if (!nativeAudioDecryptQmc2File(finalPath, ekey)) {
+        await decryptAudioFile(finalPath, ekey)
+      }
       const actualExt = sniffAudioExtension(finalPath)
       if (actualExt && !finalPath.toLowerCase().endsWith(actualExt)) {
         const renamed = join(dir, `${baseName}${actualExt}`)
@@ -650,10 +671,11 @@ async function executeVideoDownload(
   const tmpPath = `${finalPath}.tmp`
   if (existsSync(tmpPath)) unlinkSync(tmpPath)
 
-  await downloadToFile(
+  const nativeCommitted = await downloadToFile(
     task.taskKey,
     mv.playUrl,
     tmpPath,
+    finalPath,
     task.totalBytes,
     controller.signal,
     async () => {
@@ -662,8 +684,10 @@ async function executeVideoDownload(
     }
   )
 
-  if (existsSync(finalPath)) unlinkSync(finalPath)
-  renameSync(tmpPath, finalPath)
+  if (!nativeCommitted) {
+    if (existsSync(finalPath)) unlinkSync(finalPath)
+    renameSync(tmpPath, finalPath)
+  }
 
   patchTask(task.taskKey, {
     status: 'completed',
@@ -680,10 +704,11 @@ async function downloadToFile(
   taskKey: string,
   url: string,
   path: string,
+  finalPath: string,
   fallbackTotal: number,
   signal: AbortSignal,
   refresh: () => Promise<{ playUrl: string; isSuccess: boolean }>
-): Promise<void> {
+): Promise<boolean> {
   let resp = await requestRaw(url, { timeout: 60000 })
   if (!resp.ok) {
     const refreshed = await refresh()
@@ -698,6 +723,43 @@ async function downloadToFile(
   let downloaded = 0
   let lastTick = Date.now()
   let lastBytes = 0
+  const nativeId = nativeDownloadCreate(path, finalPath, 2 * 1024 * 1024 * 1024)
+  if (nativeId !== null) {
+    try {
+      const nodeStream = Readable.fromWeb(resp.body as Parameters<typeof Readable.fromWeb>[0])
+      for await (const rawChunk of nodeStream) {
+        if (signal.aborted) throw new Error('下载已取消')
+        const chunk = Buffer.isBuffer(rawChunk) ? rawChunk : Buffer.from(rawChunk)
+        const progress = nativeDownloadWrite(nativeId, chunk)
+        if (!progress) throw new Error('Rust 下载写入失败')
+        downloaded = progress.writtenBytes
+        const now = Date.now()
+        if (now - lastTick >= PROGRESS_INTERVAL_MS) {
+          const speed = Math.round(((downloaded - lastBytes) * 1000) / (now - lastTick))
+          patchTask(taskKey, {
+            progress: cl > 0 ? Math.min(1, downloaded / cl) : 0,
+            speedBytesPerSec: speed,
+            downloadedBytes: downloaded
+          })
+          notify()
+          lastTick = now
+          lastBytes = downloaded
+        }
+      }
+      const committed = nativeDownloadCommit(nativeId)
+      if (!committed) throw new Error('Rust 下载提交失败')
+      patchTask(taskKey, {
+        progress: 1,
+        downloadedBytes: committed.writtenBytes,
+        speedBytesPerSec: 0
+      })
+      return true
+    } catch (error) {
+      nativeDownloadAbort(nativeId)
+      throw error
+    }
+  }
+
   const ws = createWriteStream(path)
   // Web ReadableStream → Node Readable
   const nodeStream = Readable.fromWeb(resp.body as Parameters<typeof Readable.fromWeb>[0])
@@ -718,6 +780,7 @@ async function downloadToFile(
   })
   await pipeline(nodeStream, ws, { signal })
   patchTask(taskKey, { progress: 1, downloadedBytes: downloaded, speedBytesPerSec: 0 })
+  return false
 }
 
 /** 取歌词（供内嵌标签 / .lrc 文件）。走 Provider.getLyric，全空返回 null。 */

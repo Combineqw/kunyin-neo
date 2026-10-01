@@ -30,6 +30,17 @@ export declare function nativeAudioSnapshot(): string
  * keeps its TypeScript decryptor fallback.
  */
 export declare function audioDecryptQmc2Chunk(ekey: string, fileOffset: number, chunk: Buffer): Buffer
+/** Start a bounded temporary-file download transaction. */
+export declare function downloadCreate(tempPath: string, finalPath: string, maxBytes: number): number
+export declare function downloadWrite(id: number, chunk: Buffer): string
+export declare function downloadCommit(id: number): string
+export declare function downloadAbort(id: number): boolean
+/**
+ * Decrypt a downloaded QMC2 file in place with a bounded native buffer.
+ * The file length is unchanged; each chunk is transformed using its absolute
+ * encrypted offset so map and RC4 streams match the HTTP protocol path.
+ */
+export declare function audioDecryptQmc2File(path: string, ekey: string): boolean
 /** Preserve the JSON-string API consumed by the Electron bridge and shadow tests. */
 export declare function scanDirectory(dir: string): string
 export declare function parseTrack(path: string): string

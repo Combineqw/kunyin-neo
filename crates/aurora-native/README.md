@@ -30,6 +30,11 @@ ekey's decryptor, keeping repeated HTTP chunks cheap while bounding native
 memory. Invalid keys and unavailable native exports are converted to the
 existing Electron TypeScript fallback.
 
+`audioDecryptQmc2File(path, ekey)` applies the same decryptor in place using a
+256 KiB buffer. The completed-download path therefore avoids holding both the
+encrypted and plaintext files in memory; older bindings still use the
+TypeScript fallback.
+
 ## 本地播放导出
 
 Windows 构建还导出本地文件播放的可选 N-API：

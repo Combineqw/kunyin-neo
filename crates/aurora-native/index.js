@@ -310,7 +310,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { playbackSnapshot, playbackLoad, playbackPlay, playbackPause, playbackSeek, playbackTick, playbackStop, audioBackendCapabilities, nativeAudioStartFile, nativeAudioPlay, nativeAudioPause, nativeAudioSetVolume, nativeAudioSeek, nativeAudioStop, nativeAudioSnapshot, audioDecryptQmc2Chunk, scanDirectory, parseTrack, readAudioTags, writeAudioTags, scanLyrics, readSettings, writeSettings, settingsRoundtrip, nativeVersion } = nativeBinding
+const { playbackSnapshot, playbackLoad, playbackPlay, playbackPause, playbackSeek, playbackTick, playbackStop, audioBackendCapabilities, nativeAudioStartFile, nativeAudioPlay, nativeAudioPause, nativeAudioSetVolume, nativeAudioSeek, nativeAudioStop, nativeAudioSnapshot, audioDecryptQmc2Chunk, downloadCreate, downloadWrite, downloadCommit, downloadAbort, audioDecryptQmc2File, scanDirectory, parseTrack, readAudioTags, writeAudioTags, scanLyrics, readSettings, writeSettings, settingsRoundtrip, nativeVersion } = nativeBinding
 
 module.exports.playbackSnapshot = playbackSnapshot
 module.exports.playbackLoad = playbackLoad
@@ -328,6 +328,11 @@ module.exports.nativeAudioSeek = nativeAudioSeek
 module.exports.nativeAudioStop = nativeAudioStop
 module.exports.nativeAudioSnapshot = nativeAudioSnapshot
 module.exports.audioDecryptQmc2Chunk = audioDecryptQmc2Chunk
+module.exports.downloadCreate = downloadCreate
+module.exports.downloadWrite = downloadWrite
+module.exports.downloadCommit = downloadCommit
+module.exports.downloadAbort = downloadAbort
+module.exports.audioDecryptQmc2File = audioDecryptQmc2File
 module.exports.scanDirectory = scanDirectory
 module.exports.parseTrack = parseTrack
 module.exports.readAudioTags = readAudioTags

@@ -1,5 +1,6 @@
 //! Host-neutral Rust core shared by the Electron and Tauri adapters.
 
+pub mod download;
 pub mod error;
 pub mod lyrics;
 pub mod metadata;

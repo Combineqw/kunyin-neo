@@ -160,3 +160,57 @@ export function nativeAudioDecryptQmc2Chunk(ekey, fileOffset, chunk) {
     return null
   }
 }
+
+/** Optional bounded Rust download transaction; the host keeps HTTP/proxy ownership. */
+export function nativeDownloadCreate(tempPath, finalPath, maxBytes) {
+  try {
+    const call = loadBinding()?.downloadCreate
+    if (typeof call !== 'function') return null
+    const id = call(tempPath, finalPath, Math.max(0, Math.round(maxBytes)))
+    return Number.isSafeInteger(id) && id > 0 ? id : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeDownloadWrite(id, chunk) {
+  try {
+    const call = loadBinding()?.downloadWrite
+    if (typeof call !== 'function') return null
+    const raw = call(id, chunk)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeDownloadCommit(id) {
+  try {
+    const call = loadBinding()?.downloadCommit
+    if (typeof call !== 'function') return null
+    const raw = call(id)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeDownloadAbort(id) {
+  try {
+    const call = loadBinding()?.downloadAbort
+    return typeof call === 'function' ? call(id) === true : false
+  } catch {
+    return false
+  }
+}
+
+/** Optional Rust bounded-buffer path for completed QMC2 downloads. */
+export function nativeAudioDecryptQmc2File(path, ekey) {
+  try {
+    const call = loadBinding()?.audioDecryptQmc2File
+    if (typeof call !== 'function') return false
+    return call(path, ekey) === true
+  } catch {
+    return false
+  }
+}

@@ -177,6 +177,12 @@ modules, stale bindings, or invalid keys. Remote provider requests,
 authentication, downloads, DSP, and desktop window integration remain staged
 work; this slice does not claim complete Rust migration.
 
+M25 adds a bounded-buffer Rust path for completed QQ encrypted downloads.
+`audioDecryptQmc2File` transforms a file in place in 256 KiB chunks, preserving
+the absolute offset semantics while avoiding the previous full-file read and
+second full-file allocation. Electron uses it when available and falls back to
+the existing TypeScript decryptor for older bindings or unsupported keys.
+
 M11 also routes Electron's local enrichment, tag reads, and local-library
 health probes through the Rust metadata bridge first. The existing TypeScript
 tag writers and `music-metadata` fallback remain available for unsupported

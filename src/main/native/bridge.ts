@@ -26,6 +26,7 @@ type NativeBinding = {
   nativeAudioStop?(): string
   nativeAudioSnapshot?(): string
   audioDecryptQmc2Chunk?(ekey: string, fileOffset: number, chunk: Uint8Array): Uint8Array
+  audioDecryptQmc2File?(path: string, ekey: string): boolean
 }
 
 export type NativeAudioBackendCapabilities = {
@@ -315,5 +316,16 @@ export function nativeAudioDecryptQmc2Chunk(
     return output instanceof Uint8Array ? output : null
   } catch {
     return null
+  }
+}
+
+/** Decrypt a downloaded QMC2 file in place with Rust's bounded buffer path. */
+export function nativeAudioDecryptQmc2File(path: string, ekey: string): boolean {
+  try {
+    const call = loadBinding()?.audioDecryptQmc2File
+    if (typeof call !== 'function') return false
+    return call(path, ekey) === true
+  } catch {
+    return false
   }
 }
