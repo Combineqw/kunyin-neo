@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.12 — 2026-10-01】
+【kunyin-neo 项目记忆 v5.13 — 2026-10-01】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -13,7 +13,7 @@
   v5.9 M8 UI 材质与详情滚动修订记档：2026-09-30；
   v5.10 M9 Rust 原生纵向切片记档：2026-10-01；
   v5.11 M10 Rust SQLite 曲库与 Lofty 标签桥接记档：2026-10-01；
-  v5.12 M11 本地元数据读路径桥接记档：2026-10-01）
+  v5.12 M11 本地元数据读路径桥接记档：2026-10-01；v5.13 M12 Rust 原生音频标签写入影子路径记档：2026-10-01）
 
 ◆ 项目身份
 - kunyin-neo，fork 自 github.com/ikunshare/kunyin-desktop
@@ -569,3 +569,12 @@
 - 修正无时长容器的 Rust DTO：Lofty 报告 0 时返回缺省 duration，避免错误地阻断 Node 时长回退。
 - `npm run typecheck`、`npm test`、`npm run build`、`npm run native:compare`（scan/lyrics/settings_io 全部 PASS）和正式源码 scoped lint 通过。
 - M11 仍是读路径迁移，不代表 Provider、播放、下载、加密、标签写入、同步和窗口已 Rust 化；不构成所有者验收通过结论。
+
+◆ M12 Rust 原生音频标签写入影子路径（2026-10-01，事实与回执）
+- `aurora-core::metadata` 新增 `write_audio_tags` 与 JSON 适配，Lofty 支持 MP3、FLAC、OGG/Opus 的标题、艺人、专辑、曲号、歌词和封面写入；其他格式返回 `false`，由既有 TypeScript writer 回退。
+- `aurora-native` 新增 N-API `writeAudioTags(path, metadataJson) -> bool`；Electron bridge 对 Buffer 做字节数组序列化，native 缺失、返回 false 或抛错时继续走 TypeScript fallback。
+- 标签门面对 MP3/FLAC/OGG/Opus 且无本地 `picture` 路径时优先 Rust；需要本地图片路径时保留原 TypeScript 写入器。Rust 读路径缺封面时继续补读旧 parser，兼容 Lofty 跳过不完整封面块。
+- Windows FLAC/OGG 旧 writer 在替换原文件前显式关闭读句柄，修复 `EPERM`。
+- `cargo fmt`、`cargo test`（aurora-core 6/6）、aurora-native 测试、`npm run native:build`、标签 roundtrip（MP3/FLAC/OGG、fill、尾部保留）均通过；生成的临时 bundle 未纳入仓库。
+- 当前 M12 Windows 安装器构建 `npm run build:win` 退出码 0；`dist/kunyin-desktop-1.0.7-setup.exe` 大小 98,125,787 B，SHA-256 `E523B7E2E8057B55847CC0FB92D3320A37DC206E6E2585FC57206128A80634A1`。
+- M12 仍未全量 Rust 化：Provider、播放、下载、加密、窗口、托盘、同步等能力仍保留现有 TypeScript/Electron 路径；不构成所有者验收通过结论。

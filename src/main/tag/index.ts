@@ -7,16 +7,17 @@ import type { MusicMeta } from './meta'
 import { readMp3, writeMp3 } from './mp3'
 import { readFlacMeta, writeFlac } from './flac'
 import { readOggMeta, writeOgg } from './ogg'
-import { nativeReadAudioTags } from '../native/bridge-runtime.js'
+import { nativeReadAudioTags, nativeWriteAudioTags } from '../native/bridge-runtime.js'
 
 export type { MusicMeta, ParsedImage } from './meta'
 export { sniffImageMime } from './meta'
 export { parseImage, parseImageFile } from './image'
 
 export async function readAudioTags(filePath: string): Promise<MusicMeta | null> {
+  const lower = filePath.toLowerCase()
   const native = nativeReadAudioTags(filePath)
   if (native) {
-    return {
+    const result: MusicMeta = {
       title: native.title,
       artist: native.artist,
       album: native.album,
@@ -29,8 +30,23 @@ export async function readAudioTags(filePath: string): Promise<MusicMeta | null>
           }
         : {})
     }
+    // Lofty intentionally skips malformed/partial cover blocks. Preserve the
+    // established parser's cover recovery without replacing native fields.
+    if (!result.pictureData?.length) {
+      const fallback = lower.endsWith('.mp3')
+        ? await readMp3(filePath)
+        : lower.endsWith('.flac')
+          ? await readFlacMeta(filePath)
+          : lower.endsWith('.ogg')
+            ? await readOggMeta(filePath)
+            : null
+      if (fallback?.pictureData?.length) {
+        result.pictureData = fallback.pictureData
+        result.pictureMimeType = fallback.pictureMimeType
+      }
+    }
+    return result
   }
-  const lower = filePath.toLowerCase()
   if (lower.endsWith('.mp3')) return readMp3(filePath)
   if (lower.endsWith('.flac')) return readFlacMeta(filePath)
   if (lower.endsWith('.ogg')) return readOggMeta(filePath)
@@ -39,6 +55,13 @@ export async function readAudioTags(filePath: string): Promise<MusicMeta | null>
 
 export async function writeAudioTags(filePath: string, meta: MusicMeta): Promise<void> {
   const lower = filePath.toLowerCase()
+  // The Rust writer currently accepts embedded picture bytes, not a source
+  // image path. Keep the established TypeScript path for `picture` so image
+  // parsing and dimensions remain byte-for-byte compatible while the native
+  // writer takes over the common metadata-only path.
+  if (!meta.picture && ['.mp3', '.flac', '.ogg', '.opus'].some((ext) => lower.endsWith(ext))) {
+    if (nativeWriteAudioTags(filePath, meta)) return
+  }
   if (lower.endsWith('.mp3')) return writeMp3(filePath, meta)
   if (lower.endsWith('.flac')) return writeFlac(filePath, meta)
   if (lower.endsWith('.ogg')) return writeOgg(filePath, meta)

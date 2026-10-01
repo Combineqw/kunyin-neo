@@ -8,6 +8,7 @@ type NativeBinding = {
   scanLyrics(dir: string): string
   readSettings(path: string): string
   readAudioTags(path: string): string
+  writeAudioTags(path: string, metadataJson: string): unknown
 }
 
 export type NativeScanTrack = {
@@ -124,5 +125,21 @@ export function nativeReadAudioTags(path: string): NativeAudioMetadata | null {
     return value ?? null
   } catch {
     return null
+  }
+}
+
+/** Best-effort native tag write; callers retain their TypeScript fallback. */
+export function nativeWriteAudioTags(path: string, metadata: object): boolean {
+  try {
+    const write = loadBinding()?.writeAudioTags
+    if (typeof write !== 'function') return false
+    const metadataJson = JSON.stringify(metadata, (_key, value) => {
+      if (value && value.type === 'Buffer' && Array.isArray(value.data)) return value.data
+      return value
+    })
+    const result = write(path, metadataJson)
+    return result !== false && result !== 'false'
+  } catch {
+    return false
   }
 }

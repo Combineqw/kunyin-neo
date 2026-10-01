@@ -11,6 +11,12 @@ export declare function parseTrack(path: string): string
  * extensions and a camelCase partial object for recognized audio files.
  */
 export declare function readAudioTags(path: string): string
+/**
+ * Write the supplied camelCase metadata JSON through the shared Rust tag
+ * writer.  The boolean result preserves the core writer's fallback signal
+ * for containers whose primary tag type cannot be written by Lofty.
+ */
+export declare function writeAudioTags(path: string, metadataJson: string): boolean
 export declare function scanLyrics(dir: string): string
 export declare function readSettings(path: string): string
 export declare function settingsRoundtrip(source: string, sandboxPath: string, keyPath: string, newValue: string): string

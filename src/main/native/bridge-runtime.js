@@ -38,3 +38,24 @@ export function nativeReadAudioTags(path) {
     return null
   }
 }
+
+/**
+ * Best-effort native tag writer.  The N-API function receives one JSON
+ * document so the bridge remains compatible with the existing JSON DTOs.
+ * Buffer#toJSON is normalised back to a byte array before serialisation;
+ * Rust's serde DTO therefore sees `pictureData` as `Vec<u8>`.
+ */
+export function nativeWriteAudioTags(path, metadata) {
+  try {
+    const write = loadBinding()?.writeAudioTags
+    if (typeof write !== 'function') return false
+    const json = JSON.stringify(metadata, (_key, value) => {
+      if (value && value.type === 'Buffer' && Array.isArray(value.data)) return value.data
+      return value
+    })
+    const result = write(path, json)
+    return result !== false && result !== 'false'
+  } catch {
+    return false
+  }
+}

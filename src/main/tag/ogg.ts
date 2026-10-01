@@ -270,6 +270,9 @@ export async function writeOgg(filePath: string, meta: MusicMeta): Promise<void>
     out.end()
     await finished(out)
 
+    // Windows 不允许在仍有读句柄时替换源文件；关闭后再执行原子替换。
+    await fh.close()
+
     try {
       await unlink(filePath)
     } catch {
@@ -284,7 +287,7 @@ export async function writeOgg(filePath: string, meta: MusicMeta): Promise<void>
     await unlink(tempFile).catch(() => {})
     throw e
   } finally {
-    await fh.close()
+    await fh.close().catch(() => {})
   }
 }
 

@@ -29,6 +29,15 @@ pub fn read_audio_tags(path: String) -> napi::Result<String> {
     metadata::read_audio_tags_json(Path::new(&path)).map_err(to_napi_error)
 }
 
+/// Write the supplied camelCase metadata JSON through the shared Rust tag
+/// writer.  The boolean result preserves the core writer's fallback signal
+/// for containers whose primary tag type cannot be written by Lofty.
+#[napi]
+pub fn write_audio_tags(path: String, metadata_json: String) -> napi::Result<bool> {
+    metadata::write_audio_tags_json(Path::new(&path), &metadata_json)
+        .map_err(to_napi_error)
+}
+
 #[napi]
 pub fn scan_lyrics(dir: String) -> napi::Result<String> {
     lyrics::scan_lyrics_json(Path::new(&dir)).map_err(to_napi_error)

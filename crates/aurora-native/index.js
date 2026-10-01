@@ -310,11 +310,12 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { scanDirectory, parseTrack, readAudioTags, scanLyrics, readSettings, settingsRoundtrip, nativeVersion } = nativeBinding
+const { scanDirectory, parseTrack, readAudioTags, writeAudioTags, scanLyrics, readSettings, settingsRoundtrip, nativeVersion } = nativeBinding
 
 module.exports.scanDirectory = scanDirectory
 module.exports.parseTrack = parseTrack
 module.exports.readAudioTags = readAudioTags
+module.exports.writeAudioTags = writeAudioTags
 module.exports.scanLyrics = scanLyrics
 module.exports.readSettings = readSettings
 module.exports.settingsRoundtrip = settingsRoundtrip

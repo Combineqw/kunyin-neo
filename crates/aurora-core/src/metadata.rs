@@ -8,17 +8,18 @@
 
 use std::path::Path;
 
+use lofty::config::WriteOptions;
 use lofty::file::{AudioFile, TaggedFileExt};
-use lofty::picture::PictureType;
+use lofty::picture::{MimeType, Picture, PictureType};
 use lofty::probe::Probe;
 use lofty::tag::{Accessor, ItemKey, Tag};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::error::{AuroraError, Result};
 
 /// ReplayGain values in their source units: dB for gains and linear values
 /// for peaks.  These names intentionally match the shared renderer type.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ReplayGainInfo {
     #[serde(rename = "trackDb", skip_serializing_if = "Option::is_none")]
     pub track_db: Option<f64>,
@@ -42,7 +43,7 @@ impl ReplayGainInfo {
 /// Rust equivalent of the renderer's `MusicMeta` plus read-only properties
 /// already returned by the native scanner.  Optional tag fields are omitted
 /// when absent, preserving the current `{}`/partial-object behaviour.
-#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AudioMetadata {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -177,6 +178,105 @@ pub fn read_audio_tags_json(path: &Path) -> Result<String> {
     Ok(serde_json::to_string(&read_audio_tags(path)?)?)
 }
 
+fn writable_extension(path: &Path) -> bool {
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| {
+            matches!(
+                ext.to_ascii_lowercase().as_str(),
+                "mp3" | "flac" | "ogg" | "opus"
+            )
+        })
+        .unwrap_or(false)
+}
+
+fn picture_mime(metadata: &AudioMetadata, data: &[u8]) -> MimeType {
+    if let Some(mime) = metadata
+        .picture_mime_type
+        .as_deref()
+        .map(MimeType::from_str)
+    {
+        return mime;
+    }
+
+    if data.starts_with(&[0xff, 0xd8, 0xff]) {
+        MimeType::Jpeg
+    } else if data.starts_with(b"\x89PNG\r\n\x1a\n") {
+        MimeType::Png
+    } else {
+        MimeType::Unknown("application/octet-stream".to_owned())
+    }
+}
+
+fn write_optional_text(tag: &mut Tag, key: ItemKey, value: Option<&String>) {
+    if let Some(value) = value
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+    {
+        tag.insert_text(key, value.to_owned());
+    }
+}
+
+/// Write the metadata fields supported by the native shadow path.
+///
+/// Only fields supplied by the caller are changed. Empty strings and invalid
+/// track numbers are ignored so existing tags are retained, matching the
+/// current TypeScript writers' partial-update semantics. A `false` result
+/// means the container is intentionally left to the TypeScript fallback.
+pub fn write_audio_tags(path: &Path, metadata: &AudioMetadata) -> Result<bool> {
+    if !writable_extension(path) {
+        return Ok(false);
+    }
+
+    let mut tagged = Probe::open(path)
+        .and_then(|probe| probe.read())
+        .map_err(|error| AuroraError::tag(path, error))?;
+
+    if tagged.primary_tag().is_none() {
+        let tag_type = tagged.primary_tag_type();
+        if !tagged.supports_tag_type(tag_type) {
+            return Ok(false);
+        }
+        tagged.insert_tag(Tag::new(tag_type));
+    }
+
+    let Some(tag) = tagged.primary_tag_mut() else {
+        return Err(AuroraError::tag(path, "primary tag is unavailable"));
+    };
+    write_optional_text(tag, ItemKey::TrackTitle, metadata.title.as_ref());
+    write_optional_text(tag, ItemKey::TrackArtist, metadata.artist.as_ref());
+    write_optional_text(tag, ItemKey::AlbumTitle, metadata.album.as_ref());
+    write_optional_text(tag, ItemKey::Lyrics, metadata.lyrics.as_ref());
+    if let Some(track_number) = metadata.track_number.filter(|value| *value > 0) {
+        tag.insert_text(ItemKey::TrackNumber, track_number.to_string());
+    }
+
+    if let Some(data) = metadata
+        .picture_data
+        .as_deref()
+        .filter(|data| !data.is_empty())
+    {
+        tag.remove_picture_type(PictureType::CoverFront);
+        tag.push_picture(Picture::new_unchecked(
+            PictureType::CoverFront,
+            Some(picture_mime(metadata, data)),
+            None,
+            data.to_vec(),
+        ));
+    }
+
+    tagged
+        .save_to_path(path, WriteOptions::default())
+        .map_err(|error| AuroraError::tag(path, error))?;
+    Ok(true)
+}
+
+/// JSON adapter used by the N-API writer bridge.
+pub fn write_audio_tags_json(path: &Path, json: &str) -> Result<bool> {
+    let metadata: AudioMetadata = serde_json::from_str(json)?;
+    write_audio_tags(path, &metadata)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -224,5 +324,48 @@ mod tests {
         assert_eq!(json.get("trackNumber").and_then(|v| v.as_u64()), Some(3));
         assert_eq!(json.get("duration").and_then(|v| v.as_u64()), Some(1));
         assert!(json.get("track_number").is_none());
+    }
+
+    #[test]
+    fn writes_supported_mp3_and_flac_without_mutating_fixtures() {
+        let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../test-assets/KUNYIN");
+        let cases = [
+            ("陈奕迅 - K歌之王.mp3", "aurora-core-write-test.mp3"),
+            (
+                "陈奕迅 - 富士山下 [16Bit-44.1kHz].flac",
+                "aurora-core-write-test.flac",
+            ),
+        ];
+
+        for (fixture, output_name) in cases {
+            let source = fixture_root.join(fixture);
+            if !source.is_file() {
+                // Keep the library crate testable from a source-only checkout.
+                continue;
+            }
+            let output =
+                std::env::temp_dir().join(format!("{}-{}", std::process::id(), output_name));
+            let _ = std::fs::remove_file(&output);
+            std::fs::copy(&source, &output).expect("copy metadata fixture");
+
+            let metadata = AudioMetadata {
+                title: Some("Rust 写入标题".to_owned()),
+                artist: Some("Rust 写入歌手".to_owned()),
+                album: Some("Rust 写入专辑".to_owned()),
+                track_number: Some(7),
+                lyrics: Some("[00:01.00]Rust lyrics".to_owned()),
+                ..AudioMetadata::default()
+            };
+            assert!(matches!(write_audio_tags(&output, &metadata), Ok(true)));
+            let parsed = read_audio_tags(&output)
+                .expect("read written metadata")
+                .expect("written fixture should be supported");
+            assert_eq!(parsed.title.as_deref(), metadata.title.as_deref());
+            assert_eq!(parsed.artist.as_deref(), metadata.artist.as_deref());
+            assert_eq!(parsed.album.as_deref(), metadata.album.as_deref());
+            assert_eq!(parsed.track_number, metadata.track_number);
+            assert_eq!(parsed.lyrics.as_deref(), metadata.lyrics.as_deref());
+            std::fs::remove_file(output).expect("remove metadata fixture copy");
+        }
     }
 }
