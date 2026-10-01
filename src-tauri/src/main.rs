@@ -2,6 +2,7 @@ use aurora_core::{
     lyrics::{parse_lrc, LyricLine},
     scan::{scan_dir, ScanResult},
     settings_io::{deep_merge, read_json, write_json_atomic},
+    sync,
 };
 use aurora_library::{Library, PlaylistOptions};
 use aurora_player::{PlaybackSession, PlaybackSnapshot};
@@ -295,6 +296,16 @@ fn audio_backend_capabilities() -> Value {
     serde_json::to_value(aurora_audio::probe_capabilities()).unwrap_or_else(|_| json!({}))
 }
 
+#[tauri::command]
+fn sync_normalize_base_url(url: String) -> Result<String, String> {
+    sync::normalize_base_url(&url).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn sync_validate_session(session_json: String) -> Result<Option<String>, String> {
+    sync::session_json(&session_json).map_err(|error| error.to_string())
+}
+
 fn main() {
     tauri::Builder::default()
         .manage(LibraryState::default())
@@ -320,7 +331,9 @@ fn main() {
             player_tick,
             player_stop,
             native_capabilities,
-            audio_backend_capabilities
+            audio_backend_capabilities,
+            sync_normalize_base_url,
+            sync_validate_session
         ])
         .run(tauri::generate_context!())
         .expect("failed to run the Tauri shell");

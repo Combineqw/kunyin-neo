@@ -27,6 +27,8 @@ type NativeBinding = {
   nativeAudioSnapshot?(): string
   audioDecryptQmc2Chunk?(ekey: string, fileOffset: number, chunk: Uint8Array): Uint8Array
   audioDecryptQmc2File?(path: string, ekey: string): boolean
+  syncNormalizeBaseUrl?(url: string): string
+  syncValidateSession?(sessionJson: string): string
 }
 
 export type NativeAudioBackendCapabilities = {
@@ -327,5 +329,28 @@ export function nativeAudioDecryptQmc2File(path: string, ekey: string): boolean 
     return call(path, ekey) === true
   } catch {
     return false
+  }
+}
+
+/** Optional native URL normalization for the LX sync protocol. */
+export function nativeSyncNormalizeBaseUrl(url: string): string | null {
+  try {
+    const call = loadBinding()?.syncNormalizeBaseUrl
+    if (typeof call !== 'function') return null
+    return call(url)
+  } catch {
+    return null
+  }
+}
+
+/** Optional native validation of the persisted LX sync session. */
+export function nativeSyncValidateSession<T extends object>(sessionJson: string): T | null {
+  try {
+    const call = loadBinding()?.syncValidateSession
+    if (typeof call !== 'function') return null
+    const raw = call(sessionJson)
+    return raw ? (JSON.parse(raw) as T | null) : null
+  } catch {
+    return null
   }
 }

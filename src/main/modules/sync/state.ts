@@ -6,6 +6,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import type { SyncClientStateStore, SyncSession } from './client'
 import { appDataPath } from '../../core/paths'
+import { nativeSyncValidateSession } from '../../native/bridge'
 
 function filePath(): string {
   return appDataPath('lx_sync_session.json')
@@ -16,6 +17,8 @@ export function createStateStore(): SyncClientStateStore {
     load(): SyncSession | null {
       try {
         const raw = readFileSync(filePath(), 'utf-8')
+        const native = nativeSyncValidateSession<SyncSession>(raw)
+        if (native) return native
         const o = JSON.parse(raw) as Partial<SyncSession>
         if (!o.clientId || !o.aesKey) return null
         return { clientId: o.clientId, aesKey: o.aesKey, serverName: o.serverName ?? '' }

@@ -6,6 +6,7 @@ pub mod lyrics;
 pub mod metadata;
 pub mod scan;
 pub mod settings_io;
+pub mod sync;
 
 pub use error::AuroraError;
 

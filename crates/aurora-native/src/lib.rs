@@ -9,7 +9,9 @@ use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
 
 use aurora_audio::{probe_capabilities, NativePlaybackEngine, Qmc2Decryptor};
-use aurora_core::{download::DownloadSession, lyrics, metadata, scan, settings_io, AuroraError};
+use aurora_core::{
+    download::DownloadSession, lyrics, metadata, scan, settings_io, sync, AuroraError,
+};
 use aurora_player::PlaybackSession;
 use napi::bindgen_prelude::Buffer;
 use napi_derive::napi;
@@ -430,4 +432,19 @@ pub fn settings_roundtrip(
 #[napi]
 pub fn native_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
+}
+
+/// Normalize an LX sync server URL while preserving the TypeScript fallback
+/// when the optional native module is unavailable.
+#[napi]
+pub fn sync_normalize_base_url(url: String) -> napi::Result<String> {
+    sync::normalize_base_url(&url).map_err(to_napi_error)
+}
+
+/// Validate and canonicalize a persisted LX sync session JSON document.
+/// `null` means that the session is absent or malformed.
+#[napi]
+pub fn sync_validate_session(session_json: String) -> napi::Result<String> {
+    let value = sync::session_json(&session_json).map_err(to_napi_error)?;
+    serde_json::to_string(&value).map_err(|error| napi::Error::from_reason(error.to_string()))
 }

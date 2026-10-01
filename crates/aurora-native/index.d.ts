@@ -65,3 +65,5 @@ export declare function readSettings(path: string): string
 export declare function writeSettings(path: string, settingsJson: string): boolean
 export declare function settingsRoundtrip(source: string, sandboxPath: string, keyPath: string, newValue: string): string
 export declare function nativeVersion(): string
+export declare function syncNormalizeBaseUrl(url: string): string
+export declare function syncValidateSession(sessionJson: string): string

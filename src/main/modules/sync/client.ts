@@ -19,6 +19,7 @@ import {
 } from './crypto'
 import { SyncRpc } from './rpc'
 import type { SyncListBridge } from './listBridge'
+import { nativeSyncNormalizeBaseUrl } from '../../native/bridge'
 
 export type SyncStatus = 'idle' | 'connecting' | 'syncing' | 'connected' | 'failed'
 export interface SyncSession {
@@ -161,6 +162,8 @@ export class SyncClient {
   }
 
   private normalizeBase(url: string): string {
+    const native = nativeSyncNormalizeBaseUrl(url)
+    if (native) return native
     const lower = url.toLowerCase()
     if (lower.startsWith('http://') || lower.startsWith('https://')) return url
     if (lower.startsWith('ws://')) return 'http://' + url.slice('ws://'.length)
