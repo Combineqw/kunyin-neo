@@ -10,6 +10,20 @@ type NativeBinding = {
   writeSettings(path: string, settingsJson: string): boolean
   readAudioTags(path: string): string
   writeAudioTags(path: string, metadataJson: string): unknown
+  playbackSnapshot?(): string
+  playbackLoad?(trackId: string, durationMs: number): string
+  playbackPlay?(): string
+  playbackPause?(): string
+  playbackSeek?(positionMs: number): string
+  playbackTick?(elapsedMs: number): string
+  playbackStop?(): string
+}
+
+export type NativePlaybackSnapshot = {
+  trackId: string | null
+  status: 'idle' | 'paused' | 'playing' | 'ended'
+  positionMs: number
+  durationMs: number
 }
 
 export type NativeScanTrack = {
@@ -154,4 +168,43 @@ export function nativeWriteAudioTags(path: string, metadata: object): boolean {
   } catch {
     return false
   }
+}
+
+function nativePlaybackCall(method: keyof Pick<NativeBinding, 'playbackSnapshot' | 'playbackLoad' | 'playbackPlay' | 'playbackPause' | 'playbackSeek' | 'playbackTick' | 'playbackStop'>, ...args: unknown[]): NativePlaybackSnapshot | null {
+  try {
+    const call = loadBinding()?.[method] as ((...params: unknown[]) => string) | undefined
+    if (typeof call !== 'function') return null
+    const raw = call(...args)
+    return raw ? (JSON.parse(raw) as NativePlaybackSnapshot) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativePlaybackSnapshot(): NativePlaybackSnapshot | null {
+  return nativePlaybackCall('playbackSnapshot')
+}
+
+export function nativePlaybackLoad(trackId: string, durationMs: number): NativePlaybackSnapshot | null {
+  return nativePlaybackCall('playbackLoad', trackId, Math.max(0, Math.round(durationMs)))
+}
+
+export function nativePlaybackPlay(): NativePlaybackSnapshot | null {
+  return nativePlaybackCall('playbackPlay')
+}
+
+export function nativePlaybackPause(): NativePlaybackSnapshot | null {
+  return nativePlaybackCall('playbackPause')
+}
+
+export function nativePlaybackSeek(positionMs: number): NativePlaybackSnapshot | null {
+  return nativePlaybackCall('playbackSeek', Math.max(0, Math.round(positionMs)))
+}
+
+export function nativePlaybackTick(elapsedMs: number): NativePlaybackSnapshot | null {
+  return nativePlaybackCall('playbackTick', Math.max(0, Math.round(elapsedMs)))
+}
+
+export function nativePlaybackStop(): NativePlaybackSnapshot | null {
+  return nativePlaybackCall('playbackStop')
 }

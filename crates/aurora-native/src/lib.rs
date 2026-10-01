@@ -3,9 +3,73 @@
 #![deny(clippy::unwrap_used)]
 
 use std::path::Path;
+use std::sync::{Mutex, OnceLock};
 
 use aurora_core::{lyrics, metadata, scan, settings_io, AuroraError};
+use aurora_player::PlaybackSession;
 use napi_derive::napi;
+
+static PLAYBACK_SESSION: OnceLock<Mutex<PlaybackSession>> = OnceLock::new();
+
+fn playback_session() -> &'static Mutex<PlaybackSession> {
+    PLAYBACK_SESSION.get_or_init(|| Mutex::new(PlaybackSession::default()))
+}
+
+fn playback_json(update: impl FnOnce(&mut PlaybackSession)) -> napi::Result<String> {
+    let mut session = playback_session()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("playback session lock poisoned"))?;
+    update(&mut session);
+    serde_json::to_string(&session.snapshot())
+        .map_err(|error| napi::Error::from_reason(error.to_string()))
+}
+
+#[napi]
+pub fn playback_snapshot() -> napi::Result<String> {
+    playback_json(|_| {})
+}
+
+#[napi]
+pub fn playback_load(track_id: String, duration_ms: i64) -> napi::Result<String> {
+    playback_json(|session| {
+        session.load(track_id, duration_ms.max(0) as u64);
+    })
+}
+
+#[napi]
+pub fn playback_play() -> napi::Result<String> {
+    playback_json(|session| {
+        session.play();
+    })
+}
+
+#[napi]
+pub fn playback_pause() -> napi::Result<String> {
+    playback_json(|session| {
+        session.pause();
+    })
+}
+
+#[napi]
+pub fn playback_seek(position_ms: i64) -> napi::Result<String> {
+    playback_json(|session| {
+        session.seek(position_ms.max(0) as u64);
+    })
+}
+
+#[napi]
+pub fn playback_tick(elapsed_ms: i64) -> napi::Result<String> {
+    playback_json(|session| {
+        session.tick(elapsed_ms.max(0) as u64);
+    })
+}
+
+#[napi]
+pub fn playback_stop() -> napi::Result<String> {
+    playback_json(|session| {
+        session.stop();
+    })
+}
 
 fn to_napi_error(error: AuroraError) -> napi::Error {
     napi::Error::from_reason(error.to_string())
@@ -34,8 +98,7 @@ pub fn read_audio_tags(path: String) -> napi::Result<String> {
 /// for containers whose primary tag type cannot be written by Lofty.
 #[napi]
 pub fn write_audio_tags(path: String, metadata_json: String) -> napi::Result<bool> {
-    metadata::write_audio_tags_json(Path::new(&path), &metadata_json)
-        .map_err(to_napi_error)
+    metadata::write_audio_tags_json(Path::new(&path), &metadata_json).map_err(to_napi_error)
 }
 
 #[napi]

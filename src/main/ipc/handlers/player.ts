@@ -6,7 +6,8 @@ import {
   type AudioStreamResult,
   type Lyric,
   type MediaInfoResult,
-  type MusicItem
+  type MusicItem,
+  getMusicItemKey
 } from '@common'
 import { handle } from '../helpers'
 import { getProvider } from '../../providers'
@@ -15,6 +16,7 @@ import { registerAudioStream } from '../../audio/protocol'
 import { getCachedLyric, setCachedLyric } from '../../cache/lyricCache'
 import { getRedirect } from '../../store/library'
 import { getKgFallbackLyric } from '../../providers/kg/lyric'
+import { nativePlaybackLoad } from '../../native/bridge-runtime.js'
 
 /**
  * 播放/歌词相关 IPC。
@@ -64,6 +66,7 @@ export function registerPlayerHandlers(): void {
           return { ok: false, url: '', expire: 0, quality: qualityId, reason: '本地文件不存在' }
         }
         const url = registerAudioStream({ filePath: item.filePath })
+        nativePlaybackLoad(getMusicItemKey(item), item.duration)
         return { ok: true, url, expire: 0, quality: qualityId }
       }
       const info = await resolveMedia(item, qualityId)
@@ -83,6 +86,7 @@ export function registerPlayerHandlers(): void {
         url: info.playUrl,
         ekey: info.encryptionInfo?.ekey
       })
+      nativePlaybackLoad(getMusicItemKey(item), item.duration)
       return { ok: true, url, expire: info.expire ?? 0, quality: info.quality || qualityId }
     }
   )

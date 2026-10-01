@@ -59,3 +59,42 @@ export function nativeWriteAudioTags(path, metadata) {
     return false
   }
 }
+
+function nativePlaybackCall(method, ...args) {
+  try {
+    const call = loadBinding()?.[method]
+    if (typeof call !== 'function') return null
+    const raw = call(...args)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativePlaybackSnapshot() {
+  return nativePlaybackCall('playbackSnapshot')
+}
+
+export function nativePlaybackLoad(trackId, durationMs) {
+  return nativePlaybackCall('playbackLoad', trackId, Math.max(0, Math.round(durationMs)))
+}
+
+export function nativePlaybackPlay() {
+  return nativePlaybackCall('playbackPlay')
+}
+
+export function nativePlaybackPause() {
+  return nativePlaybackCall('playbackPause')
+}
+
+export function nativePlaybackSeek(positionMs) {
+  return nativePlaybackCall('playbackSeek', Math.max(0, Math.round(positionMs)))
+}
+
+export function nativePlaybackTick(elapsedMs) {
+  return nativePlaybackCall('playbackTick', Math.max(0, Math.round(elapsedMs)))
+}
+
+export function nativePlaybackStop() {
+  return nativePlaybackCall('playbackStop')
+}

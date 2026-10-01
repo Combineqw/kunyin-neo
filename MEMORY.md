@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.19 — 2026-10-01】
+【kunyin-neo 项目记忆 v5.20 — 2026-10-01】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -19,7 +19,8 @@
   v5.16 M15 高频桥接与长列表降压修订记档：2026-10-01；
   v5.17 M16 冬季浅色与歌词桥接降频修订记档：2026-10-01；
   v5.18 M17 播放进度落盘降频修订记档：2026-10-01；
-  v5.19 M18 Rust 播放会话边界记档：2026-10-01）
+  v5.19 M18 Rust 播放会话边界记档：2026-10-01；
+  v5.20 M19 Electron 播放影子桥记档：2026-10-01）
 
 ◆ M17 播放进度落盘降频修订（2026-10-01）
 - 冬季主题名称调整为四字“冬日极光”，保留雪白浅色与冰蓝光带。
@@ -31,6 +32,12 @@
 - Rust 设置原子写路径新增 `aurora-core::settings_io::write_settings_json`、`aurora-native::write_settings` 与 Electron `persist()` 优先调用，native 不可用或失败时保留 Node 写路径回退。
 - `npm run native:build`、`npm run typecheck`、`node --check src-tauri/ui/main.js`、两套 Rust fmt/check/test 与 `git diff --check` 均通过。
 - 本步没有替换 Electron 的 HTMLAudioElement/Web Audio 输出，也没有把播放器、Provider、下载、加密、窗口或托盘描述为全量 Rust 化；不构成所有者验收通过结论。
+
+◆ M19 Electron 播放影子桥（2026-10-01，事实与回执）
+- `aurora-native` 新增进程级播放会话 N-API：snapshot/load/play/pause/seek/tick/stop；旧 `.node` 缺少这些可选导出时，TypeScript/JS bridge 自动返回 `null`，不阻断 Node fallback。
+- Electron `PLAYER_STREAM` 成功注册本地或在线流后，把歌曲身份和时长同步给 Rust；`MEDIA_SET_STATE` 的播放/暂停和退出清理同步到同一会话。HTMLAudioElement、Web Audio EQ/SRS/IRS 与现有音频协议仍负责实际声音输出。
+- Rust native sequence load/play/tick/pause/seek/stop 通过；`cargo check`、`npm run native:build`、`npm run typecheck`、`npm run native:compare`、`npm test`、`npm run build` 与 `git diff --check` 均通过。
+- 当前只建立生产状态边界，尚未迁移解码、设备输出、Provider、下载、加密、同步、窗口或托盘；不构成全软件 Rust 原生化完成或所有者验收通过结论。
 
 ◆ M16 冬季浅色与歌词桥接降频修订（2026-10-01）
 - 冬季极光主题切换为雪白浅色语义，使用深色文字与冰蓝光带，避免季节自动主题与深色界面冲突。

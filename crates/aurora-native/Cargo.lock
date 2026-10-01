@@ -32,9 +32,18 @@ name = "aurora-native"
 version = "0.1.0"
 dependencies = [
  "aurora-core",
+ "aurora-player",
  "napi",
  "napi-build",
  "napi-derive",
+ "serde_json",
+]
+
+[[package]]
+name = "aurora-player"
+version = "0.1.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
