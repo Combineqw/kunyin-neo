@@ -246,7 +246,7 @@ async function cyclePlayMode(): Promise<void> {
   flex: none;
   height: 100%;
   aspect-ratio: 1 / 1;
-  border-radius: var(--radius-border);
+  border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
 }
@@ -310,13 +310,16 @@ async function cyclePlayMode(): Promise<void> {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
   color: var(--color-button-font);
   opacity: 0.6;
   transition: opacity var(--anim-dur-fast) var(--anim-ease-smooth);
 }
 .act:hover:not(:disabled) {
   opacity: 1;
+  background-color: var(--color-button-background-hover);
 }
 .act.liked {
   color: var(--color-primary-font);
@@ -342,7 +345,7 @@ async function cyclePlayMode(): Promise<void> {
   left: 50%;
   transform: translateX(-50%);
   padding: 12px 8px;
-  border-radius: var(--radius-border);
+  border-radius: 14px;
   background-color: var(--color-content-background);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
 }
@@ -374,6 +377,11 @@ async function cyclePlayMode(): Promise<void> {
 }
 .ctrl {
   display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
   color: var(--color-button-font);
   transition: opacity var(--anim-dur-fast) var(--anim-ease-smooth);
 }
@@ -382,6 +390,12 @@ async function cyclePlayMode(): Promise<void> {
 }
 .play {
   display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background-color: var(--color-button-background);
   color: var(--color-primary-font);
 }
 .play:hover {

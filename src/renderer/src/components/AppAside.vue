@@ -102,8 +102,8 @@ onUnmounted(() => window.removeEventListener('resize', updateIndicator))
 .active-indicator {
   position: absolute;
   z-index: 1;
-  left: 7px;
-  right: 7px;
+  left: 6px;
+  right: 6px;
   border-radius: 16px;
   pointer-events: none;
   background-color: var(--color-primary-light-300-alpha-700);
@@ -122,9 +122,9 @@ onUnmounted(() => window.removeEventListener('resize', updateIndicator))
 }
 .link {
   position: absolute;
-  left: 0;
+  left: 6px;
   top: 0;
-  width: 100%;
+  width: calc(100% - 12px);
   height: 100%;
   display: flex;
   align-items: center;
@@ -132,6 +132,7 @@ onUnmounted(() => window.removeEventListener('resize', updateIndicator))
   color: var(--color-nav-font);
   cursor: pointer;
   outline: none;
+  border-radius: 12px;
   transition: opacity var(--anim-dur-fast) var(--anim-ease-smooth);
 }
 .link.active {

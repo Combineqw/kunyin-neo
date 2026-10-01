@@ -78,7 +78,6 @@ watch(
     radial-gradient(ellipse 70% 62% at 10% 5%, color-mix(in srgb, var(--aurora-c1) 86%, transparent), transparent 70%),
     radial-gradient(ellipse 68% 58% at 92% 12%, color-mix(in srgb, var(--aurora-c3) 82%, transparent), transparent 70%),
     radial-gradient(ellipse 80% 65% at 45% 100%, color-mix(in srgb, var(--aurora-c1) 58%, transparent), transparent 74%);
-  filter: saturate(1.12);
   animation: aurora-backdrop-drift var(--anim-dur-aurora) ease-in-out infinite alternate;
   transition: opacity var(--anim-dur-theme) var(--anim-ease-smooth);
 }
@@ -100,6 +99,8 @@ html.theme-dark[data-theme^='aurora'] .aurora-backdrop {
   flex: none;
   width: var(--width-aside);
   height: 100%;
+  border-radius: 18px;
+  overflow: hidden;
 }
 .area-main {
   flex: 1;
@@ -112,6 +113,10 @@ html.theme-dark[data-theme^='aurora'] .aurora-backdrop {
   box-shadow: var(--glass-shadow);
   border: 1px solid var(--glass-border);
   overflow: hidden;
+  /* The main surface covers most of the window. Keep its glass depth subtle so
+     scrolling does not repeatedly re-rasterize a large backdrop-filter region. */
+  --glass-regular-blur: 8px;
+  --glass-regular-saturation: 1.08;
 }
 .view {
   position: relative;
@@ -181,6 +186,12 @@ html[data-theme^='aurora'] .view {
   100% {
     opacity: 0;
     transform: translate3d(102%, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce), (max-width: 900px) {
+  .aurora-backdrop {
+    animation: none;
   }
 }
 </style>

@@ -57,7 +57,7 @@ const typeTabs = computed(() =>
   SEARCH_TYPES.filter((t) => supportedSearchTypes(source.value).includes(t.id))
 )
 const showTypeTabs = computed(() => typeTabs.value.length > 1)
-const STAGGER_LIMIT = 50
+const STAGGER_LIMIT = 12
 
 function staggerStyle(index: number): Record<string, string> {
   return { '--stagger-delay': `${index * 30}ms` }
@@ -124,7 +124,7 @@ watch(source, () => {
         @change="(id) => void searchStore.switchType(id as typeof searchType)"
       />
     </div>
-    <div class="body scroll">
+    <div class="body">
       <div
         v-if="loading && !(aggregateMode && aggregateSources.length)"
         class="skeleton-list"
@@ -370,13 +370,18 @@ watch(source, () => {
   border-bottom: var(--color-list-header-border-bottom);
 }
 .body {
-  flex: 1;
+  flex: 0 0 auto;
   min-height: 0;
   padding: 10px 15px 20px;
 }
 .list {
   display: flex;
   flex-direction: column;
+  gap: 2px;
+}
+.card-list > * {
+  content-visibility: auto;
+  contain-intrinsic-size: 60px;
 }
 .source-results + .source-results {
   margin-top: 12px;
@@ -486,6 +491,7 @@ watch(source, () => {
 .card-list {
   display: flex;
   flex-direction: column;
+  gap: 6px;
 }
 .card-row {
   display: flex;
@@ -493,8 +499,11 @@ watch(source, () => {
   gap: 12px;
   width: 100%;
   padding: 7px 8px;
-  border-radius: var(--radius-border);
+  min-height: 66px;
+  border: 1px solid color-mix(in srgb, var(--color-font) 7%, transparent);
+  border-radius: 12px;
   text-align: left;
+  background: color-mix(in srgb, var(--color-main-background) 38%, transparent);
   transition: opacity var(--anim-dur-fast) var(--anim-ease-smooth), transform var(--anim-dur-fast) var(--anim-ease-standard);
 }
 .card-row:hover {
@@ -504,7 +513,7 @@ watch(source, () => {
   flex: none;
   width: 52px;
   height: 52px;
-  border-radius: 8px;
+  border-radius: 10px;
   object-fit: cover;
   background: var(--color-primary-background);
 }

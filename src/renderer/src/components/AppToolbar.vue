@@ -151,7 +151,8 @@ onUnmounted(() => unsubscribeFullscreen?.())
   left: 0;
   right: 0;
   z-index: 50;
-  border-radius: var(--form-radius);
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-font) 10%, transparent);
   color: var(--color-button-font);
   background-color: var(--color-primary-light-300-alpha-700);
   transition: opacity var(--anim-dur-fast) var(--anim-ease-smooth);
@@ -161,11 +162,15 @@ onUnmounted(() => unsubscribeFullscreen?.())
   background-color: var(--color-primary-light-600-alpha-100);
   box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
 }
+.search-box.open {
+  border-radius: 16px;
+  overflow: hidden;
+}
 .form {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 30px;
+  height: 34px;
   padding: 0 10px;
 }
 .search-input {
@@ -199,6 +204,7 @@ onUnmounted(() => unsubscribeFullscreen?.())
   padding: 8px 10px;
   line-height: 1.3;
   color: var(--color-font);
+  border-radius: 8px;
   transition: background-color var(--anim-dur-fast) var(--anim-ease-smooth);
 }
 .dd-item:hover {
@@ -218,6 +224,8 @@ onUnmounted(() => unsubscribeFullscreen?.())
   justify-content: center;
   width: 46px;
   height: 30px;
+  margin: 0 3px;
+  border-radius: 999px;
   color: var(--color-font-label);
   transition: opacity var(--anim-dur-fast) var(--anim-ease-smooth);
 }
@@ -225,12 +233,12 @@ onUnmounted(() => unsubscribeFullscreen?.())
   color: #fff;
 }
 .win-btn.min:hover {
-  background-color: var(--color-btn-min);
+  background-color: color-mix(in srgb, var(--color-btn-min) 72%, transparent);
 }
 .win-btn.fullscreen:hover {
-  background-color: var(--color-btn-hide);
+  background-color: color-mix(in srgb, var(--color-btn-hide) 72%, transparent);
 }
 .win-btn.close:hover {
-  background-color: var(--color-btn-close);
+  background-color: color-mix(in srgb, var(--color-btn-close) 72%, transparent);
 }
 </style>

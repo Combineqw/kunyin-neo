@@ -16,7 +16,7 @@ const checks = [
   ],
   [
     'src/renderer/src/assets/base.css',
-    ['html.window-inactive .aurora-band', 'animation-play-state: paused', '--glass-thin-blur: 20px', '--glass-thick-blur: 60px']
+    ['html.window-inactive .aurora-band', 'animation-play-state: paused', '--glass-thin-blur: 10px', '--glass-thick-blur: 28px']
   ],
   [
     'src/renderer/src/theme/coverPalette.ts',
@@ -37,4 +37,4 @@ if (failures.length) {
   for (const failure of failures) console.error(`  ✗ ${failure}`)
   process.exit(1)
 }
-console.log('M3 地基接线检查通过：失焦暂停、玻璃 tokens、封面 HCT 取色均已接线')
+console.log('M3 地基接线检查通过：失焦暂停、低负载玻璃 tokens、封面 HCT 取色均已接线')

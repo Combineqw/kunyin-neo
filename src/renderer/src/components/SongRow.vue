@@ -269,6 +269,12 @@ function onSelect(key: string): void {
   /* transform/filter 过渡交给全局 .pressable；这里只留背景色，
      原来的 transition:none 会连带掐掉按压回弹。 */
   transition: background-color var(--anim-dur-fast) var(--anim-ease-smooth);
+  margin: 3px 0;
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, var(--color-font) 7%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-main-background) 38%, transparent);
+  contain: layout;
 }
 .song-row:hover {
   background-color: var(--color-primary-background-hover);
@@ -294,7 +300,7 @@ function onSelect(key: string): void {
   flex: none;
   width: 52px;
   height: 52px;
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
   background: var(--color-primary-background);
 }
@@ -374,8 +380,10 @@ function onSelect(key: string): void {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 5px 7px;
-  border-radius: var(--form-radius);
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 999px;
   color: var(--color-button-font);
   transition: background-color var(--anim-dur-fast) var(--anim-ease-smooth);
 }

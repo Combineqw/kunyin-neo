@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import DetailHeader from '../components/DetailHeader.vue'
 import SongRow from '../components/SongRow.vue'
@@ -14,37 +14,71 @@ const library = useLibraryStore()
 const info = ref<{ name: string; cover?: string; creator?: string; total?: number }>({ name: '' })
 const tracks = ref<MusicItem[]>([])
 const loading = ref(false)
+const loadingMore = ref(false)
+const hasMore = ref(false)
+const loadMoreTarget = ref<HTMLElement>()
 let loadSerial = 0
+let onlinePage = 0
+let loadMoreObserver: IntersectionObserver | undefined
 
-/**
- * 在线歌单接口按页返回歌曲。详情页此前只取第一页；接口在歌曲详情补全失败、
- * 限流或返回稀疏结果时，首屏可能只有几行，既看起来像不能滚动，也漏掉后续歌曲。
- * 这里在进入详情时把分页结果合并，列表滚动仍由布局层的 .view 统一处理。
- */
-async function loadOnlineTracks(source: MusicSource, id: string): Promise<MusicItem[]> {
-  const all: MusicItem[] = []
-  const seen = new Set<string>()
+async function loadOnlinePage(
+  source: MusicSource,
+  id: string,
+  page: number
+): Promise<{ result: MusicItem[]; hasNext: boolean }> {
+  const response = await window.api.discover.playlistSongs(source, id, page, 100)
+  return { result: response.result, hasNext: response.hasNext && response.result.length > 0 }
+}
 
-  // 100 页是防护上限，正常歌单只需数次请求；hasNext 由 provider 根据真实总数给出。
-  for (let page = 0; page < 100; page++) {
-    const res = await window.api.discover.playlistSongs(source, id, page, 100)
-    for (const item of res.result) {
+function observeLoadMoreTarget(): void {
+  loadMoreObserver?.disconnect()
+  const target = loadMoreTarget.value
+  if (!target || !hasMore.value) return
+  loadMoreObserver = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) void loadMore()
+    },
+    { rootMargin: '320px 0px' }
+  )
+  loadMoreObserver.observe(target)
+}
+
+async function loadMore(): Promise<void> {
+  const source = route.query.source as MusicSource | undefined
+  if (!source || loading.value || loadingMore.value || !hasMore.value) return
+  const serial = loadSerial
+  const id = String(route.params.playlistId)
+  loadingMore.value = true
+  const page = onlinePage + 1
+  try {
+    const response = await loadOnlinePage(source, id, page)
+    if (serial !== loadSerial) return
+    const known = new Set(tracks.value.map((item) => getMusicItemKey(item)))
+    const appended = response.result.filter((item) => {
       const key = getMusicItemKey(item)
-      if (seen.has(key)) continue
-      seen.add(key)
-      all.push(item)
+      if (known.has(key)) return false
+      known.add(key)
+      return true
+    })
+    tracks.value = appended.length ? [...tracks.value, ...appended] : tracks.value
+    onlinePage = page
+    hasMore.value = response.hasNext
+  } finally {
+    if (serial === loadSerial) {
+      loadingMore.value = false
+      await nextTick()
+      observeLoadMoreTarget()
     }
-    // Providers should report hasNext accurately, but an empty page is always
-    // a terminal condition and prevents a broken endpoint from causing 100
-    // redundant requests while opening the detail page.
-    if (!res.hasNext || !res.result.length) break
   }
-  return all
 }
 
 async function load(): Promise<void> {
   const serial = ++loadSerial
   loading.value = true
+  loadingMore.value = false
+  hasMore.value = false
+  onlinePage = 0
+  loadMoreObserver?.disconnect()
   tracks.value = []
   const source = route.query.source as MusicSource | undefined
   const id = String(route.params.playlistId)
@@ -55,8 +89,11 @@ async function load(): Promise<void> {
       info.value = detail
         ? { name: detail.name, cover: detail.cover, creator: detail.creator, total: detail.total }
         : { name: '歌单' }
-      const result = await loadOnlineTracks(source, id)
-      if (serial === loadSerial) tracks.value = result
+      const result = await loadOnlinePage(source, id, 0)
+      if (serial === loadSerial) {
+        tracks.value = result.result
+        hasMore.value = result.hasNext
+      }
     } else {
       // 本地歌单
       const pid = Number(id)
@@ -66,11 +103,16 @@ async function load(): Promise<void> {
       if (serial === loadSerial) tracks.value = result
     }
   } finally {
-    if (serial === loadSerial) loading.value = false
+    if (serial === loadSerial) {
+      loading.value = false
+      await nextTick()
+      observeLoadMoreTarget()
+    }
   }
 }
 
 watch(() => [route.params.playlistId, route.query.source], load, { immediate: true })
+onBeforeUnmount(() => loadMoreObserver?.disconnect())
 
 function isActive(item: MusicItem): boolean {
   return !!player.current && getMusicItemKey(player.current) === getMusicItemKey(item)
@@ -110,6 +152,10 @@ function playAll(): void {
         :active="isActive(t)"
         @play="play(t)"
       />
+      <div ref="loadMoreTarget" class="load-more" aria-live="polite">
+        <span v-if="loadingMore">加载更多…</span>
+        <span v-else-if="hasMore">继续滚动以加载更多</span>
+      </div>
     </div>
   </div>
 </template>
@@ -124,6 +170,17 @@ function playAll(): void {
 .list {
   display: flex;
   flex-direction: column;
+}
+.list > :deep(.song-row) {
+  content-visibility: auto;
+  contain-intrinsic-size: 60px;
+}
+.load-more {
+  min-height: 30px;
+  padding: 10px 0;
+  text-align: center;
+  color: var(--color-font-label);
+  font-size: 12px;
 }
 .hint {
   padding: 20px 0;

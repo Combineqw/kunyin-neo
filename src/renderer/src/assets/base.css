@@ -46,9 +46,9 @@
   --width-aside: 64px;
   --height-toolbar: 54px;
   --height-player: 66px;
-  --radius-border: 4px;
-  --form-radius: 3px;
-  --radius-progress: 5px;
+  --radius-border: 12px;
+  --form-radius: 10px;
+  --radius-progress: 999px;
   --transition-fast: 0.3s ease;
   --transition-normal: 0.4s ease;
   --transition-slow: 0.6s ease;
@@ -89,7 +89,7 @@
   --aurora-c1: #f2e7fd;
   --aurora-c3: #e3f6fd;
   --aurora-glow: rgba(242, 231, 253, 0.5);
-  --anim-dur-aurora: 7s;
+  --anim-dur-aurora: 14s;
 
   /* ---- 玻璃基础（M3 色彩总线） ----
      三档只改变材质厚度；组件使用 .glass-surface 选择档位，不直接写透明度。
@@ -97,12 +97,12 @@
   --glass-thin-background: color-mix(in srgb, var(--color-main-background) 62%, transparent);
   --glass-regular-background: color-mix(in srgb, var(--color-main-background) 76%, transparent);
   --glass-thick-background: color-mix(in srgb, var(--color-main-background) 90%, transparent);
-  --glass-thin-blur: 20px;
-  --glass-regular-blur: 40px;
-  --glass-thick-blur: 60px;
-  --glass-thin-saturation: 1.4;
-  --glass-regular-saturation: 1.6;
-  --glass-thick-saturation: 1.8;
+  --glass-thin-blur: 10px;
+  --glass-regular-blur: 18px;
+  --glass-thick-blur: 28px;
+  --glass-thin-saturation: 1.08;
+  --glass-regular-saturation: 1.12;
+  --glass-thick-saturation: 1.16;
   --glass-border: color-mix(in srgb, var(--color-font) 16%, transparent);
   --glass-highlight: color-mix(in srgb, white 44%, transparent);
   --glass-shadow: 0 14px 36px rgba(0, 0, 0, 0.16);
@@ -340,7 +340,7 @@ body {
   background-size: var(--background-image-size);
   background-color: var(--color-content-background);
   /* 主窗口使用透明 BrowserWindow：圆角在内容层裁切，保留圆角但不带 Windows DWM 蓝边/阴影。 */
-  border-radius: 10px;
+  border-radius: 16px;
   overflow: hidden;
   transition: none;
 }
@@ -684,13 +684,13 @@ html[data-theme^='aurora'].theme-dark .aurora-divider::after {
 }
 .scroll::-webkit-scrollbar-track {
   background-color: color-mix(in srgb, var(--color-primary-light-100) 18%, transparent);
-  border-radius: 5px;
+  border-radius: 999px;
 }
 .scroll::-webkit-scrollbar-thumb {
   min-height: 42px;
   border: 2px solid transparent;
   background-clip: padding-box;
-  border-radius: 5px;
+  border-radius: 999px;
   background-color: var(--color-primary-alpha-700);
   transition: none;
 }

@@ -24,6 +24,8 @@ export function useMiniPlayerBridge(): void {
   const library = useLibraryStore()
   const { current, playing, currentTime, duration } = storeToRefs(player)
   let syncTimer: ReturnType<typeof setInterval> | null = null
+  let cachedTrack: unknown = undefined
+  let cachedItem: MiniPlayerState['item'] = null
 
   function enabled(): boolean {
     return settings.settings.player.miniPlayerEnabled
@@ -32,9 +34,16 @@ export function useMiniPlayerBridge(): void {
   function push(): void {
     if (!enabled()) return
     const track = current.value
+    // The track object is stable while it plays. Clone it only when the
+    // current item changes; cloning it on every progress tick creates a large
+    // amount of short-lived JSON data and keeps the renderer's GC busy.
+    if (track !== cachedTrack) {
+      cachedTrack = track
+      cachedItem = track ? JSON.parse(JSON.stringify(track)) : null
+    }
     const state: MiniPlayerState = {
       hasTrack: !!track,
-      item: track ? JSON.parse(JSON.stringify(track)) : null,
+      item: cachedItem,
       liked: !!track && library.isFavorite(track),
       title: track?.title ?? '',
       artist: track?.artist ?? '',
@@ -49,7 +58,7 @@ export function useMiniPlayerBridge(): void {
   function syncTimerState(): void {
     if (syncTimer) clearInterval(syncTimer)
     syncTimer = null
-    if (enabled() && playing.value) syncTimer = setInterval(push, 80)
+    if (enabled() && playing.value) syncTimer = setInterval(push, 100)
   }
 
   watch(current, push)
