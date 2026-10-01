@@ -37,7 +37,7 @@
     <main>
       <p class="eyebrow">NATIVE RUST MIGRATION · M10</p>
       <h1>Kunyin Native Rust</h1>
-      <p>原生后端纵向切片：设置、曲库扫描和歌词解析均通过 Tauri command 调用共享的 aurora-core。</p>
+      <p>原生后端纵向切片：设置、曲库扫描、歌词解析和曲库搜索均通过 Tauri command 调用共享的 Rust 核心。</p>
       <div class="grid">
         <section class="card">
           <h2>歌词解析</h2>
@@ -56,6 +56,7 @@
           <h2>SQLite 本地曲库</h2>
           <div class="field"><input id="playlist-name" type="text" placeholder="新建歌单名称" /><button id="create-playlist" type="button">新建</button></div>
           <div class="toolbar"><button id="list-playlists" type="button">刷新歌单</button><select id="playlist-select" aria-label="选择歌单"></select><button id="load-songs" type="button">读取曲目</button></div>
+          <div class="field"><input id="library-search" type="search" placeholder="搜索标题、歌手或专辑" /><button id="search-songs" type="button">搜索</button></div>
           <p id="library-status" class="status" role="status"></p>
           <pre id="library-output">等待读取</pre>
         </section>

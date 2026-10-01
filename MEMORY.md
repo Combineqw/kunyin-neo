@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.26 — 2026-10-02】
+【kunyin-neo 项目记忆 v5.27 — 2026-10-02】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -25,7 +25,15 @@
   v5.22 M21 Rust 本地音频解码记档：2026-10-02；
   v5.23 M22 Windows WASAPI 共享输出边界记档：2026-10-02；
   v5.24 M23 Rust 本地播放纵向切片记档：2026-10-02；
-  v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02）
+  v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
+  v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02）
+
+◆ M26 Rust FTS5 本地曲库搜索（2026-10-02，事实与回执）
+- `aurora-library` schema 从 v9 升到 v10，新增 SQLite FTS5 `song_search` 索引；歌曲写入、批量写入和 schema 迁移均保持索引一致，索引可从 canonical `songs.song_json` 重建。
+- `Library::search_songs(query, limit, offset)` 对英文长词使用字面化 FTS5 MATCH/BM25；中文、非 ASCII 或短词使用参数化、转义通配符的 LIKE 回退，避免 unicode61 对连续汉字分词导致空结果，也不把用户输入解释为 FTS 操作符。
+- Tauri 新增只读 `library_search_songs(query, limit, offset)` command，复用现有 provider JSON DTO；验证壳提供搜索入口和分页参数，native capabilities 不再将 search 列为 pending。
+- 回归：`cargo fmt`、`cargo test --manifest-path crates/aurora-library/Cargo.toml`（5/5）、`cargo test --manifest-path src-tauri/Cargo.toml`（1/1）、`npm run typecheck`、`npm test`、`npm run native:compare`、`npm run build`、`npm run build:win` 与 `git diff --check` 均通过。影子对比 scan 58/58、lyrics 4677/4677、settings 1595/1595 均一致。
+- Windows 安装包 `dist/kunyin-desktop-1.0.7-setup.exe`：99,069,011 B，SHA-256 `FFB34189BB304DF9EBFC1D1D4B9624F2C03F1CC10616842E58620E162B5B40F8`。本里程碑只交付本地搜索 Rust slice；远程 Provider、认证、同步、完整播放/DSP、窗口和托盘仍未全部迁移，不替用户下最终验收结论。
 
 ◆ M25 Rust 下载解密降内存（2026-10-02，事实与回执）
 - `aurora-native` 新增 `audioDecryptQmc2File(path, ekey)`，使用 256 KiB 有界缓冲区按绝对文件偏移原地处理 QQ `mflac`/`mgg` 下载文件，避免 TypeScript 旧路径读入整文件并同时保留明文副本。

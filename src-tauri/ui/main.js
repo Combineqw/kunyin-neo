@@ -115,6 +115,22 @@ document.getElementById('load-songs').addEventListener('click', async () => {
   }
 })
 
+document.getElementById('search-songs').addEventListener('click', async () => {
+  const query = document.getElementById('library-search').value.trim()
+  if (!query) {
+    libraryStatus.textContent = '请输入搜索词'
+    return
+  }
+  try {
+    const songs = await invoke('library_search_songs', { query, limit: 50, offset: 0 })
+    libraryOutput.textContent = JSON.stringify(songs, null, 2)
+    libraryStatus.textContent = `搜索到 ${songs.length} 首歌曲`
+  } catch (error) {
+    libraryStatus.textContent = '搜索失败'
+    libraryOutput.textContent = String(error)
+  }
+})
+
 document.getElementById('read-metadata').addEventListener('click', async () => {
   const path = document.getElementById('metadata-path').value.trim()
   const status = document.getElementById('metadata-status')

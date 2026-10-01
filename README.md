@@ -54,6 +54,7 @@
 | M18-M21 Rust 播放与解码边界 | 播放会话、Electron 播放影子桥、Symphonia 本地解码 | 已完成边界，实际声音仍由 HTMLAudio 输出        |
 | M22 Rust 设备输出 | Windows CPAL/WASAPI shared 默认设备、有界 PCM 队列、输出快照 | 已完成输出边界，尚未接入生产播放生命周期      |
 | M23 Rust 本地播放 | Symphonia 解码、CPAL/WASAPI shared 输出、播放控制与快照；本地文件原生优先、失败回退 HTMLAudio | 已完成纵向切片；远程/加密流与 DSP 仍由现有路径负责 |
+| M26 Rust 本地搜索 | SQLite FTS5 索引、中文安全回退、分页查询与 Tauri command | 已完成本地搜索切片；远程 Provider、认证和同步仍由 Electron 负责 |
 | 同源测试      | 将本地音乐纯逻辑抽到 `core.ts`，生产入口与 shadow 扫描共用源码       | 已完成，消除扫描模块的复刻副本漂移              |
 | 回归样本      | 固化扫描 8 条、歌词 15 条、设置回环 10 条边界用例                    | 存档记录为 33/33 PASS；用例生成与执行比对需区分 |
 | 打包修复      | 修正平台级 `files` 覆盖顶层白名单，排除测试素材、Rust 工程和工具目录 | 历史 asar 从 2844.5 MB 降至 22.2 MB             |
@@ -182,6 +183,15 @@ M25 adds a bounded-buffer Rust path for completed QQ encrypted downloads.
 the absolute offset semantics while avoiding the previous full-file read and
 second full-file allocation. Electron uses it when available and falls back to
 the existing TypeScript decryptor for older bindings or unsupported keys.
+
+M26 adds a Rust SQLite FTS5 index for local-library search. Song writes and
+schema migration rebuild the denormalized index from canonical JSON payloads;
+ASCII queries use literalized FTS5 matching with BM25 ordering, while Chinese,
+non-ASCII, and short terms use an escaped parameterized `LIKE` fallback so
+substring search remains useful with SQLite's unicode61 tokenizer. The Tauri
+validation shell exposes the paginated `library_search_songs` command and keeps
+the existing JSON DTO shape. Remote providers, authentication, synchronization,
+and the Electron production shell remain staged migration work.
 
 M11 also routes Electron's local enrichment, tag reads, and local-library
 health probes through the Rust metadata bridge first. The existing TypeScript

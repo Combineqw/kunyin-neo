@@ -6,10 +6,10 @@
 
 use std::path::Path;
 
-use rusqlite::{params, Connection, OptionalExtension, Transaction};
+use rusqlite::{params, params_from_iter, Connection, OptionalExtension, Transaction};
 use serde::{Deserialize, Serialize};
 
-pub const SCHEMA_VERSION: i64 = 9;
+pub const SCHEMA_VERSION: i64 = 10;
 pub const SYSTEM_KIND_TRIAL: &str = "trial";
 pub const SYSTEM_KIND_FAVORITES: &str = "favorites";
 pub const SYSTEM_TRIAL_NAME: &str = "试听列表";
@@ -257,7 +257,61 @@ impl Library {
             "INSERT OR REPLACE INTO songs (song_id, source, song_json) VALUES (?1, ?2, ?3)",
             params![song.id, song.source, song.song_json],
         )?;
+        index_song(&self.connection, song)?;
         Ok(())
+    }
+
+    /// Search indexed local/provider songs without parsing every JSON row in
+    /// the host process. The query is treated as a sequence of literal terms
+    /// joined with AND, so punctuation cannot turn into FTS operators.
+    pub fn search_songs(
+        &self,
+        query: &str,
+        limit: usize,
+        offset: usize,
+    ) -> Result<Vec<SongRecord>> {
+        let match_query = literal_match_query(query);
+        if match_query.is_empty() || limit == 0 {
+            return Ok(Vec::new());
+        }
+        let limit = i64::try_from(limit)
+            .map_err(|_| LibraryError::InvalidSong("搜索结果上限过大".into()))?;
+        let offset =
+            i64::try_from(offset).map_err(|_| LibraryError::InvalidSong("搜索偏移过大".into()))?;
+
+        // SQLite's default unicode61 tokenizer treats a contiguous CJK title as
+        // one token, so a short Chinese query such as "江南" cannot match a
+        // title containing "春日江南". Keep the indexed FTS path for the
+        // common ASCII case and use a parameterized substring fallback for
+        // non-ASCII or short terms. This keeps terms literal and avoids
+        // exposing user input as SQL or FTS syntax.
+        let terms = query
+            .split_whitespace()
+            .filter(|term| !term.is_empty())
+            .collect::<Vec<_>>();
+        if terms
+            .iter()
+            .any(|term| term.chars().count() < 3 || !term.is_ascii())
+        {
+            return search_songs_like(&self.connection, &terms, limit, offset);
+        }
+        let mut statement = self.connection.prepare(
+            "SELECT s.song_id, s.source, s.song_json
+             FROM song_search idx
+             INNER JOIN songs s ON idx.song_id = s.song_id AND idx.source = s.source
+             WHERE song_search MATCH ?1
+             ORDER BY bm25(song_search), s.song_id, s.source
+             LIMIT ?2 OFFSET ?3",
+        )?;
+        let rows = statement.query_map(params![match_query, limit, offset], |row| {
+            Ok(SongRecord {
+                id: row.get(0)?,
+                source: row.get(1)?,
+                song_json: row.get(2)?,
+            })
+        })?;
+        rows.collect::<rusqlite::Result<Vec<_>>>()
+            .map_err(Into::into)
     }
 
     pub fn add_to_playlist(
@@ -308,6 +362,7 @@ impl Library {
                     "INSERT OR REPLACE INTO songs (song_id, source, song_json) VALUES (?1, ?2, ?3)",
                     params![song.id, song.source, song.song_json],
                 )?;
+                index_song(&tx, song)?;
                 added += 1;
                 position += 1;
             } else {
@@ -461,6 +516,7 @@ fn insert_songs(
             "INSERT OR REPLACE INTO songs (song_id, source, song_json) VALUES (?1, ?2, ?3)",
             params![song.id, song.source, song.song_json],
         )?;
+        index_song(tx, song)?;
         tx.execute(
             "INSERT OR IGNORE INTO playlist_songs (playlist_id, song_id, source, added_at, position)
              VALUES (?1, ?2, ?3, ?4, ?5)",
@@ -531,6 +587,9 @@ fn create_schema(connection: &Connection) -> Result<()> {
          CREATE INDEX IF NOT EXISTS idx_song_metadata_genre ON song_metadata(genre);
          CREATE TABLE IF NOT EXISTS recommendation_cache (
            cache_key TEXT PRIMARY KEY, payload_json TEXT NOT NULL, updated_at INTEGER NOT NULL
+         );
+         CREATE VIRTUAL TABLE IF NOT EXISTS song_search USING fts5(
+           song_id UNINDEXED, source UNINDEXED, title, artist, album
          );",
     )?;
     Ok(())
@@ -565,9 +624,119 @@ fn migrate_schema(connection: &Connection) -> Result<()> {
     }
     let current: i64 = connection.pragma_query_value(None, "user_version", |row| row.get(0))?;
     if current < SCHEMA_VERSION {
+        rebuild_search_index(connection)?;
         connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
     }
     Ok(())
+}
+
+/// Keep the FTS index in sync with the canonical JSON song table. The index is
+/// intentionally denormalized and can always be rebuilt during migration.
+fn index_song(connection: &Connection, song: &SongRecord) -> Result<()> {
+    let value: serde_json::Value = serde_json::from_str(&song.song_json)
+        .map_err(|error| LibraryError::InvalidSong(error.to_string()))?;
+    let text = |key: &str| {
+        value
+            .get(key)
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or_default()
+    };
+    connection.execute(
+        "DELETE FROM song_search WHERE song_id = ?1 AND source = ?2",
+        params![song.id, song.source],
+    )?;
+    connection.execute(
+        "INSERT INTO song_search (song_id, source, title, artist, album)
+         VALUES (?1, ?2, ?3, ?4, ?5)",
+        params![
+            song.id,
+            song.source,
+            text("title"),
+            text("artist"),
+            text("album")
+        ],
+    )?;
+    Ok(())
+}
+
+fn rebuild_search_index(connection: &Connection) -> Result<()> {
+    connection.execute("DELETE FROM song_search", [])?;
+    let songs = {
+        let mut statement = connection.prepare("SELECT song_id, source, song_json FROM songs")?;
+        let rows = statement.query_map([], |row| {
+            Ok(SongRecord {
+                id: row.get(0)?,
+                source: row.get(1)?,
+                song_json: row.get(2)?,
+            })
+        })?;
+        rows.collect::<rusqlite::Result<Vec<_>>>()?
+    };
+    for song in songs {
+        index_song(connection, &song)?;
+    }
+    Ok(())
+}
+
+fn literal_match_query(query: &str) -> String {
+    query
+        .split_whitespace()
+        .filter(|term| !term.is_empty())
+        .map(|term| format!("\"{}\"", term.replace('"', "\"\"")))
+        .collect::<Vec<_>>()
+        .join(" AND ")
+}
+
+fn search_songs_like(
+    connection: &Connection,
+    terms: &[&str],
+    limit: i64,
+    offset: i64,
+) -> Result<Vec<SongRecord>> {
+    let clauses = terms
+        .iter()
+        .enumerate()
+        .map(|(index, _)| {
+            let title = index * 3 + 1;
+            let artist = title + 1;
+            let album = title + 2;
+            format!(
+                "(idx.title LIKE ?{title} ESCAPE '\\' OR idx.artist LIKE ?{artist} ESCAPE '\\' OR idx.album LIKE ?{album} ESCAPE '\\')"
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(" AND ");
+    let sql = format!(
+        "SELECT s.song_id, s.source, s.song_json
+         FROM song_search idx
+         INNER JOIN songs s ON idx.song_id = s.song_id AND idx.source = s.source
+         WHERE {clauses}
+         ORDER BY s.song_id, s.source
+         LIMIT {limit} OFFSET {offset}"
+    );
+    let values = terms
+        .iter()
+        .flat_map(|term| {
+            let value = format!("%{}%", escape_like_term(term));
+            [value.clone(), value.clone(), value]
+        })
+        .collect::<Vec<_>>();
+    let mut statement = connection.prepare(&sql)?;
+    let rows = statement.query_map(params_from_iter(values.iter()), |row| {
+        Ok(SongRecord {
+            id: row.get(0)?,
+            source: row.get(1)?,
+            song_json: row.get(2)?,
+        })
+    })?;
+    rows.collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(Into::into)
+}
+
+fn escape_like_term(term: &str) -> String {
+    term.replace('\\', "\\\\")
+        .replace('%', "\\%")
+        .replace('_', "\\_")
 }
 
 fn seed_system_playlists(connection: &Connection) -> Result<()> {
@@ -617,6 +786,32 @@ mod tests {
             Some(SYSTEM_KIND_FAVORITES)
         );
         assert!(playlists.iter().all(|playlist| playlist.is_system));
+    }
+
+    #[test]
+    fn fts_search_matches_literal_song_fields_and_paginates() {
+        let library = Library::open_in_memory().unwrap();
+        library
+            .upsert_song(&song(1, "春日江南"))
+            .expect("index first song");
+        library
+            .upsert_song(
+                &SongRecord::from_json(
+                    r#"{"id":2,"type":"local","title":"秋夜","artist":"江南乐队","album":"现场"}"#,
+                )
+                .unwrap(),
+            )
+            .expect("index second song");
+
+        let matches = library.search_songs("江南", 10, 0).expect("search");
+        assert_eq!(
+            matches.iter().map(|item| item.id).collect::<Vec<_>>(),
+            vec![1, 2]
+        );
+        let page = library.search_songs("江南", 1, 1).expect("page");
+        assert_eq!(page.len(), 1);
+        assert_eq!(library.search_songs("title:江南", 10, 0).unwrap().len(), 0);
+        assert!(library.search_songs("   ", 10, 0).unwrap().is_empty());
     }
 
     #[test]

@@ -14,7 +14,8 @@ cargo run --manifest-path src-tauri/Cargo.toml
 ```
 
 The frontend exercises `parse_lyrics`, `scan_library`, `read_settings`,
-`update_settings`, `read_audio_metadata`, the `library_*` commands, and
-`native_capabilities`. Tauri and tauri-build are pinned to stable v2 releases
-in `Cargo.toml`. The bundle target is enabled in `tauri.conf.json`; use the
-Tauri CLI to produce the platform installer.
+`update_settings`, `read_audio_metadata`, the `library_*` commands (including
+the paginated read-only `library_search_songs(query, limit, offset)` command),
+and `native_capabilities`. Tauri and tauri-build are pinned to stable v2
+releases in `Cargo.toml`. The bundle target is enabled in `tauri.conf.json`;
+use the Tauri CLI to produce the platform installer.

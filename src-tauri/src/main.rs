@@ -163,6 +163,29 @@ fn library_query_songs(
 }
 
 #[tauri::command]
+fn library_search_songs(
+    app: AppHandle,
+    state: State<'_, LibraryState>,
+    query: String,
+    limit: usize,
+    offset: usize,
+) -> Result<Vec<Value>, String> {
+    with_library(&app, &state, |library| {
+        library
+            .search_songs(&query, limit, offset)
+            .map_err(|error| error.to_string())
+            .and_then(songs_to_values)
+    })
+}
+
+fn songs_to_values(songs: Vec<aurora_library::SongRecord>) -> Result<Vec<Value>, String> {
+    songs
+        .into_iter()
+        .map(|song| serde_json::from_str(&song.song_json).map_err(|error| error.to_string()))
+        .collect()
+}
+
+#[tauri::command]
 fn library_remove_song(
     app: AppHandle,
     state: State<'_, LibraryState>,
@@ -262,7 +285,7 @@ fn native_capabilities() -> Value {
         "host": "tauri",
         "backend": "rust",
         "implemented": ["settings", "scan", "lyrics", "library", "audio_metadata", "playback_session"],
-        "pending": ["search", "playback_audio_backend", "downloads", "desktop_windows"],
+        "pending": ["playback_audio_backend", "downloads", "desktop_windows"],
         "productionReady": false
     })
 }
@@ -286,6 +309,7 @@ fn main() {
             library_create_playlist,
             library_add_song,
             library_query_songs,
+            library_search_songs,
             library_remove_song,
             library_move_song,
             player_snapshot,
@@ -300,4 +324,19 @@ fn main() {
         ])
         .run(tauri::generate_context!())
         .expect("failed to run the Tauri shell");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::songs_to_values;
+    use aurora_library::SongRecord;
+
+    #[test]
+    fn search_results_keep_provider_json_shape() {
+        let songs =
+            vec![SongRecord::from_json(r#"{"id":7,"type":"local","title":"江南"}"#).unwrap()];
+        let values = songs_to_values(songs).unwrap();
+        assert_eq!(values[0]["id"], 7);
+        assert_eq!(values[0]["title"], "江南");
+    }
 }
