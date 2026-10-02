@@ -224,7 +224,7 @@ function parseRangeStart(range: string | null): number {
 /** 用 Web TransformStream 边下边解密（按文件偏移喂流密码，天然支持 Range） */
 function decryptStream(
   src: ReadableStream<Uint8Array>,
-  decryptor: AudioDecryptor | null,
+  fallbackFactory: (() => AudioDecryptor | null) | null,
   startOffset: number,
   ekey?: string,
   nativeStreamId?: number | null,
@@ -232,6 +232,7 @@ function decryptStream(
 ): ReadableStream<Uint8Array> {
   let offset = startOffset
   let nativeUnavailable = false
+  let fallbackDecryptor: AudioDecryptor | null = null
   let nativeStreamClosed = false
   const closeNativeStream = (): void => {
     if (nativeStreamId == null || nativeStreamClosed) return
@@ -258,7 +259,10 @@ function decryptStream(
         output = nativeAudioDecryptQmc2Chunk(ekey, offset, buf)
         if (!output) nativeUnavailable = true
       }
-      if (!output && decryptor) output = decryptor.decrypt(buf, offset)
+      if (!output && fallbackFactory) {
+        fallbackDecryptor ??= fallbackFactory()
+        if (fallbackDecryptor) output = fallbackDecryptor.decrypt(buf, offset)
+      }
       // Keep the existing transparent behavior for an invalid/unsupported
       // ekey: the proven Electron path can still report/play the upstream
       // bytes, while a missing native binary never interrupts the request.
@@ -377,14 +381,11 @@ export function installAudioProtocol(): void {
     if (cl) out.set('Content-Length', cl)
     if (cr) out.set('Content-Range', cr)
 
-    const decryptor = spec.ekey ? createAudioDecryptor(spec.ekey) : null
     const nativeStreamId = spec.ekey ? nativeAudioStreamCreate(spec.ekey) : null
-    if (spec.ekey && !decryptor) {
-      console.warn('[audio] ekey 流暂无解密器，透传（播放将异常）')
-    }
+    const fallbackFactory = spec.ekey ? () => createAudioDecryptor(spec.ekey!) : null
     let body: ReadableStream<Uint8Array> = upstream.body
     if (spec.ekey)
-      body = decryptStream(body, decryptor, upstreamStart, spec.ekey, nativeStreamId, request.signal)
+      body = decryptStream(body, fallbackFactory, upstreamStart, spec.ekey, nativeStreamId, request.signal)
 
     return new Response(body as BodyInit, { status, headers: out })
   })

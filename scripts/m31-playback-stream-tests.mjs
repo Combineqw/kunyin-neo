@@ -12,6 +12,8 @@ assert.match(protocol, /nativeStreamId/)
 assert.match(protocol, /nativeAudioStreamClose\(nativeStreamId\)/)
 assert.match(protocol, /rendererSignal\.addEventListener\('abort', closeNativeStream/)
 assert.match(protocol, /request\.signal\)/)
+assert.match(protocol, /fallbackDecryptor \?\?= fallbackFactory\(\)/)
+assert.doesNotMatch(protocol, /const decryptor = spec\.ekey \? createAudioDecryptor\(spec\.ekey\) : null/)
 assert.match(native, /MAX_QMC2_STREAMS: usize = 64/)
 assert.match(native, /too many QMC2 stream sessions/)
 
