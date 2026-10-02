@@ -456,3 +456,9 @@ pub fn sync_validate_session(session_json: String) -> napi::Result<String> {
 pub fn provider_parse_qq_track(item_json: String) -> napi::Result<String> {
     provider::parse_qq_track_json(&item_json).map_err(to_napi_error)
 }
+
+/// Parse one Netease Cloud Music provider item through the shared Rust mapping.
+#[napi]
+pub fn provider_parse_wy_track(item_json: String) -> napi::Result<String> {
+    provider::parse_wy_track_json(&item_json).map_err(to_napi_error)
+}

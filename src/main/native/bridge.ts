@@ -30,6 +30,7 @@ type NativeBinding = {
   syncNormalizeBaseUrl?(url: string): string
   syncValidateSession?(sessionJson: string): string
   providerParseQqTrack?(itemJson: string): string
+  providerParseWyTrack?(itemJson: string): string
 }
 
 export type NativeAudioBackendCapabilities = {
@@ -360,6 +361,19 @@ export function nativeSyncValidateSession<T extends object>(sessionJson: string)
 export function nativeParseQqTrack<T extends object>(item: unknown): T | null {
   try {
     const call = loadBinding()?.providerParseQqTrack
+    if (typeof call !== 'function') return null
+    const raw = call(JSON.stringify(item))
+    if (!raw) return null
+    return JSON.parse(raw) as T | null
+  } catch {
+    return null
+  }
+}
+
+/** Optional Rust Netease provider item mapping. */
+export function nativeParseWyTrack<T extends object>(item: unknown): T | null {
+  try {
+    const call = loadBinding()?.providerParseWyTrack
     if (typeof call !== 'function') return null
     const raw = call(JSON.stringify(item))
     if (!raw) return null

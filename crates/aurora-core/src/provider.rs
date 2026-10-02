@@ -95,6 +95,17 @@ fn add_quality(qualities: &mut Map<String, Value>, id: &str, name: &str, size: f
     qualities.insert(id.to_string(), Value::Object(quality));
 }
 
+fn add_quality_without_media(qualities: &mut Map<String, Value>, id: &str, name: &str, size: f64) {
+    if size <= 0.0 {
+        return;
+    }
+    let mut quality = Map::new();
+    quality.insert("id".to_string(), Value::String(id.to_string()));
+    quality.insert("name".to_string(), Value::String(name.to_string()));
+    quality.insert("filesize".to_string(), number_value(size));
+    qualities.insert(id.to_string(), Value::Object(quality));
+}
+
 fn add_special(
     qualities: &mut Map<String, Value>,
     id: &str,
@@ -324,9 +335,126 @@ pub fn parse_qq_track_json(input: &str) -> Result<String> {
     Ok(serde_json::to_string(&parse_qq_track(&value))?)
 }
 
+/// Parse one Netease Cloud Music song using the provider's JSON contract.
+pub fn parse_wy_track(value: &Value) -> Option<Value> {
+    if !value.is_object() {
+        return None;
+    }
+    let id = js_number(member(value, "id"), -1.0);
+    if id == -1.0 {
+        return None;
+    }
+    let name = member(value, "name").cloned().unwrap_or(Value::Null);
+    if !js_truthy(&name) {
+        return None;
+    }
+
+    let artist_values = member(value, "ar")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let mut singers = Vec::new();
+    let mut artist_names = Vec::new();
+    for artist in artist_values {
+        let Some(artist_name) = member(&artist, "name").filter(|value| js_truthy(value)) else {
+            continue;
+        };
+        let mut output = Map::new();
+        output.insert("name".to_string(), artist_name.clone());
+        if let Some(pic_url) = member(&artist, "picUrl").filter(|value| !value.is_null()) {
+            output.insert("headimg".to_string(), pic_url.clone());
+        }
+        output.insert(
+            "singerId".to_string(),
+            number_value(js_number(member(&artist, "id"), 0.0)),
+        );
+        artist_names.push(js_string(artist_name));
+        singers.push(Value::Object(output));
+    }
+
+    let album = member(value, "al")
+        .filter(|value| !value.is_null())
+        .unwrap_or(&Value::Null);
+    let mut output = Map::new();
+    output.insert("type".to_string(), Value::String("wy".to_string()));
+    output.insert("id".to_string(), number_value(id));
+    output.insert("title".to_string(), name);
+    output.insert(
+        "artist".to_string(),
+        Value::String(if artist_names.is_empty() {
+            "Unknown".to_string()
+        } else {
+            artist_names.join("、")
+        }),
+    );
+    output.insert(
+        "album".to_string(),
+        member(album, "name")
+            .filter(|value| !value.is_null())
+            .cloned()
+            .unwrap_or_else(|| Value::String(String::new())),
+    );
+    if let Some(album_id) = member(album, "id").filter(|value| !value.is_null()) {
+        output.insert("albumId".to_string(), Value::String(js_string(album_id)));
+    }
+    output.insert(
+        "cover".to_string(),
+        member(album, "picUrl")
+            .filter(|value| !value.is_null())
+            .cloned()
+            .unwrap_or_else(|| Value::String(String::new())),
+    );
+    output.insert(
+        "duration".to_string(),
+        number_value(js_number(member(value, "dt"), 0.0)),
+    );
+    let mut qualities = Map::new();
+    add_quality_without_media(
+        &mut qualities,
+        "128k",
+        "普通音质 128K",
+        js_number(member(value, "l").and_then(|v| member(v, "size")), 0.0),
+    );
+    add_quality_without_media(
+        &mut qualities,
+        "320k",
+        "高品音质 320K",
+        js_number(member(value, "h").and_then(|v| member(v, "size")), 0.0),
+    );
+    add_quality_without_media(
+        &mut qualities,
+        "flac",
+        "无损音质 FLAC",
+        js_number(member(value, "sq").and_then(|v| member(v, "size")), 0.0),
+    );
+    add_quality_without_media(
+        &mut qualities,
+        "hires",
+        "无损音质 HiRes",
+        js_number(member(value, "hr").and_then(|v| member(v, "size")), 0.0),
+    );
+    output.insert("qualities".to_string(), Value::Object(qualities));
+    if !singers.is_empty() {
+        output.insert("singers".to_string(), Value::Array(singers));
+    }
+    let mv = js_number(member(value, "mv"), 0.0);
+    if mv != 0.0 {
+        output.insert(
+            "mvid".to_string(),
+            Value::String(js_string(&number_value(mv))),
+        );
+    }
+    Some(Value::Object(output))
+}
+
+pub fn parse_wy_track_json(input: &str) -> Result<String> {
+    let value: Value = serde_json::from_str(input)?;
+    Ok(serde_json::to_string(&parse_wy_track(&value))?)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::parse_qq_track_json;
+    use super::{parse_qq_track_json, parse_wy_track_json};
     use serde_json::Value;
 
     #[test]
@@ -379,5 +507,32 @@ mod tests {
         .unwrap();
         let output: Value = serde_json::from_str(&output).unwrap();
         assert_eq!(output["albumId"], "album-mid");
+    }
+
+    #[test]
+    fn maps_wy_track_and_keeps_millisecond_duration() {
+        let output = parse_wy_track_json(
+            r#"{"id":0,"name":"Song","dt":231000,"ar":[{"id":7,"name":"Singer","picUrl":"pic"}],"al":{"id":0,"name":"Album","picUrl":"cover"},"l":{"size":100},"h":{"size":200},"sq":{"size":500},"hr":{"size":800},"mv":"42"}"#,
+        )
+        .unwrap();
+        let output: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(output["type"], "wy");
+        assert_eq!(output["id"], 0);
+        assert_eq!(output["duration"], 231000);
+        assert_eq!(output["albumId"], "0");
+        assert_eq!(output["qualities"]["hires"]["filesize"], 800);
+        assert_eq!(output["mvid"], "42");
+    }
+
+    #[test]
+    fn rejects_wy_missing_id_or_name_and_omits_zero_mv() {
+        assert_eq!(
+            parse_wy_track_json(r#"{"id":-1,"name":"Song"}"#).unwrap(),
+            "null"
+        );
+        assert_eq!(parse_wy_track_json(r#"{"id":1}"#).unwrap(), "null");
+        let output = parse_wy_track_json(r#"{"id":1,"name":"Song","mv":"0"}"#).unwrap();
+        let output: Value = serde_json::from_str(&output).unwrap();
+        assert!(output.get("mvid").is_none());
     }
 }

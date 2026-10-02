@@ -1,5 +1,6 @@
 /**
- * Compare the QQ provider's TypeScript parser with the optional Rust parser.
+ * Compare the QQ and Netease provider TypeScript parsers with the optional
+ * Rust parsers.
  * The input corpus is deliberately small and deterministic: it exercises the
  * accepted DTO shape, missing required fields, quality boundaries, and QQC's
  * shared `type: qq` output contract without making a network request.
@@ -10,7 +11,8 @@ import { existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
 const require = createRequire(import.meta.url)
-const { parseTrackInfo } = await import('../src/main/providers/qq/item.ts')
+const { parseTrackInfo: parseQqTrackInfo } = await import('../src/main/providers/qq/item.ts')
+const { parseTrackInfo: parseWyTrackInfo } = await import('../src/main/providers/wy/item.ts')
 
 const nativeDir = join(process.cwd(), 'crates', 'aurora-native')
 const nativeFile = readdirSync(nativeDir).find((file) => file.endsWith('.node'))
@@ -19,8 +21,9 @@ if (!nativeFile || !existsSync(join(nativeDir, nativeFile))) {
 }
 const native = require(join(nativeDir, nativeFile))
 assert.equal(typeof native.providerParseQqTrack, 'function')
+assert.equal(typeof native.providerParseWyTrack, 'function')
 
-const corpus = [
+const qqCorpus = [
   {
     id: 12,
     mid: 'song-mid',
@@ -52,15 +55,43 @@ const corpus = [
   { id: 2, title: '', file: {} }
 ]
 
-let passed = 0
-for (const item of corpus) {
+let qqPassed = 0
+for (const item of qqCorpus) {
   // N-API crosses a JSON boundary; JSON.stringify is the contract that
   // removes the TypeScript parser's own `undefined` optional properties.
-  const nodeValue = JSON.parse(JSON.stringify(parseTrackInfo(item)))
+  const nodeValue = JSON.parse(JSON.stringify(parseQqTrackInfo(item)))
   const rustRaw = native.providerParseQqTrack(JSON.stringify(item))
   const rustValue = JSON.parse(rustRaw)
   assert.deepEqual(rustValue, nodeValue)
-  passed += 1
+  qqPassed += 1
 }
 
-console.log(`QQ Provider Rust 影子比对通过：${passed}/${corpus.length}`)
+const wyCorpus = [
+  {
+    id: '21',
+    name: 'Cloud Song',
+    dt: 231000,
+    ar: [{ id: 7, name: 'Singer', picUrl: 'pic' }, { id: 8, name: '' }],
+    al: { id: 0, name: 'Album', picUrl: 'cover' },
+    l: { size: 100 },
+    h: { size: '200' },
+    sq: { size: 500 },
+    hr: { size: 800 },
+    mv: '042'
+  },
+  { id: 0, name: 'Zero id', ar: [], al: { id: null, name: 'Album' }, mv: 0 },
+  { id: -1, name: 'Invalid id' },
+  { id: 1, name: '' },
+  { id: 2, name: 'Unknown artist', al: {}, mv: '0', l: { size: -1 } }
+]
+
+let wyPassed = 0
+for (const item of wyCorpus) {
+  const nodeValue = JSON.parse(JSON.stringify(parseWyTrackInfo(item)))
+  const rustRaw = native.providerParseWyTrack(JSON.stringify(item))
+  const rustValue = JSON.parse(rustRaw)
+  assert.deepEqual(rustValue, nodeValue)
+  wyPassed += 1
+}
+
+console.log(`Provider Rust 影子比对通过：QQ ${qqPassed}/${qqCorpus.length}，网易云 ${wyPassed}/${wyCorpus.length}`)

@@ -310,7 +310,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { playbackSnapshot, playbackLoad, playbackPlay, playbackPause, playbackSeek, playbackTick, playbackStop, audioBackendCapabilities, nativeAudioStartFile, nativeAudioPlay, nativeAudioPause, nativeAudioSetVolume, nativeAudioSeek, nativeAudioStop, nativeAudioSnapshot, audioDecryptQmc2Chunk, downloadCreate, downloadWrite, downloadCommit, downloadAbort, audioDecryptQmc2File, scanDirectory, parseTrack, readAudioTags, writeAudioTags, scanLyrics, readSettings, writeSettings, settingsRoundtrip, nativeVersion, syncNormalizeBaseUrl, syncValidateSession, providerParseQqTrack } = nativeBinding
+const { playbackSnapshot, playbackLoad, playbackPlay, playbackPause, playbackSeek, playbackTick, playbackStop, audioBackendCapabilities, nativeAudioStartFile, nativeAudioPlay, nativeAudioPause, nativeAudioSetVolume, nativeAudioSeek, nativeAudioStop, nativeAudioSnapshot, audioDecryptQmc2Chunk, downloadCreate, downloadWrite, downloadCommit, downloadAbort, audioDecryptQmc2File, scanDirectory, parseTrack, readAudioTags, writeAudioTags, scanLyrics, readSettings, writeSettings, settingsRoundtrip, nativeVersion, syncNormalizeBaseUrl, syncValidateSession, providerParseQqTrack, providerParseWyTrack } = nativeBinding
 
 module.exports.playbackSnapshot = playbackSnapshot
 module.exports.playbackLoad = playbackLoad
@@ -345,3 +345,4 @@ module.exports.nativeVersion = nativeVersion
 module.exports.syncNormalizeBaseUrl = syncNormalizeBaseUrl
 module.exports.syncValidateSession = syncValidateSession
 module.exports.providerParseQqTrack = providerParseQqTrack
+module.exports.providerParseWyTrack = providerParseWyTrack

@@ -27,6 +27,7 @@ serde_json = "1"
 napi-build = "2"
 
 [profile.release]
-# 影子阶段以可读的 panic 信息优先，不做激进优化
-lto = true
+# ThinLTO avoids the multi-gigabyte LLVM peak seen with the growing native
+# adapter while retaining release optimization for the shipped .node binary.
+lto = "thin"
 strip = "symbols"

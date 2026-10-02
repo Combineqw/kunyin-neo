@@ -51,6 +51,10 @@ if (cargoBin === undefined) {
 const env = { ...process.env }
 const injected = []
 
+// Keep local native rebuilds from consuming every core and exhausting memory.
+// CI or a release host can opt into a different value explicitly.
+if (!env.CARGO_BUILD_JOBS) env.CARGO_BUILD_JOBS = '2'
+
 if (cargoBin) {
   env.PATH = cargoBin + delimiter + (env.PATH ?? '')
   injected.push('cargo → ' + cargoBin)

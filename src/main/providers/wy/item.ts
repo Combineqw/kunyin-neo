@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** 网易云单曲解析与音质映射（移植自 NeteaseMusicItem.kt） */
 import type { NeteaseMusicItem, Quality, Singer } from '@common'
+import { nativeParseWyTrack } from '../../native/bridge'
 
 export function num(v: any, def = 0): number {
   if (v == null) return def
@@ -14,6 +15,8 @@ function addQuality(q: Record<string, Quality>, id: string, name: string, obj: a
 }
 
 export function parseTrackInfo(song: any): NeteaseMusicItem | null {
+  const native = nativeParseWyTrack<NeteaseMusicItem>(song)
+  if (native) return native
   if (!song) return null
   const id = num(song.id, -1)
   if (id === -1) return null

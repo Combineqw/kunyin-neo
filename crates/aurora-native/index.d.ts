@@ -81,3 +81,5 @@ export declare function syncValidateSession(sessionJson: string): string
  * is unavailable or rejects malformed input.
  */
 export declare function providerParseQqTrack(itemJson: string): string
+/** Parse one Netease Cloud Music provider item through the shared Rust mapping. */
+export declare function providerParseWyTrack(itemJson: string): string
