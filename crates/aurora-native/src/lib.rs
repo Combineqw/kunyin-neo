@@ -137,10 +137,26 @@ pub fn audio_backend_capabilities() -> napi::Result<String> {
 
 /// Return the deterministic Rust-owned theme motion profile. The renderer
 /// consumes the JSON only to apply CSS variables and final compositing.
+///
+/// `requested_fps` and `display_refresh_hz` are optional to preserve the
+/// two-argument ABI used by older Electron builds. A request of zero selects
+/// static mode; omitted values use native automatic pacing.
 #[napi]
-pub fn theme_motion_profile(theme_id: String, reduced_motion: bool) -> napi::Result<String> {
-    serde_json::to_string(&theme::motion_profile(&theme_id, reduced_motion))
-        .map_err(|error| napi::Error::from_reason(error.to_string()))
+pub fn theme_motion_profile(
+    theme_id: String,
+    reduced_motion: bool,
+    requested_fps: Option<f64>,
+    display_refresh_hz: Option<f64>,
+) -> napi::Result<String> {
+    let requested_fps = requested_fps.map(|value| value as f32);
+    let display_refresh_hz = display_refresh_hz.map(|value| value as f32);
+    serde_json::to_string(&theme::motion_profile_with_fps(
+        &theme_id,
+        reduced_motion,
+        requested_fps,
+        display_refresh_hz,
+    ))
+    .map_err(|error| napi::Error::from_reason(error.to_string()))
 }
 
 #[napi]

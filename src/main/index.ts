@@ -13,15 +13,14 @@ import { initCredentials } from './auth/credentials'
 import { applyProxy } from './net/proxy'
 import { initAppDataDir } from './core/paths'
 import { appEvent } from './core/events'
+import { installGpuMonitor } from './core/gpu'
 
 // Chromium 启动参数必须在 app ready 前设置，否则不会生效
 app.commandLine.appendSwitch('ignore-certificate-errors')
-// 部分 Windows 显卡/驱动环境会在窗口创建前反复崩溃 GPU 进程，导致应用直接退出。
-// 关闭硬件 GPU 合成，并将 GPU 任务留在浏览器进程内，优先保证主窗口可以启动。
-app.commandLine.appendSwitch('disable-gpu')
-app.commandLine.appendSwitch('disable-gpu-compositing')
-app.commandLine.appendSwitch('disable-gpu-sandbox')
-app.commandLine.appendSwitch('in-process-gpu')
+
+// 保持 Chromium 硬件合成默认值。GPU 能力和进程崩溃由 gpu monitor 观察，
+// 渲染层根据状态进入静态材质模式；全局 disable-gpu 会让所有动画永久走 CPU。
+installGpuMonitor()
 
 // 对 Chromium 页面与 Electron net 请求统一放行无效证书
 app.on('certificate-error', (event, _webContents, _url, _error, _certificate, callback) => {

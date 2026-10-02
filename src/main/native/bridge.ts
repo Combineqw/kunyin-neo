@@ -18,7 +18,12 @@ type NativeBinding = {
   playbackTick?(elapsedMs: number): string
   playbackStop?(): string
   audioBackendCapabilities?(): string
-  themeMotionProfile?(themeId: string, reducedMotion: boolean): string
+  themeMotionProfile?(
+    themeId: string,
+    reducedMotion: boolean,
+    requestedFps?: number | null,
+    displayRefreshHz?: number | null
+  ): string
   nativeAudioStartFile?(path: string): string
   nativeAudioPlay?(): string
   nativeAudioPause?(): string
@@ -209,7 +214,19 @@ export function nativeWriteAudioTags(path: string, metadata: object): boolean {
   }
 }
 
-function nativePlaybackCall(method: keyof Pick<NativeBinding, 'playbackSnapshot' | 'playbackLoad' | 'playbackPlay' | 'playbackPause' | 'playbackSeek' | 'playbackTick' | 'playbackStop'>, ...args: unknown[]): NativePlaybackSnapshot | null {
+function nativePlaybackCall(
+  method: keyof Pick<
+    NativeBinding,
+    | 'playbackSnapshot'
+    | 'playbackLoad'
+    | 'playbackPlay'
+    | 'playbackPause'
+    | 'playbackSeek'
+    | 'playbackTick'
+    | 'playbackStop'
+  >,
+  ...args: unknown[]
+): NativePlaybackSnapshot | null {
   try {
     const call = loadBinding()?.[method] as ((...params: unknown[]) => string) | undefined
     if (typeof call !== 'function') return null
@@ -224,7 +241,10 @@ export function nativePlaybackSnapshot(): NativePlaybackSnapshot | null {
   return nativePlaybackCall('playbackSnapshot')
 }
 
-export function nativePlaybackLoad(trackId: string, durationMs: number): NativePlaybackSnapshot | null {
+export function nativePlaybackLoad(
+  trackId: string,
+  durationMs: number
+): NativePlaybackSnapshot | null {
   return nativePlaybackCall('playbackLoad', trackId, Math.max(0, Math.round(durationMs)))
 }
 
@@ -262,6 +282,9 @@ export function nativeAudioBackendCapabilities(): NativeAudioBackendCapabilities
 export type NativeThemeMotionProfile = {
   themeId: string
   enabled: boolean
+  requestedFps: number | null
+  displayRefreshHz: number | null
+  targetFps: number | null
   frameIntervalMs: number
   blurPx: number
   opacity: number
@@ -276,12 +299,14 @@ export type NativeThemeMotionProfile = {
 
 export function nativeThemeMotionProfile(
   themeId: string,
-  reducedMotion: boolean
+  reducedMotion: boolean,
+  requestedFps?: number | null,
+  displayRefreshHz?: number | null
 ): NativeThemeMotionProfile | null {
   try {
     const call = loadBinding()?.themeMotionProfile
     if (typeof call !== 'function') return null
-    const raw = call(themeId, reducedMotion)
+    const raw = call(themeId, reducedMotion, requestedFps ?? null, displayRefreshHz ?? null)
     return raw ? (JSON.parse(raw) as NativeThemeMotionProfile) : null
   } catch {
     return null

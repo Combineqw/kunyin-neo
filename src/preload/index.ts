@@ -37,7 +37,14 @@ function toPlain<T>(v: T): T {
 const api: WindowApi = {
   app: {
     getVersion: () => ipcRenderer.invoke(IpcChannels.APP_VERSION),
-    getPlatform: () => ipcRenderer.invoke(IpcChannels.APP_PLATFORM)
+    getPlatform: () => ipcRenderer.invoke(IpcChannels.APP_PLATFORM),
+    gpuStatus: () => ipcRenderer.invoke(IpcChannels.GPU_STATUS),
+    onGpuStatus: (cb) => {
+      const listener = (_e: Electron.IpcRendererEvent, status: Parameters<typeof cb>[0]): void =>
+        cb(status)
+      ipcRenderer.on(IpcChannels.GPU_STATUS_CHANGED, listener)
+      return () => ipcRenderer.off(IpcChannels.GPU_STATUS_CHANGED, listener)
+    }
   },
   window: {
     minimize: () => ipcRenderer.invoke(IpcChannels.WINDOW_MINIMIZE),
@@ -144,7 +151,8 @@ const api: WindowApi = {
     setRedirect: (item, target) =>
       ipcRenderer.invoke(IpcChannels.LIBRARY_SET_REDIRECT, toPlain(item), toPlain(target)),
     clearRedirect: (item) => ipcRenderer.invoke(IpcChannels.LIBRARY_CLEAR_REDIRECT, toPlain(item)),
-    localCleanupPlan: (playlistId) => ipcRenderer.invoke(IpcChannels.LIBRARY_LOCAL_CLEANUP_PLAN, playlistId),
+    localCleanupPlan: (playlistId) =>
+      ipcRenderer.invoke(IpcChannels.LIBRARY_LOCAL_CLEANUP_PLAN, playlistId),
     localCleanupApply: (playlistId, entries) =>
       ipcRenderer.invoke(IpcChannels.LIBRARY_LOCAL_CLEANUP_APPLY, playlistId, entries),
     localCleanupUndo: (operationId) =>
@@ -208,7 +216,8 @@ const api: WindowApi = {
   },
   nativeAudio: {
     snapshot: () => ipcRenderer.invoke(IpcChannels.NATIVE_AUDIO_SNAPSHOT),
-    seek: (positionMs) => ipcRenderer.invoke(IpcChannels.NATIVE_AUDIO_SEEK, Math.max(0, Math.round(positionMs)))
+    seek: (positionMs) =>
+      ipcRenderer.invoke(IpcChannels.NATIVE_AUDIO_SEEK, Math.max(0, Math.round(positionMs)))
   },
   desktopLyric: {
     toggle: (enabled) => ipcRenderer.invoke(IpcChannels.DESKTOP_LYRIC_TOGGLE, enabled),
@@ -273,8 +282,14 @@ const api: WindowApi = {
   theme: {
     importTheme: () => ipcRenderer.invoke(IpcChannels.THEME_IMPORT_FILE),
     exportTheme: (config) => ipcRenderer.invoke(IpcChannels.THEME_EXPORT_FILE, toPlain(config)),
-    motionProfile: (themeId, reducedMotion = false) =>
-      ipcRenderer.invoke(IpcChannels.THEME_MOTION_PROFILE, themeId, reducedMotion)
+    motionProfile: (themeId, reducedMotion = false, requestedFps = null, displayRefreshHz = null) =>
+      ipcRenderer.invoke(
+        IpcChannels.THEME_MOTION_PROFILE,
+        themeId,
+        reducedMotion,
+        requestedFps,
+        displayRefreshHz
+      )
   },
   irs: {
     importProfile: () => ipcRenderer.invoke(IpcChannels.IRS_IMPORT_FILE)

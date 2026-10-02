@@ -9,9 +9,11 @@ let binding
 function nativeCandidates() {
   const file = 'aurora-native.win32-x64-msvc.node'
   const candidates = []
-  if (typeof process.resourcesPath === 'string') candidates.push(join(process.resourcesPath, 'assets', file))
+  if (typeof process.resourcesPath === 'string')
+    candidates.push(join(process.resourcesPath, 'assets', file))
   candidates.push(join(process.cwd(), 'crates', 'aurora-native', file))
-  if (typeof __dirname === 'string') candidates.push(join(__dirname, '..', '..', 'crates', 'aurora-native', file))
+  if (typeof __dirname === 'string')
+    candidates.push(join(__dirname, '..', '..', 'crates', 'aurora-native', file))
   return candidates
 }
 
@@ -110,11 +112,16 @@ export function nativeAudioBackendCapabilities() {
   }
 }
 
-export function nativeThemeMotionProfile(themeId, reducedMotion) {
+export function nativeThemeMotionProfile(themeId, reducedMotion, requestedFps, displayRefreshHz) {
   try {
     const call = loadBinding()?.themeMotionProfile
     if (typeof call !== 'function') return null
-    const raw = call(themeId, !!reducedMotion)
+    const raw = call(
+      themeId,
+      !!reducedMotion,
+      requestedFps == null ? null : Number(requestedFps),
+      displayRefreshHz == null ? null : Number(displayRefreshHz)
+    )
     return raw ? JSON.parse(raw) : null
   } catch {
     return null
@@ -145,7 +152,11 @@ export function nativeAudioPause() {
 }
 
 export function nativeAudioSetVolume(volume, muted) {
-  return nativeAudioCall('nativeAudioSetVolume', Math.max(0, Math.min(1, Number(volume) || 0)), !!muted)
+  return nativeAudioCall(
+    'nativeAudioSetVolume',
+    Math.max(0, Math.min(1, Number(volume) || 0)),
+    !!muted
+  )
 }
 
 export function nativeAudioSeek(positionMs) {

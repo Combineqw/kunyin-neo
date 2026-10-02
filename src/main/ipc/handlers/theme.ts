@@ -17,8 +17,14 @@ import { nativeThemeMotionProfile } from '../../native/bridge-runtime.js'
 const filters = [{ name: '坤音neo 主题', extensions: ['json', 'kytheme'] }]
 
 export function registerThemeHandlers(): void {
-  handle(IpcChannels.THEME_MOTION_PROFILE, (themeId: string, reducedMotion = false) =>
-    nativeThemeMotionProfile(themeId, reducedMotion)
+  handle(
+    IpcChannels.THEME_MOTION_PROFILE,
+    (
+      themeId: string,
+      reducedMotion = false,
+      requestedFps?: number | null,
+      displayRefreshHz?: number | null
+    ) => nativeThemeMotionProfile(themeId, reducedMotion, requestedFps, displayRefreshHz)
   )
   handle(IpcChannels.THEME_IMPORT_FILE, async (): Promise<ThemeFileConfig | null> => {
     const result = await dialog.showOpenDialog(getMainWindow() ?? undefined!, {

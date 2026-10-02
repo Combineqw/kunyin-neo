@@ -19,8 +19,17 @@ export declare function audioBackendCapabilities(): string
 /**
  * Return the deterministic Rust-owned theme motion profile. The renderer
  * consumes the JSON only to apply CSS variables and final compositing.
+ *
+ * `requested_fps` and `display_refresh_hz` are optional to preserve the
+ * two-argument ABI used by older Electron builds. A request of zero selects
+ * static mode; omitted values use native automatic pacing.
  */
-export declare function themeMotionProfile(themeId: string, reducedMotion: boolean): string
+export declare function themeMotionProfile(
+  themeId: string,
+  reducedMotion: boolean,
+  requestedFps?: number | undefined | null,
+  displayRefreshHz?: number | undefined | null
+): string
 export declare function nativeAudioStartFile(path: string): string
 export declare function nativeAudioPlay(): string
 export declare function nativeAudioPause(): string
@@ -34,7 +43,11 @@ export declare function nativeAudioSnapshot(): string
  * be decrypted independently.  Invalid keys return an error and the host
  * keeps its TypeScript decryptor fallback.
  */
-export declare function audioDecryptQmc2Chunk(ekey: string, fileOffset: number, chunk: Buffer): Buffer
+export declare function audioDecryptQmc2Chunk(
+  ekey: string,
+  fileOffset: number,
+  chunk: Buffer
+): Buffer
 /**
  * Create a bounded-lifetime QMC2 stream session for one HTTP Range response.
  * The ekey is parsed once; subsequent chunks only carry the session id and
@@ -46,7 +59,11 @@ export declare function audioStreamDecrypt(id: number, fileOffset: number, chunk
 /** Release a QMC2 stream session after the corresponding HTTP response ends. */
 export declare function audioStreamClose(id: number): boolean
 /** Start a bounded temporary-file download transaction. */
-export declare function downloadCreate(tempPath: string, finalPath: string, maxBytes: number): number
+export declare function downloadCreate(
+  tempPath: string,
+  finalPath: string,
+  maxBytes: number
+): number
 export declare function downloadWrite(id: number, chunk: Buffer): string
 export declare function downloadCommit(id: number): string
 export declare function downloadAbort(id: number): boolean
@@ -78,7 +95,12 @@ export declare function readSettings(path: string): string
  * optional native module is unavailable or rejects the payload.
  */
 export declare function writeSettings(path: string, settingsJson: string): boolean
-export declare function settingsRoundtrip(source: string, sandboxPath: string, keyPath: string, newValue: string): string
+export declare function settingsRoundtrip(
+  source: string,
+  sandboxPath: string,
+  keyPath: string,
+  newValue: string
+): string
 export declare function nativeVersion(): string
 /**
  * Normalize an LX sync server URL while preserving the TypeScript fallback

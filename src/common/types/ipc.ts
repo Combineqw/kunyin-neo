@@ -42,6 +42,12 @@ import type {
 export type ThemeMotionProfile = {
   themeId: string
   enabled: boolean
+  /** Continuous user request; null follows the display refresh rate. */
+  requestedFps: number | null
+  /** Monitor refresh used by the native scheduler, when supplied by caller. */
+  displayRefreshHz: number | null
+  /** Effective native target after display-rate clamping. */
+  targetFps: number | null
   frameIntervalMs: number
   blurPx: number
   opacity: number
@@ -54,12 +60,24 @@ export type ThemeMotionProfile = {
   }>
 }
 
+/** Chromium GPU 合成状态；只暴露能力和健康度，不暴露驱动路径等敏感信息。 */
+export type GpuRuntimeStatus = {
+  accelerated: boolean | null
+  healthy: 'unknown' | 'healthy' | 'degraded' | 'failed'
+  features: Record<string, string>
+  gpuProcessCrashes: number
+  failureReason: string | null
+  updatedAt: number
+}
+
 export const IpcChannels = {
   // 应用
   APP_VERSION: 'app:version',
   APP_PLATFORM: 'app:platform',
   /** 返回应用数据目录 userData/data/（settings.json 等所在处，见 main/core/paths.ts） */
   APP_USERDATA_PATH: 'app:userdata-path',
+  GPU_STATUS: 'app:gpu-status',
+  GPU_STATUS_CHANGED: 'app:gpu-status-changed',
 
   // 窗口控制（无边框主窗口）
   WINDOW_MINIMIZE: 'window:minimize',
@@ -453,6 +471,8 @@ export interface WindowApi {
   app: {
     getVersion(): Promise<string>
     getPlatform(): Promise<NodeJS.Platform>
+    gpuStatus(): Promise<GpuRuntimeStatus>
+    onGpuStatus(cb: (status: GpuRuntimeStatus) => void): Unsubscribe
   }
 
   /** 主窗口控制（无边框窗口的最小化/关闭/全屏） */
@@ -519,9 +539,7 @@ export interface WindowApi {
 
   recommendation: {
     songs(limit?: number): Promise<RecommendationSong[]>
-    daily(
-      force?: boolean
-    ): Promise<{
+    daily(force?: boolean): Promise<{
       generatedAt: number
       entries: import('./recommendation').DailyRecommendationEntry[]
     }>
@@ -577,7 +595,10 @@ export interface WindowApi {
     setRedirect(item: MusicItem, target: MusicItem): Promise<void>
     clearRedirect(item: MusicItem): Promise<void>
     localCleanupPlan(playlistId: number): Promise<LocalCleanupPlanEntry[]>
-    localCleanupApply(playlistId: number, entries: LocalCleanupPlanEntry[]): Promise<{
+    localCleanupApply(
+      playlistId: number,
+      entries: LocalCleanupPlanEntry[]
+    ): Promise<{
       operationId: string
       moved: number
       skipped: number
@@ -761,7 +782,12 @@ export interface WindowApi {
     /** 导出主题文件，返回文件名；取消时返回 null */
     exportTheme(config: ThemeFileConfig): Promise<string | null>
     /** Resolve theme motion geometry in the Rust native bridge. */
-    motionProfile(themeId: string, reducedMotion?: boolean): Promise<ThemeMotionProfile | null>
+    motionProfile(
+      themeId: string,
+      reducedMotion?: boolean,
+      requestedFps?: number | null,
+      displayRefreshHz?: number | null
+    ): Promise<ThemeMotionProfile | null>
   }
 
   /** IRS 脉冲响应文件 */

@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.34 — 2026-10-02】
+【kunyin-neo 项目记忆 v5.35 — 2026-10-02】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,14 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02）
+
+◆ M34 FPS/GPU 调度过渡（2026-10-02，事实与回执）
+- Rust `aurora-core::theme` 新增连续 FPS 合约：`null` 跟随显示器刷新率，`0` 表示静态，正数按显示器刷新率钳制；Electron 渲染层启动时仅做有限 RAF 采样并把结果传入 native profile，不再硬编码 30/60 FPS。
+- Electron 启动移除全局 `disable-gpu`、`disable-gpu-compositing`、`disable-gpu-sandbox` 与 `in-process-gpu`；新增 GPU 健康监控 IPC，硬件加速失败时可通知渲染层进入静态材质回退，避免持续 CPU 重绘。
+- 回归：`npm run native:build`、Rust `aurora-core` 21/21、`cargo fmt --check`、`npm run test:m33`、`npm run test:m34`、`npm run typecheck`、本轮跟踪文件 scoped ESLint、`npm test`、`npm run build` 和 `git diff --check` 均通过。全仓 lint 仍会扫描未跟踪 `work/` 临时脚本，未纳入提交。
+- Windows 安装包 `dist/kunyin-desktop-1.0.7-setup.exe`：99,279,400 B，SHA-256 `26F56FDD57372BE7D37318BC1AF4A91A077857E41895F85873B385F6076176D5`；native 模块 4,712,960 B，SHA-256 `69B916B331058260E5856945EBEEF940542FC447A3F8E6A4D30324D2B9A73738`。
+- 本轮仍是 Electron/Vue/WebGL 的调度与 GPU 过渡切片；设置页无极 FPS 控件、桌面歌词/迷你播放器合并窗口、Rust 原生窗口、生产音频设备输出和完整 Rust 原生化仍是后续独立里程碑，不构成所有者验收通过结论。
 
 ◆ M33 Rust 主题动效 profile（2026-10-02，事实与回执）
 - `aurora-core::theme` 新增确定性的主题动效 profile：季节主题的 blob 几何、动画时长、模糊、透明度、帧间隔和降动效行为由 Rust 计算，未知/非极光主题不分配动效 blob。
