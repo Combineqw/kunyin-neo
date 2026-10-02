@@ -208,6 +208,12 @@ as a compatibility fallback. The provider shadow corpus passes at the JSON
 boundary; remote HTTP, authentication, encryption, downloads, and the desktop
 shell remain staged migration work.
 
+M30 adds the same Rust-first JSON normalization boundary for Netease Cloud
+Music single-track responses. The existing eapi/weapi, request scheduling, and
+TypeScript fallback remain unchanged. Native release builds use ThinLTO and a
+two-job default to keep local CPU and memory pressure bounded while the adapter
+grows; `CARGO_BUILD_JOBS` can override that default for a release host.
+
 M11 also routes Electron's local enrichment, tag reads, and local-library
 health probes through the Rust metadata bridge first. The existing TypeScript
 tag writers and `music-metadata` fallback remain available for unsupported

@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.30 — 2026-10-02】
+【kunyin-neo 项目记忆 v5.31 — 2026-10-02】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -27,7 +27,15 @@
   v5.24 M23 Rust 本地播放纵向切片记档：2026-10-02；
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
-  v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02）
+  v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02）
+
+◆ M30 网易云 Provider Rust 归一化（2026-10-02，事实与回执）
+- `aurora-core::provider` 新增网易云单曲 JSON 归一化，覆盖 id/name、歌手、专辑、毫秒时长、四档普通音质和 mvid；只迁移纯 DTO 清洗，不触碰 eapi/weapi、网络和认证。
+- `aurora-native` 暴露 `providerParseWyTrack`；网易云 `parseTrackInfo` 先走 Rust，native 缺失、输入无效或调用失败时回退原 TypeScript，五条已有 Provider 业务路径继续复用同一入口。
+- `npm run native:provider-compare` 扩展为 QQ 5/5、网易云 5/5 JSON 影子比对；既有 scan 58/58、lyrics 4677/4677、settings_io 1595/1595 继续一致。
+- 首次 release 链接因 `lto=true` 出现 LLVM OOM；改为 ThinLTO，并让 `scripts/native-build.mjs` 默认 `CARGO_BUILD_JOBS=2`（环境变量可覆盖）后，`npm run native:build` 成功。`cargo test`（aurora-core 18/18、aurora-native 编译测试）、`npm run typecheck`、`npm test`、`npm run build`、scoped lint 和 `git diff --check` 均通过。
+- 本切片仍不代表 HTTP/认证/加密/下载/完整播放/DSP/窗口托盘已全量 Rust 化，不构成所有者验收通过结论。
 
 ◆ M29 QQ Provider Rust 归一化（2026-10-02，事实与回执）
 - `aurora-core::provider` 新增 QQ 单曲 JSON 归一化，覆盖必填字段、歌手/封面、专辑、时长、普通音质、母带/全景声质量和 mvid；QQC 继续复用同一 `parseTrackInfo` 入口并保持 `type: qq`。
