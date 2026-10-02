@@ -214,6 +214,16 @@ TypeScript fallback remain unchanged. Native release builds use ThinLTO and a
 two-job default to keep local CPU and memory pressure bounded while the adapter
 grows; `CARGO_BUILD_JOBS` can override that default for a release host.
 
+M31 adds bounded, stateful QMC2 sessions for encrypted remote playback. Each
+`kunyin://` HTTP Range response creates one Rust session, parses its ekey once,
+and sends only the session id, absolute offset, and bytes for subsequent chunks.
+Normal stream completion and renderer aborts close the session; missing or
+failing native bindings still fall back to the existing chunk bridge and
+TypeScript decryptor. HTTP, proxy, Range handling, and Chromium decoding remain
+unchanged. This moves the remote buffering/decryption boundary only; complete
+remote playback, provider authentication, DSP, downloads, and desktop shell
+migration remain staged work.
+
 M11 also routes Electron's local enrichment, tag reads, and local-library
 health probes through the Rust metadata bridge first. The existing TypeScript
 tag writers and `music-metadata` fallback remain available for unsupported

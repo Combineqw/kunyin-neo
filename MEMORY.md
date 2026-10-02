@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.31 — 2026-10-02】
+【kunyin-neo 项目记忆 v5.32 — 2026-10-02】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,13 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02）
+
+◆ M31 Rust 远程播放 QMC2 有状态流会话（2026-10-02，事实与回执）
+- `aurora-native` 新增有界（最多 64 路）QMC2 流会话表和 `audioStreamCreate`、`audioStreamDecrypt`、`audioStreamClose` N-API；ekey 只在 Range 响应开始时解析一次，后续分块只传会话 id、绝对偏移和字节，减少重复密钥解析与桥接开销。
+- Electron 音频协议对每个加密远程 Range 响应创建 Rust 会话，正常 flush、native 解密失败和 renderer `AbortSignal`（seek/换歌）均关闭会话；native 不可用或失败时继续回退旧分块桥，再回退 TypeScript 解密器，HTTP、代理、Range 和 Chromium 解码行为保持不变。
+- `npm run native:build`、`npm run typecheck`、scoped ESLint、`npm run test:m31`、`npm run build`、`cargo test --manifest-path crates/aurora-native/Cargo.toml` 与 `git diff --check` 均通过。
+- 本切片只迁移远程 QMC2 的缓冲/解密边界；远程 Provider、认证、完整音频输出、DSP、下载编排、窗口和托盘仍未全量 Rust 化，不构成全软件原生化或所有者验收通过结论。
 
 ◆ M30 网易云 Provider Rust 归一化（2026-10-02，事实与回执）
 - `aurora-core::provider` 新增网易云单曲 JSON 归一化，覆盖 id/name、歌手、专辑、毫秒时长、四档普通音质和 mvid；只迁移纯 DTO 清洗，不触碰 eapi/weapi、网络和认证。
