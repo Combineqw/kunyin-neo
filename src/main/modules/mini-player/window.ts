@@ -120,14 +120,12 @@ function hideMiniPlayer(): void {
 }
 
 function syncMiniPlayerWindow(settings = getSettings()): void {
+  if (settings.lyrics.desktopMode === 'combined') {
+    hideMiniPlayer()
+    return
+  }
   if (settings.player.miniPlayerEnabled) showMiniPlayer()
   else hideMiniPlayer()
-}
-
-function commitPlayerSettings(patch: Partial<AppSettings['player']>): void {
-  const next = updateSettings({ player: patch })
-  sendToAllRenderers(IpcChannels.SETTINGS_CHANGED, next)
-  appEvent.emit('settings-updated', next)
 }
 
 function sendCommand(command: MiniPlayerCommand): void {
@@ -152,7 +150,14 @@ function setExpanded(expanded: boolean): void {
  */
 export function registerMiniPlayerModule(): void {
   ipcMain.handle(IpcChannels.MINI_PLAYER_TOGGLE, (_event, enabled: boolean) => {
-    commitPlayerSettings({ miniPlayerEnabled: enabled })
+    const next = updateSettings({
+      player: { miniPlayerEnabled: false },
+      lyrics: enabled
+        ? { desktopEnabled: true, desktopMode: 'combined' }
+        : { desktopEnabled: false }
+    })
+    sendToAllRenderers(IpcChannels.SETTINGS_CHANGED, next)
+    appEvent.emit('settings-updated', next)
   })
 
   ipcMain.on(IpcChannels.MINI_PLAYER_PUSH, (_event, state: MiniPlayerState) => {

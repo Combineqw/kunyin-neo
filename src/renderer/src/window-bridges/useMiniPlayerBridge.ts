@@ -29,7 +29,7 @@ export function useMiniPlayerBridge(): void {
   let cachedItem: MiniPlayerState['item'] = null
 
   function enabled(): boolean {
-    return settings.settings.player.miniPlayerEnabled
+    return settings.settings.player.miniPlayerEnabled && settings.settings.lyrics.desktopMode !== 'combined'
   }
 
   function push(): void {

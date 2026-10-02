@@ -229,7 +229,9 @@ const api: WindowApi = {
         ipcRenderer.off(IpcChannels.DESKTOP_LYRIC_STATE, listener)
       }
     },
-    setLock: (locked) => ipcRenderer.send(IpcChannels.DESKTOP_LYRIC_SET_LOCK, locked)
+    setLock: (locked) => ipcRenderer.send(IpcChannels.DESKTOP_LYRIC_SET_LOCK, locked),
+    command: (command: MiniPlayerCommand) =>
+      ipcRenderer.send(IpcChannels.DESKTOP_LYRIC_COMMAND, command)
   },
   miniPlayer: {
     toggle: (enabled) => ipcRenderer.invoke(IpcChannels.MINI_PLAYER_TOGGLE, enabled),

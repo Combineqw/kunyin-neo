@@ -193,6 +193,8 @@ export interface AppSettings {
     font: string
     /** 桌面歌词窗口开关 */
     desktopEnabled: boolean
+    /** 桌面歌词覆盖层模式；combined 同时显示封面、曲目信息和歌词。 */
+    desktopMode: 'lyrics' | 'combined'
     /** 锁定后窗口点击穿透 */
     desktopLocked: boolean
     /** 窗口置顶 */
@@ -425,6 +427,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     fontSize: 22,
     font: '',
     desktopEnabled: false,
+    desktopMode: 'lyrics',
     desktopLocked: false,
     desktopAlwaysOnTop: true,
     desktopAlwaysOnTopLoop: false,

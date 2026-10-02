@@ -7,6 +7,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef } from 'vue
 import { useLyricPlayer } from '../composables/useLyricPlayer'
 import AppIcon from '../components/AppIcon.vue'
 import type { AppSettings, DesktopLyricState } from '@common'
+import { coverUrl } from '../utils/cover'
 
 // 保留主窗口同款逐字歌词引擎，只把 LX Music 的桌面歌词外观与窗口选项接进来。
 const host = ref<HTMLElement>()
@@ -16,12 +17,18 @@ const hasLyric = ref(false)
 const title = ref('')
 const playing = ref(false)
 const spectrum = ref<number[]>([])
+const cover = ref('')
+const currentTime = ref(0)
+const duration = ref(0)
+const liked = ref(false)
+const item = ref<DesktopLyricState['item']>(null)
 
 let lastLyricKey = ''
 let lastTime = 0
 let lastStateAt = 0
 
 const lyricSettings = computed(() => appSettings.value?.lyrics)
+const combined = computed(() => lyricSettings.value?.desktopMode === 'combined')
 const locked = computed(() => lyricSettings.value?.desktopLocked ?? false)
 const pauseHidden = computed(
   () => !!lyricSettings.value?.desktopPauseHide && !playing.value && !!title.value
@@ -31,6 +38,7 @@ const rootClasses = computed(() => {
   const s = lyricSettings.value
   return {
     locked: locked.value,
+    combined: combined.value,
     'pause-hidden': pauseHidden.value,
     'hover-hide': !!s?.desktopHoverHide,
     'direction-vertical': s?.desktopDirection === 'vertical',
@@ -88,7 +96,12 @@ async function apply(state: DesktopLyricState): Promise<void> {
   const receivedAt = performance.now()
   title.value = state.title
   playing.value = state.playing
+  currentTime.value = state.currentTime
   spectrum.value = state.spectrum ?? []
+  cover.value = state.cover ?? ''
+  duration.value = state.duration ?? 0
+  liked.value = state.liked ?? false
+  item.value = state.item ?? null
   const key = `${state.lyric}\0${state.translate}\0${state.roman}\0${state.musicName ?? ''}\0${state.musicSinger?.join('/') ?? ''}`
   if (key !== lastLyricKey) {
     lastLyricKey = key
@@ -168,6 +181,20 @@ function toggleZoom(): void {
 function toggleAlwaysOnTop(): void {
   updateLyrics({ desktopAlwaysOnTop: !lyricSettings.value?.desktopAlwaysOnTop })
 }
+
+function command(command: 'playpause' | 'prev' | 'next'): void {
+  window.api.desktopLyric.command(command)
+}
+
+async function toggleFavorite(): Promise<void> {
+  if (!item.value) return
+  liked.value = await window.api.library.toggleFavorite(item.value)
+}
+
+function formatTime(value: number): string {
+  const seconds = Math.max(0, Math.floor(value / 1000))
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+}
 </script>
 
 <template>
@@ -213,6 +240,25 @@ function toggleAlwaysOnTop(): void {
       </div>
     </div>
 
+    <div v-if="combined" class="dl-track">
+      <div class="dl-cover-wrap">
+        <img v-if="cover" class="dl-cover" :src="coverUrl(cover)" alt="" draggable="false" />
+        <AppIcon v-else name="headphone" :size="22" />
+      </div>
+      <div class="dl-track-meta">
+        <strong class="dl-track-title" :title="title">{{ title || '暂无播放' }}</strong>
+        <span class="dl-track-artist">{{ lyricSettings?.desktopMode === 'combined' ? (item?.artist || '等待播放') : '' }}</span>
+        <span class="dl-track-time">{{ formatTime(currentTime) }} / {{ formatTime(duration) }}</span>
+      </div>
+      <div class="dl-track-actions">
+        <button class="dl-btn pressable" title="收藏" aria-label="收藏" :disabled="!item" @click="toggleFavorite">
+          <AppIcon :name="liked ? 'heart-filled' : 'heart'" :size="15" />
+        </button>
+        <button class="dl-btn pressable" title="上一首" aria-label="上一首" @click="command('prev')"><AppIcon name="skip-back" :size="15" /></button>
+        <button class="dl-btn pressable" :title="playing ? '暂停' : '播放'" :aria-label="playing ? '暂停' : '播放'" @click="command('playpause')"><AppIcon :name="playing ? 'pause' : 'play'" :size="17" /></button>
+        <button class="dl-btn pressable" title="下一首" aria-label="下一首" @click="command('next')"><AppIcon name="skip-forward" :size="15" /></button>
+      </div>
+    </div>
     <div ref="host" class="dl-lyric" :class="{ hidden: !hasLyric }" />
     <div v-if="!hasLyric" class="dl-placeholder">
       <span>{{ title || '坤音neo · 桌面歌词' }}</span>
@@ -304,6 +350,38 @@ function toggleAlwaysOnTop(): void {
   padding-right: 6px;
   -webkit-app-region: no-drag;
 }
+.dl-track {
+  position: absolute;
+  z-index: 3;
+  left: 14px;
+  right: 14px;
+  top: 34px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+.dl-cover-wrap {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.dl-cover { width: 100%; height: 100%; object-fit: cover; }
+.dl-track-meta { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.dl-track-title, .dl-track-artist, .dl-track-time { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dl-track-title { max-width: 260px; font-size: 13px; }
+.dl-track-artist, .dl-track-time { color: rgba(255, 255, 255, 0.62); font-size: 10px; }
+.dl-track-actions { margin-left: auto; display: flex; gap: 2px; pointer-events: auto; }
+.dl-track-actions .dl-btn { width: 28px; height: 28px; }
+.dl-track-actions .dl-btn:disabled { opacity: 0.35; cursor: default; }
+.dl-root:not(.combined) .dl-track { display: none; }
 .dl-btn {
   width: 30px;
   height: 28px;
@@ -353,6 +431,12 @@ function toggleAlwaysOnTop(): void {
   min-height: 0;
   opacity: var(--dl-text-opacity, 1);
   transition: opacity 0.2s ease;
+}
+.dl-root.combined .dl-lyric {
+  top: 92px;
+}
+.dl-root.combined .dl-placeholder {
+  top: 92px;
 }
 .dl-root.gradient-bar::before {
   content: '';

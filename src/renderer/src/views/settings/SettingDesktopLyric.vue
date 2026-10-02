@@ -16,6 +16,10 @@ const { settings } = storeToRefs(store)
 const api = useApi()
 
 const fontList = ref<{ id: string; label: string }[]>([{ id: '', label: '跟随歌词字体' }])
+const desktopModeList = [
+  { id: 'lyrics', label: '纯歌词' },
+  { id: 'combined', label: '歌词与迷你播放器' }
+]
 
 onMounted(async () => {
   const platform = await api.app.getPlatform()
@@ -54,6 +58,10 @@ function updateLyrics(patch: Partial<AppSettings['lyrics']>): void {
 
 function toggleDesktopLyric(value: boolean | string | number): void {
   void api.desktopLyric.toggle(Boolean(value))
+}
+
+function setDesktopMode(value: string | number): void {
+  updateLyrics({ desktopMode: value === 'combined' ? 'combined' : 'lyrics' })
 }
 
 function toggleAudioVisualization(value: boolean | string | number): void {
@@ -133,6 +141,18 @@ function resetAll(): void {
 
   <dd>
     <h3 id="desktop_lyric_window">窗口行为</h3>
+    <div class="font-row">
+      <div>
+        <span class="group-label">桌面歌词模式</span>
+        <small>合并模式会在同一个桌面歌词窗口显示封面、曲目信息和播放控制。</small>
+      </div>
+      <BaseSelect
+        id="setting_dl_mode"
+        :model-value="settings.lyrics.desktopMode"
+        :list="desktopModeList"
+        @update:model-value="setDesktopMode"
+      />
+    </div>
     <div class="option-grid">
       <div class="option-item">
         <BaseCheckbox

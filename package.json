@@ -1,6 +1,6 @@
 {
   "name": "kunyin-desktop",
-  "version": "1.0.7",
+  "version": "1.1.0",
   "description": "一个音乐查找助手",
   "main": "./out/main/index.js",
   "author": "ikunshare",
@@ -25,6 +25,7 @@
     "test:m31": "node scripts/m31-playback-stream-tests.mjs",
     "test:m33": "node scripts/m33-theme-rust-tests.mjs",
     "test:m34": "node scripts/m34-theme-renderer-tests.mjs",
+    "test:m35": "node scripts/m35-combined-window-tests.mjs",
     "test": "npm run test:core && npm run test:theme && npm run test:animation && npm run test:m3 && npm run test:m4 && npm run test:f1 && npm run test:m51 && npm run test:m53 && npm run test:m54",
     "verify": "npm run lint:gate && npm run typecheck && npm run test",
     "start": "electron-vite preview",

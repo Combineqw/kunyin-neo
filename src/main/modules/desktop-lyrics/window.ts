@@ -8,7 +8,7 @@
 import { BrowserWindow, ipcMain, screen, type Rectangle } from 'electron'
 import { join } from 'node:path'
 import { is } from '@electron-toolkit/utils'
-import { IpcChannels, type AppSettings, type DesktopLyricState } from '@common'
+import { IpcChannels, type AppSettings, type DesktopLyricState, type MiniPlayerCommand } from '@common'
 import { getSettings, updateSettings } from '../../store/settings'
 import { getMainWindow } from '../../windows/main'
 import { appEvent } from '../../core/events'
@@ -245,6 +245,13 @@ function commitLyricSettings(patch: Partial<AppSettings['lyrics']>): AppSettings
   return next
 }
 
+function sendCommand(command: MiniPlayerCommand): void {
+  const mainWindow = getMainWindow()
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(IpcChannels.MEDIA_COMMAND, command)
+  }
+}
+
 export function toggleDesktopLyric(enabled: boolean): void {
   commitLyricSettings({ desktopEnabled: enabled })
 }
@@ -266,6 +273,10 @@ export function registerDesktopLyricModule(): void {
   // 保留独立锁定通道兼容旧歌词窗；新工具栏也会直接更新 settings。
   ipcMain.on(IpcChannels.DESKTOP_LYRIC_SET_LOCK, (_e, locked: boolean) => {
     commitLyricSettings({ desktopLocked: locked })
+  })
+
+  ipcMain.on(IpcChannels.DESKTOP_LYRIC_COMMAND, (_e, command: MiniPlayerCommand) => {
+    if (command === 'playpause' || command === 'next' || command === 'prev') sendCommand(command)
   })
 
   appEvent.on('settings-updated', syncDesktopLyricWindow)

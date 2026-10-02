@@ -41,6 +41,15 @@ function load(): AppSettings {
     const raw = nativeReadSettings(path) ?? readFileSync(path, 'utf-8')
     const parsed = JSON.parse(raw) as Partial<AppSettings>
     const merged = deepMerge(DEFAULT_SETTINGS, parsed) as AppSettings
+    // M35: migrate the former second mini-player window to the single desktop
+    // lyrics overlay when the user had enabled it before desktopMode existed.
+    const rawLyrics = (parsed.lyrics ?? {}) as Record<string, unknown>
+    const legacyPlayer = (parsed.player ?? {}) as Record<string, unknown>
+    if (!Object.prototype.hasOwnProperty.call(rawLyrics, 'desktopMode') && legacyPlayer.miniPlayerEnabled === true) {
+      merged.lyrics.desktopEnabled = true
+      merged.lyrics.desktopMode = 'combined'
+      merged.player.miniPlayerEnabled = false
+    }
     // 已移除的桌面歌词描边字段不再带入运行时或后续持久化文件。
     delete (merged.lyrics as unknown as Record<string, unknown>).desktopShadowColor
     // 旧字段 writeLyricMeta 迁移到 embedLyric（歌词写入标签拆分出翻译/罗马音/逐字子开关）。

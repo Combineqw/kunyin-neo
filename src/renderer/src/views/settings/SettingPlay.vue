@@ -37,6 +37,9 @@ const previewError = ref('')
 const responseCurve = ref<number[]>([])
 
 const blocked = computed(() => blockedQualityIds(settings.value))
+const combinedMiniPlayerEnabled = computed(
+  () => settings.value.lyrics.desktopEnabled && settings.value.lyrics.desktopMode === 'combined'
+)
 
 // 被屏蔽的档位不作为首选（当前值若已被屏蔽仍保留在列表里，避免下拉显示空白）
 const qualityList = computed(() =>
@@ -403,7 +406,12 @@ function setFadeDuration(event: Event): void {
 }
 
 function setMiniPlayerEnabled(enabled: boolean): void {
-  void store.update({ player: { miniPlayerEnabled: enabled } })
+  void store.update({
+    player: { miniPlayerEnabled: false },
+    lyrics: enabled
+      ? { desktopEnabled: true, desktopMode: 'combined' }
+      : { desktopEnabled: false }
+  })
 }
 
 function setReplayGainEnabled(enabled: boolean): void {
@@ -432,7 +440,7 @@ function setReplayGainMax(event: Event): void {
     <h3 id="play_mini_player">迷你播放器</h3>
     <BaseCheckbox
       id="setting_mini_player_enabled"
-      :model-value="settings.player.miniPlayerEnabled"
+      :model-value="combinedMiniPlayerEnabled"
       label="显示悬浮迷你播放器"
       @update:model-value="setMiniPlayerEnabled($event as boolean)"
     />

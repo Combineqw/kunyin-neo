@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.35 — 2026-10-02】
+【kunyin-neo 项目记忆 v5.36 — 2026-10-02】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,14 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02）
+
+◆ M35 桌面歌词合并播放器（2026-10-02，事实与回执）
+- 新增 `lyrics.desktopMode`：`lyrics` 保持原桌面歌词，`combined` 在同一个桌面歌词窗口内显示封面、歌名、歌手、时间、收藏和上一首/播放/下一首控制；不再为 combined 创建第二个迷你播放器 BrowserWindow。
+- 旧 `player.miniPlayerEnabled=true` 配置首次读取时迁移为 `lyrics.desktopEnabled=true` + `desktopMode=combined`，并关闭旧迷你窗口标志；原有歌词模式和兼容字段继续保留。
+- 状态桥仅在切歌时深拷贝曲目对象，100ms 播放进度复用快照；合并窗口命令复用现有媒体控制和收藏 IPC，避免新增音频元素或第二条播放链。
+- 回归：`npm run test:m35`、`npm run typecheck`、本轮跟踪文件 scoped ESLint、`npm test` 与 `git diff --check` 均通过。M35 只完成 Electron/Vue 单窗口体验，Rust 原生窗口与完整音频输出仍是后续路线，不构成所有者验收通过结论。
+- 1.1.0 Windows 候选安装包：`dist/kunyin-desktop-1.1.0-setup.exe`，99,285,246 B，SHA-256 `F66DEFF5CD5CC02E90E03D242E35EC9FA72A89B81494587CF6FBD0DAC188B73A`；构建命令为 `npm run build:win`，退出码 0。
 
 ◆ M34 FPS/GPU 调度过渡（2026-10-02，事实与回执）
 - Rust `aurora-core::theme` 新增连续 FPS 合约：`null` 跟随显示器刷新率，`0` 表示静态，正数按显示器刷新率钳制；Electron 渲染层启动时仅做有限 RAF 采样并把结果传入 native profile，不再硬编码 30/60 FPS。

@@ -185,6 +185,7 @@ export const IpcChannels = {
   DESKTOP_LYRIC_PUSH: 'desktopLyric:push', // 主窗口 → 主：推送歌词/进度/播放态
   DESKTOP_LYRIC_STATE: 'desktopLyric:state', // 主 → 歌词窗口：转发状态
   DESKTOP_LYRIC_SET_LOCK: 'desktopLyric:setLock', // 歌词窗口 → 主：锁定（点击穿透）
+  DESKTOP_LYRIC_COMMAND: 'desktopLyric:command', // 歌词窗口 → 主 → 主窗口：控制播放
 
   // 迷你播放器悬浮窗
   MINI_PLAYER_TOGGLE: 'miniPlayer:toggle', // 主窗口 → 主：开/关窗口
@@ -333,6 +334,14 @@ export interface DesktopLyricState {
   /** 供歌词净化识别首行「歌名 - 歌手」元信息 */
   musicName?: string
   musicSinger?: string[]
+  /** 当前曲目封面地址，用于 combined 覆盖层。 */
+  cover?: string
+  /** 当前曲目总时长（毫秒）。 */
+  duration?: number
+  /** 当前曲目是否已收藏。 */
+  liked?: boolean
+  /** 当前曲目对象，供收藏操作复用现有 library IPC。 */
+  item?: MusicItem | null
 }
 
 /** 迷你播放器状态（主窗口 → 迷你窗口，经主进程转发） */
@@ -717,6 +726,7 @@ export interface WindowApi {
     onState(cb: (state: DesktopLyricState) => void): Unsubscribe
     /** 悬浮窗设置锁定（点击穿透）（歌词窗口用） */
     setLock(locked: boolean): void
+    command(command: MiniPlayerCommand): void
   }
 
   /** 迷你播放器悬浮窗 */

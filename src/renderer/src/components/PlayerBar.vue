@@ -40,7 +40,9 @@ function openPlayer(): void {
   if (current.value) void router.push({ name: 'player' })
 }
 
-const miniPlayerEnabled = computed(() => settings.value.player.miniPlayerEnabled)
+const miniPlayerEnabled = computed(
+  () => settings.value.lyrics.desktopEnabled && settings.value.lyrics.desktopMode === 'combined'
+)
 function toggleMiniPlayer(): void {
   void window.api.miniPlayer.toggle(!miniPlayerEnabled.value)
 }

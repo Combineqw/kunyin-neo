@@ -1,31 +1,24 @@
-/**
- * �����ڵ������ʴ��ڵ�״̬�Žӡ�
- * ��ģ��ֻ���� Pinia ����/����״̬��ͨ�� IPC ���Ϳ��գ���������ƵԪ�أ�Ҳ��������ʡ�
- */
+/** Main renderer to desktop lyrics/combined overlay state bridge. */
 import { onUnmounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { usePlayerStore } from '../stores/player'
 import { useSettingsStore } from '../stores/settings'
+import { useLibraryStore } from '../stores/library'
 import type { DesktopLyricState, Lyric } from '@common'
 import { subscribeRuntimeSync } from './runtimeSyncScheduler'
 
 /**
- * 桌面歌词桥：主窗口侧全程运行，把当前歌词/进度/播放态推送给桌面歌词悬浮窗（经主进程转发）�?
- * 独立�? PlayerView 是否打开——切歌时拉一次歌词并缓存，进度变化时只推时间�?
- *
- * 仅当 settings.lyrics.desktopEnabled 时才拉歌�?/推送，省开销�?
- */
-/**
- * 启动桌面歌词状态同步，并在所属组件卸载时自动释放定时器�?
- *
- * @returns 不返回状态；副作用是向独立歌词窗口推�? IPC 快照�?
+ * Pushes playback state to the desktop overlay while keeping audio and queue
+ * ownership in the main renderer. Combined mode also consumes this payload.
  */
 export function useDesktopLyricBridge(): void {
   const player = usePlayerStore()
   const settings = useSettingsStore()
-  const { current, playing, currentTime } = storeToRefs(player)
+  const library = useLibraryStore()
+  const { current, playing, currentTime, duration } = storeToRefs(player)
 
   let cached: Lyric | null = null
+  let cachedItem: DesktopLyricState['item'] = null
   let loadToken = 0
 
   function enabled(): boolean {
@@ -46,20 +39,20 @@ export function useDesktopLyricBridge(): void {
       spectrum: settings.settings.lyrics.desktopAudioVisualization ? player.getSpectrumData() : [],
       title: c ? `${c.title} - ${c.artist}` : '',
       musicName: c?.title,
-      musicSinger: c?.artist ? [c.artist] : []
+      musicSinger: c?.artist ? [c.artist] : [],
+      cover: c?.cover ?? '',
+      duration: duration.value,
+      liked: !!c && library.isFavorite(c),
+      item: cachedItem
     }
     window.api.desktopLyric.push(state)
   }
 
-  /**
-   * 为当前歌曲获取歌词并写入桥接缓存�?
-   * 请求序号用于丢弃切歌后才返回的旧歌词，避免旧行文本覆盖新歌曲�?
-   *
-   * @returns 歌词加载和状态推送完成时兑现�?
-   */
+  /** Load lyrics for the current track and drop stale responses after a seek. */
   async function loadLyric(): Promise<void> {
     const token = ++loadToken
     cached = null
+    cachedItem = current.value ? JSON.parse(JSON.stringify(current.value)) : null
     if (!current.value || !enabled()) {
       push()
       return
@@ -80,21 +73,21 @@ export function useDesktopLyricBridge(): void {
     unsubscribeSync?.()
     unsubscribeSync = null
     if (settings.settings.lyrics.desktopEnabled && playing.value) {
-      // 播放时每 100ms 读取一次媒体元素真实时间；暂停态由状�?/seek 事件即时推送�?
+      // Playback uses a shared 100ms tick; paused and seek states push immediately.
       unsubscribeSync = subscribeRuntimeSync(push)
     }
   }
 
   watch(current, () => void loadLyric())
+  watch(() => library.favoriteKeys, push, { deep: true })
+  watch(duration, push)
   watch(playing, () => {
     push()
     syncTimerState()
   })
-  // 暂停�? seek 后立即推送；播放态由 100ms 定时器读取更准确�? audio.currentTime�?
   watch(currentTime, () => {
     if (!playing.value) push()
   })
-  // 开关打开时立即拉一次；频谱开关变化时下一�? 100ms 推送自然应用�?
 
   watch(
     () => settings.settings.lyrics.desktopEnabled,
