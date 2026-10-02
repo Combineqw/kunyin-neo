@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.33 — 2026-10-02】
+【kunyin-neo 项目记忆 v5.34 — 2026-10-02】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,13 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02）
+
+◆ M33 Rust 主题动效 profile（2026-10-02，事实与回执）
+- `aurora-core::theme` 新增确定性的主题动效 profile：季节主题的 blob 几何、动画时长、模糊、透明度、帧间隔和降动效行为由 Rust 计算，未知/非极光主题不分配动效 blob。
+- `aurora-native` 暴露 `themeMotionProfile`；Electron 主题 IPC 通过 preload 调用 Rust，渲染层只把 profile 写入 CSS 变量和最终绘制规则，主题切换与 `prefers-reduced-motion` 变化自动刷新。
+- `npm run native:build`、Rust `aurora-core` 20/20 与 `aurora-native` 编译测试、`npm run test:m33`、`npm run typecheck`、scoped ESLint、`npm test`、`npm run build`、`cargo fmt --check` 与 `git diff --check` 均通过。
+- 本切片迁移主题动效参数与策略，不把 CSS 合成器或 Chromium 绘制误报成 Rust；播放解码、设备输出、DSP、窗口托盘和全软件 Rust 原生化仍是后续工作，不构成所有者验收通过结论。
 
 ◆ M32 QMC2 回退解密懒加载（2026-10-02，事实与回执）
 - 远程加密 Range 响应优先使用 Rust 有状态 QMC2 会话；只有 native 缺失或首次 native 分块失败时才创建 TypeScript 解密器，避免 Rust 成功路径重复解析 ekey、分配兼容解密状态和占用额外内存。

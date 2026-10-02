@@ -229,6 +229,12 @@ construct the TypeScript QMC2 decryptor unless the Rust binding is unavailable
 or a native chunk fails. This removes redundant key parsing and fallback state
 from the normal Rust path while preserving the existing recovery behavior.
 
+M33 moves theme motion profiles into `aurora-core`. Seasonal blob geometry,
+timing, blur, opacity, frame interval, and reduced-motion policy are computed
+by Rust and exposed through `themeMotionProfile`; the renderer only applies the
+returned values as CSS variables for final compositing. This keeps animation
+policy native without pretending Chromium's compositor has been replaced.
+
 M11 also routes Electron's local enrichment, tag reads, and local-library
 health probes through the Rust metadata bridge first. The existing TypeScript
 tag writers and `music-metadata` fallback remain available for unsupported
