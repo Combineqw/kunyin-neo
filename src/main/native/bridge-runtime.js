@@ -161,6 +161,38 @@ export function nativeAudioDecryptQmc2Chunk(ekey, fileOffset, chunk) {
   }
 }
 
+/** Optional stateful Rust QMC2 stream session for one Range response. */
+export function nativeAudioStreamCreate(ekey) {
+  try {
+    const call = loadBinding()?.audioStreamCreate
+    if (typeof call !== 'function') return null
+    const id = call(ekey)
+    return Number.isSafeInteger(id) && id > 0 ? id : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeAudioStreamDecrypt(id, fileOffset, chunk) {
+  try {
+    const call = loadBinding()?.audioStreamDecrypt
+    if (typeof call !== 'function') return null
+    const output = call(id, Math.max(0, Math.round(fileOffset)), chunk)
+    return output instanceof Uint8Array ? output : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeAudioStreamClose(id) {
+  try {
+    const call = loadBinding()?.audioStreamClose
+    return typeof call === 'function' ? call(id) === true : false
+  } catch {
+    return false
+  }
+}
+
 /** Optional bounded Rust download transaction; the host keeps HTTP/proxy ownership. */
 export function nativeDownloadCreate(tempPath, finalPath, maxBytes) {
   try {

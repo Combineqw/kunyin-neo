@@ -16,7 +16,12 @@ import { createReadStream, statSync } from 'node:fs'
 import { extname } from 'node:path'
 import { Readable } from 'node:stream'
 import { createAudioDecryptor, type AudioDecryptor } from '../crypto/decryptor'
-import { nativeAudioDecryptQmc2Chunk } from '../native/bridge-runtime.js'
+import {
+  nativeAudioDecryptQmc2Chunk,
+  nativeAudioStreamClose,
+  nativeAudioStreamCreate,
+  nativeAudioStreamDecrypt
+} from '../native/bridge-runtime.js'
 
 /**
  * 注册给 `kunyin://` 的单条音频流描述。
@@ -221,15 +226,35 @@ function decryptStream(
   src: ReadableStream<Uint8Array>,
   decryptor: AudioDecryptor | null,
   startOffset: number,
-  ekey?: string
+  ekey?: string,
+  nativeStreamId?: number | null,
+  rendererSignal?: AbortSignal
 ): ReadableStream<Uint8Array> {
   let offset = startOffset
   let nativeUnavailable = false
+  let nativeStreamClosed = false
+  const closeNativeStream = (): void => {
+    if (nativeStreamId == null || nativeStreamClosed) return
+    nativeStreamClosed = true
+    nativeAudioStreamClose(nativeStreamId)
+    rendererSignal?.removeEventListener('abort', closeNativeStream)
+  }
+  if (nativeStreamId != null && rendererSignal) {
+    if (rendererSignal.aborted) closeNativeStream()
+    else rendererSignal.addEventListener('abort', closeNativeStream, { once: true })
+  }
   const transform = new TransformStream<Uint8Array, Uint8Array>({
     transform(chunk, controller) {
       const buf = Buffer.from(chunk)
       let output: Uint8Array | null = null
-      if (ekey && !nativeUnavailable) {
+      if (ekey && !nativeUnavailable && nativeStreamId != null) {
+        output = nativeAudioStreamDecrypt(nativeStreamId, offset, buf)
+        if (!output) {
+          nativeUnavailable = true
+          closeNativeStream()
+        }
+      }
+      if (ekey && !nativeUnavailable && nativeStreamId == null) {
         output = nativeAudioDecryptQmc2Chunk(ekey, offset, buf)
         if (!output) nativeUnavailable = true
       }
@@ -239,6 +264,9 @@ function decryptStream(
       // bytes, while a missing native binary never interrupts the request.
       controller.enqueue(output ?? buf)
       offset += buf.length
+    },
+    flush() {
+      closeNativeStream()
     }
   })
   return src.pipeThrough(transform)
@@ -350,11 +378,13 @@ export function installAudioProtocol(): void {
     if (cr) out.set('Content-Range', cr)
 
     const decryptor = spec.ekey ? createAudioDecryptor(spec.ekey) : null
+    const nativeStreamId = spec.ekey ? nativeAudioStreamCreate(spec.ekey) : null
     if (spec.ekey && !decryptor) {
       console.warn('[audio] ekey 流暂无解密器，透传（播放将异常）')
     }
     let body: ReadableStream<Uint8Array> = upstream.body
-    if (spec.ekey) body = decryptStream(body, decryptor, upstreamStart, spec.ekey)
+    if (spec.ekey)
+      body = decryptStream(body, decryptor, upstreamStart, spec.ekey, nativeStreamId, request.signal)
 
     return new Response(body as BodyInit, { status, headers: out })
   })

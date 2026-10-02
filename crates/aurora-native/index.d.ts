@@ -30,6 +30,16 @@ export declare function nativeAudioSnapshot(): string
  * keeps its TypeScript decryptor fallback.
  */
 export declare function audioDecryptQmc2Chunk(ekey: string, fileOffset: number, chunk: Buffer): Buffer
+/**
+ * Create a bounded-lifetime QMC2 stream session for one HTTP Range response.
+ * The ekey is parsed once; subsequent chunks only carry the session id and
+ * absolute encrypted offset, avoiding repeated key marshaling and cache locks.
+ */
+export declare function audioStreamCreate(ekey: string): number
+/** Decrypt one chunk through a previously created QMC2 stream session. */
+export declare function audioStreamDecrypt(id: number, fileOffset: number, chunk: Buffer): Buffer
+/** Release a QMC2 stream session after the corresponding HTTP response ends. */
+export declare function audioStreamClose(id: number): boolean
 /** Start a bounded temporary-file download transaction. */
 export declare function downloadCreate(tempPath: string, finalPath: string, maxBytes: number): number
 export declare function downloadWrite(id: number, chunk: Buffer): string

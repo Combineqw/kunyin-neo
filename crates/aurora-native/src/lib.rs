@@ -19,8 +19,11 @@ use napi_derive::napi;
 static PLAYBACK_SESSION: OnceLock<Mutex<PlaybackSession>> = OnceLock::new();
 static NATIVE_AUDIO: OnceLock<Mutex<Option<NativePlaybackEngine>>> = OnceLock::new();
 static QMC2_DECRYPTOR: OnceLock<Mutex<Option<(String, Arc<Qmc2Decryptor>)>>> = OnceLock::new();
+static QMC2_STREAMS: OnceLock<Mutex<HashMap<u64, Arc<Qmc2Decryptor>>>> = OnceLock::new();
+static NEXT_QMC2_STREAM_ID: OnceLock<Mutex<u64>> = OnceLock::new();
 static DOWNLOADS: OnceLock<Mutex<HashMap<u64, DownloadSession>>> = OnceLock::new();
 static NEXT_DOWNLOAD_ID: OnceLock<Mutex<u64>> = OnceLock::new();
+const MAX_QMC2_STREAMS: usize = 64;
 
 fn downloads() -> &'static Mutex<HashMap<u64, DownloadSession>> {
     DOWNLOADS.get_or_init(|| Mutex::new(HashMap::new()))
@@ -31,6 +34,16 @@ fn next_download_id() -> napi::Result<u64> {
         .get_or_init(|| Mutex::new(1))
         .lock()
         .map_err(|_| napi::Error::from_reason("download id lock poisoned"))?;
+    let id = *next;
+    *next = next.checked_add(1).unwrap_or(1);
+    Ok(id)
+}
+
+fn next_qmc2_stream_id() -> napi::Result<u64> {
+    let mut next = NEXT_QMC2_STREAM_ID
+        .get_or_init(|| Mutex::new(1))
+        .lock()
+        .map_err(|_| napi::Error::from_reason("QMC2 stream id lock poisoned"))?;
     let id = *next;
     *next = next.checked_add(1).unwrap_or(1);
     Ok(id)
@@ -240,6 +253,56 @@ pub fn audio_decrypt_qmc2_chunk(
         }
     };
     Ok(Buffer::from(decryptor.decrypt(&chunk, file_offset as u64)))
+}
+
+/// Create a bounded-lifetime QMC2 stream session for one HTTP Range response.
+/// The ekey is parsed once; subsequent chunks only carry the session id and
+/// absolute encrypted offset, avoiding repeated key marshaling and cache locks.
+#[napi]
+pub fn audio_stream_create(ekey: String) -> napi::Result<i64> {
+    let decryptor = Arc::new(
+        Qmc2Decryptor::from_ekey(&ekey)
+            .ok_or_else(|| napi::Error::from_reason("invalid QMC2 ekey"))?,
+    );
+    let streams = QMC2_STREAMS.get_or_init(|| Mutex::new(HashMap::new()));
+    let mut guard = streams
+        .lock()
+        .map_err(|_| napi::Error::from_reason("QMC2 stream lock poisoned"))?;
+    if guard.len() >= MAX_QMC2_STREAMS {
+        return Err(napi::Error::from_reason("too many QMC2 stream sessions"));
+    }
+    let id = next_qmc2_stream_id()?;
+    guard.insert(id, decryptor);
+    Ok(id as i64)
+}
+
+/// Decrypt one chunk through a previously created QMC2 stream session.
+#[napi]
+pub fn audio_stream_decrypt(id: i64, file_offset: i64, chunk: Buffer) -> napi::Result<Buffer> {
+    if id <= 0 || file_offset < 0 {
+        return Err(napi::Error::from_reason("invalid QMC2 stream arguments"));
+    }
+    let streams = QMC2_STREAMS.get_or_init(|| Mutex::new(HashMap::new()));
+    let decryptor = streams
+        .lock()
+        .map_err(|_| napi::Error::from_reason("QMC2 stream lock poisoned"))?
+        .get(&(id as u64))
+        .cloned()
+        .ok_or_else(|| napi::Error::from_reason("QMC2 stream session not found"))?;
+    Ok(Buffer::from(decryptor.decrypt(&chunk, file_offset as u64)))
+}
+
+/// Release a QMC2 stream session after the corresponding HTTP response ends.
+#[napi]
+pub fn audio_stream_close(id: i64) -> bool {
+    if id <= 0 {
+        return false;
+    }
+    QMC2_STREAMS
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .map(|mut streams| streams.remove(&(id as u64)).is_some())
+        .unwrap_or(false)
 }
 
 /// Start a bounded temporary-file download transaction.

@@ -26,6 +26,9 @@ type NativeBinding = {
   nativeAudioStop?(): string
   nativeAudioSnapshot?(): string
   audioDecryptQmc2Chunk?(ekey: string, fileOffset: number, chunk: Uint8Array): Uint8Array
+  audioStreamCreate?(ekey: string): number
+  audioStreamDecrypt?(id: number, fileOffset: number, chunk: Uint8Array): Uint8Array
+  audioStreamClose?(id: number): boolean
   audioDecryptQmc2File?(path: string, ekey: string): boolean
   syncNormalizeBaseUrl?(url: string): string
   syncValidateSession?(sessionJson: string): string
@@ -320,6 +323,42 @@ export function nativeAudioDecryptQmc2Chunk(
     return output instanceof Uint8Array ? output : null
   } catch {
     return null
+  }
+}
+
+/** Optional stateful Rust QMC2 stream session for one Range response. */
+export function nativeAudioStreamCreate(ekey: string): number | null {
+  try {
+    const call = loadBinding()?.audioStreamCreate
+    if (typeof call !== 'function') return null
+    const id = call(ekey)
+    return Number.isSafeInteger(id) && id > 0 ? id : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeAudioStreamDecrypt(
+  id: number,
+  fileOffset: number,
+  chunk: Uint8Array
+): Uint8Array | null {
+  try {
+    const call = loadBinding()?.audioStreamDecrypt
+    if (typeof call !== 'function') return null
+    const output = call(id, Math.max(0, Math.round(fileOffset)), chunk)
+    return output instanceof Uint8Array ? output : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeAudioStreamClose(id: number): boolean {
+  try {
+    const call = loadBinding()?.audioStreamClose
+    return typeof call === 'function' ? call(id) === true : false
+  } catch {
+    return false
   }
 }
 
