@@ -272,7 +272,9 @@ const api: WindowApi = {
   },
   theme: {
     importTheme: () => ipcRenderer.invoke(IpcChannels.THEME_IMPORT_FILE),
-    exportTheme: (config) => ipcRenderer.invoke(IpcChannels.THEME_EXPORT_FILE, toPlain(config))
+    exportTheme: (config) => ipcRenderer.invoke(IpcChannels.THEME_EXPORT_FILE, toPlain(config)),
+    motionProfile: (themeId, reducedMotion = false) =>
+      ipcRenderer.invoke(IpcChannels.THEME_MOTION_PROFILE, themeId, reducedMotion)
   },
   irs: {
     importProfile: () => ipcRenderer.invoke(IpcChannels.IRS_IMPORT_FILE)

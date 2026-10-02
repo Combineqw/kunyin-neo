@@ -31,6 +31,7 @@ function setThemeVars(colors: Record<string, string>): void {
 }
 
 const darkQuery = window.matchMedia('(prefers-color-scheme: dark)')
+const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
 
 let currentId = 'green'
 let currentLightId = 'green'
@@ -39,6 +40,22 @@ let customThemes: ThemeDef[] = []
 let comfortLevel: ComfortLevel = 'standard'
 let hasAppliedTheme = false
 let themeTransitionTimer: ReturnType<typeof setTimeout> | undefined
+
+function applyNativeMotionProfile(themeId: string): void {
+  void window.api.theme
+    .motionProfile(themeId, reducedMotionQuery.matches)
+    .then((profile) => {
+      if (!profile || document.documentElement.dataset.theme !== themeId) return
+      const root = document.documentElement
+      root.style.setProperty('--aurora-motion-blur', `${profile.blurPx}px`)
+      root.style.setProperty('--aurora-motion-opacity', String(profile.opacity))
+      root.style.setProperty('--aurora-motion-frame-ms', `${profile.frameIntervalMs}ms`)
+      const primaryDuration = profile.blobs[0]?.durationMs
+      root.style.setProperty('--anim-dur-aurora', primaryDuration ? `${primaryDuration}ms` : '14s')
+      root.classList.toggle('native-theme-motion', profile.enabled)
+    })
+    .catch(() => {})
+}
 
 function resolve(id: string): ThemeDef {
   const themeId =
@@ -78,6 +95,7 @@ export function applyTheme(id: string, lightId = currentLightId, darkId = curren
   // 写具体 id 而不是写一个 has-aurora 布尔类，是为了让将来按单个主题微调也够用。
   document.documentElement.dataset.theme = theme.id
   document.documentElement.classList.toggle('seasonal-theme', id === SEASONAL_AURORA_AUTO_ID)
+  applyNativeMotionProfile(theme.id)
   hasAppliedTheme = true
 }
 
@@ -96,6 +114,7 @@ export function setCustomThemes(configs: CustomThemeConfig[]): void {
 darkQuery.addEventListener('change', () => {
   if (currentId === 'auto') applyTheme('auto')
 })
+reducedMotionQuery.addEventListener('change', () => applyTheme(currentId))
 
 // Refresh the date-bound seasonal choice at local midnight without requiring a restart.
 let seasonalTimer: ReturnType<typeof setTimeout> | undefined

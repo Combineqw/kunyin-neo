@@ -12,10 +12,14 @@ import {
 } from '@common'
 import { handle } from '../helpers'
 import { getMainWindow } from '../../windows/main'
+import { nativeThemeMotionProfile } from '../../native/bridge-runtime.js'
 
 const filters = [{ name: '坤音neo 主题', extensions: ['json', 'kytheme'] }]
 
 export function registerThemeHandlers(): void {
+  handle(IpcChannels.THEME_MOTION_PROFILE, (themeId: string, reducedMotion = false) =>
+    nativeThemeMotionProfile(themeId, reducedMotion)
+  )
   handle(IpcChannels.THEME_IMPORT_FILE, async (): Promise<ThemeFileConfig | null> => {
     const result = await dialog.showOpenDialog(getMainWindow() ?? undefined!, {
       title: '导入主题',

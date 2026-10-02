@@ -18,6 +18,7 @@ type NativeBinding = {
   playbackTick?(elapsedMs: number): string
   playbackStop?(): string
   audioBackendCapabilities?(): string
+  themeMotionProfile?(themeId: string, reducedMotion: boolean): string
   nativeAudioStartFile?(path: string): string
   nativeAudioPlay?(): string
   nativeAudioPause?(): string
@@ -253,6 +254,35 @@ export function nativeAudioBackendCapabilities(): NativeAudioBackendCapabilities
     if (typeof call !== 'function') return null
     const raw = call()
     return raw ? (JSON.parse(raw) as NativeAudioBackendCapabilities) : null
+  } catch {
+    return null
+  }
+}
+
+export type NativeThemeMotionProfile = {
+  themeId: string
+  enabled: boolean
+  frameIntervalMs: number
+  blurPx: number
+  opacity: number
+  blobs: Array<{
+    topPercent: number
+    leftPercent: number
+    sizePercent: number
+    durationMs: number
+    delayMs: number
+  }>
+}
+
+export function nativeThemeMotionProfile(
+  themeId: string,
+  reducedMotion: boolean
+): NativeThemeMotionProfile | null {
+  try {
+    const call = loadBinding()?.themeMotionProfile
+    if (typeof call !== 'function') return null
+    const raw = call(themeId, reducedMotion)
+    return raw ? (JSON.parse(raw) as NativeThemeMotionProfile) : null
   } catch {
     return null
   }

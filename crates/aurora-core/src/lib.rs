@@ -8,6 +8,7 @@ pub mod provider;
 pub mod scan;
 pub mod settings_io;
 pub mod sync;
+pub mod theme;
 
 pub use error::AuroraError;
 

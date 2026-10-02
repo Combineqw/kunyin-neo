@@ -90,6 +90,9 @@
   --aurora-c3: #e3f6fd;
   --aurora-glow: rgba(242, 231, 253, 0.5);
   --anim-dur-aurora: 14s;
+  --aurora-motion-blur: 90px;
+  --aurora-motion-opacity: 0.74;
+  --aurora-motion-frame-ms: 33ms;
 
   /* ---- 玻璃基础（M3 色彩总线） ----
      三档只改变材质厚度；组件使用 .glass-surface 选择档位，不直接写透明度。
@@ -587,6 +590,13 @@ svg {
   background-size: 300% 100%;
   background-repeat: repeat;
   animation: aurora-flow var(--anim-dur-aurora) linear infinite;
+}
+.native-theme-motion .aurora-band {
+  opacity: var(--aurora-motion-opacity);
+}
+.native-theme-motion .fluid .blob {
+  filter: blur(var(--aurora-motion-blur));
+  opacity: var(--aurora-motion-opacity);
 }
 /* 可选外发光：静态属性，不参与动画。 */
 .aurora-band.aurora-glow {

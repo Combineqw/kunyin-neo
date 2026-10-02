@@ -310,7 +310,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { playbackSnapshot, playbackLoad, playbackPlay, playbackPause, playbackSeek, playbackTick, playbackStop, audioBackendCapabilities, nativeAudioStartFile, nativeAudioPlay, nativeAudioPause, nativeAudioSetVolume, nativeAudioSeek, nativeAudioStop, nativeAudioSnapshot, audioDecryptQmc2Chunk, audioStreamCreate, audioStreamDecrypt, audioStreamClose, downloadCreate, downloadWrite, downloadCommit, downloadAbort, audioDecryptQmc2File, scanDirectory, parseTrack, readAudioTags, writeAudioTags, scanLyrics, readSettings, writeSettings, settingsRoundtrip, nativeVersion, syncNormalizeBaseUrl, syncValidateSession, providerParseQqTrack, providerParseWyTrack } = nativeBinding
+const { playbackSnapshot, playbackLoad, playbackPlay, playbackPause, playbackSeek, playbackTick, playbackStop, audioBackendCapabilities, themeMotionProfile, nativeAudioStartFile, nativeAudioPlay, nativeAudioPause, nativeAudioSetVolume, nativeAudioSeek, nativeAudioStop, nativeAudioSnapshot, audioDecryptQmc2Chunk, audioStreamCreate, audioStreamDecrypt, audioStreamClose, downloadCreate, downloadWrite, downloadCommit, downloadAbort, audioDecryptQmc2File, scanDirectory, parseTrack, readAudioTags, writeAudioTags, scanLyrics, readSettings, writeSettings, settingsRoundtrip, nativeVersion, syncNormalizeBaseUrl, syncValidateSession, providerParseQqTrack, providerParseWyTrack } = nativeBinding
 
 module.exports.playbackSnapshot = playbackSnapshot
 module.exports.playbackLoad = playbackLoad
@@ -320,6 +320,7 @@ module.exports.playbackSeek = playbackSeek
 module.exports.playbackTick = playbackTick
 module.exports.playbackStop = playbackStop
 module.exports.audioBackendCapabilities = audioBackendCapabilities
+module.exports.themeMotionProfile = themeMotionProfile
 module.exports.nativeAudioStartFile = nativeAudioStartFile
 module.exports.nativeAudioPlay = nativeAudioPlay
 module.exports.nativeAudioPause = nativeAudioPause

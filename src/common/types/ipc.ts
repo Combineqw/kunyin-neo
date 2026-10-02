@@ -39,6 +39,21 @@ import type {
   PluginStoreResult
 } from './plugin'
 
+export type ThemeMotionProfile = {
+  themeId: string
+  enabled: boolean
+  frameIntervalMs: number
+  blurPx: number
+  opacity: number
+  blobs: Array<{
+    topPercent: number
+    leftPercent: number
+    sizePercent: number
+    durationMs: number
+    delayMs: number
+  }>
+}
+
 export const IpcChannels = {
   // 应用
   APP_VERSION: 'app:version',
@@ -182,6 +197,7 @@ export const IpcChannels = {
   // ---- 主题导入导出 ----
   THEME_IMPORT_FILE: 'theme:importFile',
   THEME_EXPORT_FILE: 'theme:exportFile',
+  THEME_MOTION_PROFILE: 'theme:motionProfile',
   IRS_IMPORT_FILE: 'irs:importFile',
   SHELL_OPEN_PATH: 'shell:openPath',
 
@@ -744,6 +760,8 @@ export interface WindowApi {
     importTheme(): Promise<ThemeFileConfig | null>
     /** 导出主题文件，返回文件名；取消时返回 null */
     exportTheme(config: ThemeFileConfig): Promise<string | null>
+    /** Resolve theme motion geometry in the Rust native bridge. */
+    motionProfile(themeId: string, reducedMotion?: boolean): Promise<ThemeMotionProfile | null>
   }
 
   /** IRS 脉冲响应文件 */

@@ -16,6 +16,11 @@ export declare function playbackStop(): string
  * attached to this contract.
  */
 export declare function audioBackendCapabilities(): string
+/**
+ * Return the deterministic Rust-owned theme motion profile. The renderer
+ * consumes the JSON only to apply CSS variables and final compositing.
+ */
+export declare function themeMotionProfile(themeId: string, reducedMotion: boolean): string
 export declare function nativeAudioStartFile(path: string): string
 export declare function nativeAudioPlay(): string
 export declare function nativeAudioPause(): string

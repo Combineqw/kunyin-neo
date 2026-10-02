@@ -110,6 +110,17 @@ export function nativeAudioBackendCapabilities() {
   }
 }
 
+export function nativeThemeMotionProfile(themeId, reducedMotion) {
+  try {
+    const call = loadBinding()?.themeMotionProfile
+    if (typeof call !== 'function') return null
+    const raw = call(themeId, !!reducedMotion)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
 function nativeAudioCall(method, ...args) {
   try {
     const call = loadBinding()?.[method]

@@ -10,7 +10,8 @@ use std::sync::{Arc, Mutex, OnceLock};
 
 use aurora_audio::{probe_capabilities, NativePlaybackEngine, Qmc2Decryptor};
 use aurora_core::{
-    download::DownloadSession, lyrics, metadata, provider, scan, settings_io, sync, AuroraError,
+    download::DownloadSession, lyrics, metadata, provider, scan, settings_io, sync, theme,
+    AuroraError,
 };
 use aurora_player::PlaybackSession;
 use napi::bindgen_prelude::Buffer;
@@ -131,6 +132,14 @@ pub fn playback_stop() -> napi::Result<String> {
 #[napi]
 pub fn audio_backend_capabilities() -> napi::Result<String> {
     serde_json::to_string(&probe_capabilities())
+        .map_err(|error| napi::Error::from_reason(error.to_string()))
+}
+
+/// Return the deterministic Rust-owned theme motion profile. The renderer
+/// consumes the JSON only to apply CSS variables and final compositing.
+#[napi]
+pub fn theme_motion_profile(theme_id: String, reduced_motion: bool) -> napi::Result<String> {
+    serde_json::to_string(&theme::motion_profile(&theme_id, reduced_motion))
         .map_err(|error| napi::Error::from_reason(error.to_string()))
 }
 
