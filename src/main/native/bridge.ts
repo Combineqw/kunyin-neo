@@ -29,6 +29,7 @@ type NativeBinding = {
   audioDecryptQmc2File?(path: string, ekey: string): boolean
   syncNormalizeBaseUrl?(url: string): string
   syncValidateSession?(sessionJson: string): string
+  providerParseQqTrack?(itemJson: string): string
 }
 
 export type NativeAudioBackendCapabilities = {
@@ -350,6 +351,19 @@ export function nativeSyncValidateSession<T extends object>(sessionJson: string)
     if (typeof call !== 'function') return null
     const raw = call(sessionJson)
     return raw ? (JSON.parse(raw) as T | null) : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional Rust QQ provider item mapping. */
+export function nativeParseQqTrack<T extends object>(item: unknown): T | null {
+  try {
+    const call = loadBinding()?.providerParseQqTrack
+    if (typeof call !== 'function') return null
+    const raw = call(JSON.stringify(item))
+    if (!raw) return null
+    return JSON.parse(raw) as T | null
   } catch {
     return null
   }

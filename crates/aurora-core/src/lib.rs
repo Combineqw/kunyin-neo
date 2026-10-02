@@ -4,6 +4,7 @@ pub mod download;
 pub mod error;
 pub mod lyrics;
 pub mod metadata;
+pub mod provider;
 pub mod scan;
 pub mod settings_io;
 pub mod sync;

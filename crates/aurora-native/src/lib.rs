@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 
 use aurora_audio::{probe_capabilities, NativePlaybackEngine, Qmc2Decryptor};
 use aurora_core::{
-    download::DownloadSession, lyrics, metadata, scan, settings_io, sync, AuroraError,
+    download::DownloadSession, lyrics, metadata, provider, scan, settings_io, sync, AuroraError,
 };
 use aurora_player::PlaybackSession;
 use napi::bindgen_prelude::Buffer;
@@ -447,4 +447,12 @@ pub fn sync_normalize_base_url(url: String) -> napi::Result<String> {
 pub fn sync_validate_session(session_json: String) -> napi::Result<String> {
     let value = sync::session_json(&session_json).map_err(to_napi_error)?;
     Ok(value.unwrap_or_else(|| "null".to_string()))
+}
+
+/// Parse one QQ Music provider song through the shared Rust mapping.
+/// The Electron caller keeps its TypeScript parser when this optional binding
+/// is unavailable or rejects malformed input.
+#[napi]
+pub fn provider_parse_qq_track(item_json: String) -> napi::Result<String> {
+    provider::parse_qq_track_json(&item_json).map_err(to_napi_error)
 }

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** QQ 音乐单曲解析与音质映射（移植自 QQMusicItem.kt） */
 import type { QQMusicItem, Quality, Singer } from '@common'
+import { nativeParseQqTrack } from '../../native/bridge'
 
 export function num(v: any, def = 0): number {
   if (v == null) return def
@@ -36,6 +37,8 @@ function addSpecial(
 }
 
 export function parseTrackInfo(item: any): QQMusicItem | null {
+  const native = nativeParseQqTrack<QQMusicItem>(item)
+  if (native) return native
   if (!item) return null
   const id = num(item.id, 0)
   if (!id) return null

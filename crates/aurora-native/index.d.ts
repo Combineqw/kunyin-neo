@@ -75,3 +75,9 @@ export declare function syncNormalizeBaseUrl(url: string): string
  * `null` means that the session is absent or malformed.
  */
 export declare function syncValidateSession(sessionJson: string): string
+/**
+ * Parse one QQ Music provider song through the shared Rust mapping.
+ * The Electron caller keeps its TypeScript parser when this optional binding
+ * is unavailable or rejects malformed input.
+ */
+export declare function providerParseQqTrack(itemJson: string): string
