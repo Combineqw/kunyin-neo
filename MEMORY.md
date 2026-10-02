@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.29 — 2026-10-02】
+【kunyin-neo 项目记忆 v5.30 — 2026-10-02】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -27,7 +27,14 @@
   v5.24 M23 Rust 本地播放纵向切片记档：2026-10-02；
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
-  v5.29 M28 Rust 同步协议边界记档：2026-10-02）
+  v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02）
+
+◆ M29 QQ Provider Rust 归一化（2026-10-02，事实与回执）
+- `aurora-core::provider` 新增 QQ 单曲 JSON 归一化，覆盖必填字段、歌手/封面、专辑、时长、普通音质、母带/全景声质量和 mvid；QQC 继续复用同一 `parseTrackInfo` 入口并保持 `type: qq`。
+- `aurora-native` 暴露 `providerParseQqTrack`；Electron bridge 先调用 Rust，native 缺失、输入无效或调用失败时继续走原 TypeScript parser，旧 provider 请求、认证和调度不变。
+- 新增 `npm run native:provider-compare`，以 JSON 边界归一化比较 5 组有效/无效/质量边界 fixture；与既有 scan/lyrics/settings 影子对比均通过。
+- `cargo fmt`、`cargo test --manifest-path crates/aurora-core/Cargo.toml`（16/16）、`cargo test --manifest-path crates/aurora-native/Cargo.toml`、`npm run native:build`、`npm run native:provider-compare`、`npm run native:compare`、`npm run typecheck:node`、`npm test`、`npm run build` 和 `git diff --check` 均通过。
+- 本切片只迁移 QQ 单曲 DTO 清洗；HTTP/WebSocket、认证、加密、下载、播放、DSP、窗口和托盘仍未全量 Rust 化，不构成所有者验收通过结论。
 
 ◆ M28 Rust 同步协议边界（2026-10-02，事实与回执）
 - `aurora-core::sync` 新增同步服务器地址规范化、持久化会话 JSON 校验和 canonical 序列化；覆盖空地址、`ws(s)` 输入、缺字段和额外字段等单测。

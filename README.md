@@ -201,6 +201,13 @@ Electron retains a TypeScript fallback. HTTP/WebSocket transport, credentials,
 encryption, compression, and full sync orchestration remain on the existing
 Electron path, so the full application has not yet completed Rust migration.
 
+M29 moves QQ single-track JSON normalization into `aurora-core::provider` and
+exposes it through the N-API adapter. QQ and QQC retain the existing provider
+request paths while the parser uses Rust first and the TypeScript implementation
+as a compatibility fallback. The provider shadow corpus passes at the JSON
+boundary; remote HTTP, authentication, encryption, downloads, and the desktop
+shell remain staged migration work.
+
 M11 also routes Electron's local enrichment, tag reads, and local-library
 health probes through the Rust metadata bridge first. The existing TypeScript
 tag writers and `music-metadata` fallback remain available for unsupported
