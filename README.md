@@ -224,6 +224,11 @@ unchanged. This moves the remote buffering/decryption boundary only; complete
 remote playback, provider authentication, DSP, downloads, and desktop shell
 migration remain staged work.
 
+M32 keeps the compatibility decryptor lazy: encrypted remote playback does not
+construct the TypeScript QMC2 decryptor unless the Rust binding is unavailable
+or a native chunk fails. This removes redundant key parsing and fallback state
+from the normal Rust path while preserving the existing recovery behavior.
+
 M11 also routes Electron's local enrichment, tag reads, and local-library
 health probes through the Rust metadata bridge first. The existing TypeScript
 tag writers and `music-metadata` fallback remain available for unsupported

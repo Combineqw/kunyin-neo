@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.32 — 2026-10-02】
+【kunyin-neo 项目记忆 v5.33 — 2026-10-02】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,13 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02）
+
+◆ M32 QMC2 回退解密懒加载（2026-10-02，事实与回执）
+- 远程加密 Range 响应优先使用 Rust 有状态 QMC2 会话；只有 native 缺失或首次 native 分块失败时才创建 TypeScript 解密器，避免 Rust 成功路径重复解析 ekey、分配兼容解密状态和占用额外内存。
+- 保留旧 native 分块桥与 TypeScript 解密回退；AbortSignal、flush 和失败关闭语义不变。新增回归断言确认 fallback 延迟创建。
+- `npm run typecheck`、scoped ESLint、`npm test`、`npm run test:m31`、`npm run build` 与 `git diff --check` 均通过。
+- 本步是远程播放桥接降压，不代表 Chromium 解码、DSP、设备输出或全软件 Rust 原生化已完成。
 
 ◆ M31 Rust 远程播放 QMC2 有状态流会话（2026-10-02，事实与回执）
 - `aurora-native` 新增有界（最多 64 路）QMC2 流会话表和 `audioStreamCreate`、`audioStreamDecrypt`、`audioStreamClose` N-API；ekey 只在 Range 响应开始时解析一次，后续分块只传会话 id、绝对偏移和字节，减少重复密钥解析与桥接开销。
