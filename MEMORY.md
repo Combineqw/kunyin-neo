@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.37 — 2026-10-07】
+【kunyin-neo 项目记忆 v5.38 — 2026-10-10】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,14 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10）
+
+◆ M37 远程播放链 shadow session（2026-10-10，事实与回执）
+- `aurora-audio` 新增 `remote` 模块，覆盖远程音频 URL/MIME 格式协商（`negotiate_remote_format`、QQ CDN HTTP->HTTPS 规整、扩展名/上游 Header 优先级）、缓冲水位状态机（`BufferWatermark`，低水位 256 KiB、高水位 2 MiB、underrun 探测）与 seek 状态机（`RemoteSeekState`，分段 generation、目标 byte 预估、Range 对齐）。
+- `aurora-audio` 建立可测试的 `RemotePlaybackShadowSession`；`aurora-native` 新增 `remoteStreamNegotiateFormat`、`remotePlaybackShadowCreate`、`remotePlaybackShadowUpdateResponse`、`remotePlaybackShadowReceiveChunk`、`remotePlaybackShadowSeek`、`remotePlaybackShadowSetPlayState`、`remotePlaybackShadowSnapshot` 与 `remotePlaybackShadowClose` 等 8 个 N-API 导出。
+- Electron `kunyin://` 音频协议与 `src/main/native/bridge.ts` 接入该影子状态机，上游响应头与流分块实时同步水位与 seek 状态；保留现有 `kunyin://` 网络取流、QMC2 流式解密、Chromium `<audio>` 解码、Web Audio EQ/SRS/IRS 与 TypeScript 回退路径。
+- 新增 `scripts/m37-remote-playback-tests.mjs`（`npm run test:m37`），覆盖格式协商、水位跃迁、欠载计数、seek 状态与 bridge-runtime 包装。Rust 单测（aurora-audio 18/18、aurora-native 编译测试）、`npm run native:build`、`npm run test:m37`、`npm run test:m36`、`npm run typecheck`、`npm test`、`npm run build`、正式源码 scoped ESLint 与 `git diff --check` 均通过。
+- 本切片建立远程流格式与缓冲/seek 影子观测边界，不把 shadow session 描述成完整 Rust 播放链；Chromium 仍负责实际解码与渲染层播放，不构成所有者验收通过结论。
 
 ◆ M36 Rust ReplayGain DSP 边界（2026-10-07，事实与回执）
 - `aurora-audio` 新增无分配的 `ReplayGainDsp` dB 钳制与线性增益转换，并新增与现有 TypeScript 解析口径一致的 track/album 选择、peak 正增益保护、前置增益和上限解析函数。

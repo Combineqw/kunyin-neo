@@ -45,6 +45,35 @@ type NativeBinding = {
   audioStreamCreate?(ekey: string): number
   audioStreamDecrypt?(id: number, fileOffset: number, chunk: Uint8Array): Uint8Array
   audioStreamClose?(id: number): boolean
+  remoteStreamNegotiateFormat?(
+    url: string,
+    contentTypeHint?: string | null,
+    upstreamContentType?: string | null,
+    ekey?: string | null
+  ): string
+  remotePlaybackShadowCreate?(
+    sessionId: string,
+    url: string,
+    contentTypeHint?: string | null,
+    ekey?: string | null,
+    durationMs?: number
+  ): string
+  remotePlaybackShadowUpdateResponse?(
+    sessionId: string,
+    statusCode: number,
+    contentLength?: number | null,
+    contentRange?: string | null,
+    upstreamContentType?: string | null
+  ): string | null
+  remotePlaybackShadowReceiveChunk?(
+    sessionId: string,
+    offset: number,
+    length: number
+  ): string | null
+  remotePlaybackShadowSeek?(sessionId: string, targetMs: number, durationMs: number): string | null
+  remotePlaybackShadowSetPlayState?(sessionId: string, playing: boolean): string | null
+  remotePlaybackShadowSnapshot?(sessionId: string): string | null
+  remotePlaybackShadowClose?(sessionId: string): boolean
   audioDecryptQmc2File?(path: string, ekey: string): boolean
   syncNormalizeBaseUrl?(url: string): string
   syncValidateSession?(sessionJson: string): string
@@ -78,6 +107,33 @@ export type NativeAudioSnapshot = {
   deviceName: string | null
   queuedFrames: number
   droppedFrames: number
+}
+
+export type NativeNegotiatedFormat = {
+  mimeType: string
+  container: string
+  encryption: 'none' | 'qmc2'
+  normalizedUrl: string
+  sourceHint: string
+}
+
+export type NativeRemotePlaybackShadowSnapshot = {
+  sessionId: string
+  format: NativeNegotiatedFormat
+  status: 'idle' | 'buffering' | 'ready' | 'playing' | 'paused' | 'ended'
+  totalBytes: number | null
+  currentOffset: number
+  bufferedBytes: number
+  lowWatermarkBytes: number
+  highWatermarkBytes: number
+  watermarkStatus: 'buffering' | 'ready' | 'highWatermark' | 'ended'
+  seekStatus: 'idle' | 'seeking' | 'buffering' | 'complete'
+  seekGeneration: number
+  seekTargetMs: number
+  seekTargetByte: number | null
+  positionMs: number
+  durationMs: number
+  underflowCount: number
 }
 
 export type NativeScanTrack = {
@@ -524,5 +580,145 @@ export function nativeParseWyTrack<T extends object>(item: unknown): T | null {
     return JSON.parse(raw) as T | null
   } catch {
     return null
+  }
+}
+
+/** Optional native remote stream format negotiation. */
+export function nativeRemoteStreamNegotiateFormat(
+  url: string,
+  contentTypeHint?: string | null,
+  upstreamContentType?: string | null,
+  ekey?: string | null
+): NativeNegotiatedFormat | null {
+  try {
+    const call = loadBinding()?.remoteStreamNegotiateFormat
+    if (typeof call !== 'function') return null
+    const raw = call(url, contentTypeHint ?? null, upstreamContentType ?? null, ekey ?? null)
+    return raw ? (JSON.parse(raw) as NativeNegotiatedFormat) : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional native shadow session creation for remote stream tracking. */
+export function nativeRemotePlaybackShadowCreate(
+  sessionId: string,
+  url: string,
+  contentTypeHint?: string | null,
+  ekey?: string | null,
+  durationMs = 0
+): NativeRemotePlaybackShadowSnapshot | null {
+  try {
+    const call = loadBinding()?.remotePlaybackShadowCreate
+    if (typeof call !== 'function') return null
+    const raw = call(
+      sessionId,
+      url,
+      contentTypeHint ?? null,
+      ekey ?? null,
+      Math.max(0, Math.round(durationMs))
+    )
+    return raw ? (JSON.parse(raw) as NativeRemotePlaybackShadowSnapshot) : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional native shadow session update with upstream HTTP response metadata. */
+export function nativeRemotePlaybackShadowUpdateResponse(
+  sessionId: string,
+  statusCode: number,
+  contentLength?: number | null,
+  contentRange?: string | null,
+  upstreamContentType?: string | null
+): NativeRemotePlaybackShadowSnapshot | null {
+  try {
+    const call = loadBinding()?.remotePlaybackShadowUpdateResponse
+    if (typeof call !== 'function') return null
+    const raw = call(
+      sessionId,
+      statusCode,
+      contentLength == null ? null : Math.max(0, Math.round(contentLength)),
+      contentRange ?? null,
+      upstreamContentType ?? null
+    )
+    return raw ? (JSON.parse(raw) as NativeRemotePlaybackShadowSnapshot) : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional native shadow session update with received chunk bytes. */
+export function nativeRemotePlaybackShadowReceiveChunk(
+  sessionId: string,
+  offset: number,
+  length: number
+): NativeRemotePlaybackShadowSnapshot | null {
+  try {
+    const call = loadBinding()?.remotePlaybackShadowReceiveChunk
+    if (typeof call !== 'function') return null
+    const raw = call(sessionId, Math.max(0, Math.round(offset)), Math.max(0, Math.round(length)))
+    return raw ? (JSON.parse(raw) as NativeRemotePlaybackShadowSnapshot) : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional native shadow session seek recording. */
+export function nativeRemotePlaybackShadowSeek(
+  sessionId: string,
+  targetMs: number,
+  durationMs = 0
+): NativeRemotePlaybackShadowSnapshot | null {
+  try {
+    const call = loadBinding()?.remotePlaybackShadowSeek
+    if (typeof call !== 'function') return null
+    const raw = call(
+      sessionId,
+      Math.max(0, Math.round(targetMs)),
+      Math.max(0, Math.round(durationMs))
+    )
+    return raw ? (JSON.parse(raw) as NativeRemotePlaybackShadowSnapshot) : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional native shadow session play state recording. */
+export function nativeRemotePlaybackShadowSetPlayState(
+  sessionId: string,
+  playing: boolean
+): NativeRemotePlaybackShadowSnapshot | null {
+  try {
+    const call = loadBinding()?.remotePlaybackShadowSetPlayState
+    if (typeof call !== 'function') return null
+    const raw = call(sessionId, !!playing)
+    return raw ? (JSON.parse(raw) as NativeRemotePlaybackShadowSnapshot) : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional native shadow session snapshot query. */
+export function nativeRemotePlaybackShadowSnapshot(
+  sessionId: string
+): NativeRemotePlaybackShadowSnapshot | null {
+  try {
+    const call = loadBinding()?.remotePlaybackShadowSnapshot
+    if (typeof call !== 'function') return null
+    const raw = call(sessionId)
+    return raw ? (JSON.parse(raw) as NativeRemotePlaybackShadowSnapshot) : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional native shadow session close. */
+export function nativeRemotePlaybackShadowClose(sessionId: string): boolean {
+  try {
+    const call = loadBinding()?.remotePlaybackShadowClose
+    return typeof call === 'function' ? call(sessionId) === true : false
+  } catch {
+    return false
   }
 }

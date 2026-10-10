@@ -20,7 +20,12 @@ import {
   nativeAudioDecryptQmc2Chunk,
   nativeAudioStreamClose,
   nativeAudioStreamCreate,
-  nativeAudioStreamDecrypt
+  nativeAudioStreamDecrypt,
+  nativeRemotePlaybackShadowClose,
+  nativeRemotePlaybackShadowCreate,
+  nativeRemotePlaybackShadowReceiveChunk,
+  nativeRemotePlaybackShadowUpdateResponse,
+  nativeRemoteStreamNegotiateFormat
 } from '../native/bridge-runtime.js'
 
 /**
@@ -228,7 +233,8 @@ function decryptStream(
   startOffset: number,
   ekey?: string,
   nativeStreamId?: number | null,
-  rendererSignal?: AbortSignal
+  rendererSignal?: AbortSignal,
+  shadowToken?: string
 ): ReadableStream<Uint8Array> {
   let offset = startOffset
   let nativeUnavailable = false
@@ -267,10 +273,30 @@ function decryptStream(
       // ekey: the proven Electron path can still report/play the upstream
       // bytes, while a missing native binary never interrupts the request.
       controller.enqueue(output ?? buf)
+      if (shadowToken) {
+        nativeRemotePlaybackShadowReceiveChunk(shadowToken, offset, buf.length)
+      }
       offset += buf.length
     },
     flush() {
       closeNativeStream()
+    }
+  })
+  return src.pipeThrough(transform)
+}
+
+function tapShadowStream(
+  src: ReadableStream<Uint8Array>,
+  startOffset: number,
+  shadowToken?: string
+): ReadableStream<Uint8Array> {
+  if (!shadowToken) return src
+  let offset = startOffset
+  const transform = new TransformStream<Uint8Array, Uint8Array>({
+    transform(chunk, controller) {
+      nativeRemotePlaybackShadowReceiveChunk(shadowToken, offset, chunk.length)
+      offset += chunk.length
+      controller.enqueue(chunk)
     }
   })
   return src.pipeThrough(transform)
@@ -383,9 +409,31 @@ export function installAudioProtocol(): void {
 
     const nativeStreamId = spec.ekey ? nativeAudioStreamCreate(spec.ekey) : null
     const fallbackFactory = spec.ekey ? () => createAudioDecryptor(spec.ekey!) : null
+
+    if (spec.url) {
+      nativeRemotePlaybackShadowUpdateResponse(
+        token,
+        status,
+        cl ? parseInt(cl, 10) : null,
+        cr ?? null,
+        upstream.headers.get('content-type')
+      )
+    }
+
     let body: ReadableStream<Uint8Array> = upstream.body
-    if (spec.ekey)
-      body = decryptStream(body, fallbackFactory, upstreamStart, spec.ekey, nativeStreamId, request.signal)
+    if (spec.ekey) {
+      body = decryptStream(
+        body,
+        fallbackFactory,
+        upstreamStart,
+        spec.ekey,
+        nativeStreamId,
+        request.signal,
+        token
+      )
+    } else if (spec.url) {
+      body = tapShadowStream(body, upstreamStart, token)
+    }
 
     return new Response(body as BodyInit, { status, headers: out })
   })
@@ -400,8 +448,17 @@ export function registerAudioStream(spec: AudioStreamSpec): string {
     const oldest = registry.keys().next().value
     if (oldest === undefined) break
     registry.delete(oldest)
+    nativeRemotePlaybackShadowClose(oldest)
   }
   const token = randomBytes(8).toString('hex')
-  registry.set(token, spec.url ? { ...spec, url: normalizeUpstreamUrl(spec.url) } : spec)
+  const negotiated = spec.url
+    ? nativeRemoteStreamNegotiateFormat(spec.url, spec.contentType, null, spec.ekey)
+    : null
+  const normalizedUrl =
+    negotiated?.normalizedUrl ?? (spec.url ? normalizeUpstreamUrl(spec.url) : undefined)
+  if (spec.url && normalizedUrl) {
+    nativeRemotePlaybackShadowCreate(token, normalizedUrl, spec.contentType, spec.ekey, 0)
+  }
+  registry.set(token, normalizedUrl ? { ...spec, url: normalizedUrl } : spec)
   return `${SCHEME}://stream/${token}`
 }

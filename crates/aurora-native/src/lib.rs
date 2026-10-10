@@ -9,7 +9,8 @@ use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
 
 use aurora_audio::{
-    probe_capabilities, resolve_replay_gain_db, NativePlaybackEngine, Qmc2Decryptor, ReplayGainDsp,
+    negotiate_remote_format, probe_capabilities, resolve_replay_gain_db, NativePlaybackEngine,
+    Qmc2Decryptor, RemotePlaybackShadowSession, ReplayGainDsp,
 };
 use aurora_core::{
     download::DownloadSession, lyrics, metadata, provider, scan, settings_io, sync, theme,
@@ -24,9 +25,12 @@ static NATIVE_AUDIO: OnceLock<Mutex<Option<NativePlaybackEngine>>> = OnceLock::n
 static QMC2_DECRYPTOR: OnceLock<Mutex<Option<(String, Arc<Qmc2Decryptor>)>>> = OnceLock::new();
 static QMC2_STREAMS: OnceLock<Mutex<HashMap<u64, Arc<Qmc2Decryptor>>>> = OnceLock::new();
 static NEXT_QMC2_STREAM_ID: OnceLock<Mutex<u64>> = OnceLock::new();
+static REMOTE_SHADOW_SESSIONS: OnceLock<Mutex<HashMap<String, RemotePlaybackShadowSession>>> =
+    OnceLock::new();
 static DOWNLOADS: OnceLock<Mutex<HashMap<u64, DownloadSession>>> = OnceLock::new();
 static NEXT_DOWNLOAD_ID: OnceLock<Mutex<u64>> = OnceLock::new();
 const MAX_QMC2_STREAMS: usize = 64;
+const MAX_REMOTE_SHADOW_SESSIONS: usize = 64;
 
 fn downloads() -> &'static Mutex<HashMap<u64, DownloadSession>> {
     DOWNLOADS.get_or_init(|| Mutex::new(HashMap::new()))
@@ -59,6 +63,10 @@ fn playback_session() -> &'static Mutex<PlaybackSession> {
 
 fn native_audio_session() -> &'static Mutex<Option<NativePlaybackEngine>> {
     NATIVE_AUDIO.get_or_init(|| Mutex::new(None))
+}
+
+fn remote_shadow_sessions() -> &'static Mutex<HashMap<String, RemotePlaybackShadowSession>> {
+    REMOTE_SHADOW_SESSIONS.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
 fn native_audio_json(
@@ -357,6 +365,166 @@ pub fn audio_stream_close(id: i64) -> bool {
         .get_or_init(|| Mutex::new(HashMap::new()))
         .lock()
         .map(|mut streams| streams.remove(&(id as u64)).is_some())
+        .unwrap_or(false)
+}
+
+/// Negotiate remote stream format (MIME, container, encryption, and normalized URL).
+///
+/// This pure, host-neutral calculation provides the exact same contract as the
+/// Electron protocol handler while avoiding repeated JS regex/string operations.
+#[napi]
+pub fn remote_stream_negotiate_format(
+    url: String,
+    content_type_hint: Option<String>,
+    upstream_content_type: Option<String>,
+    ekey: Option<String>,
+) -> napi::Result<String> {
+    let result = negotiate_remote_format(
+        &url,
+        content_type_hint.as_deref(),
+        upstream_content_type.as_deref(),
+        ekey.as_deref(),
+    );
+    serde_json::to_string(&result).map_err(|err| napi::Error::from_reason(err.to_string()))
+}
+
+/// Create or reset a testable shadow playback session for one remote stream.
+///
+/// The shadow session tracks format negotiation, buffer watermarks, and seek
+/// state without taking over Chromium HTMLAudio decoding or Web Audio rendering.
+#[napi]
+pub fn remote_playback_shadow_create(
+    session_id: String,
+    url: String,
+    content_type_hint: Option<String>,
+    ekey: Option<String>,
+    duration_ms: i64,
+) -> napi::Result<String> {
+    let mut sessions = remote_shadow_sessions()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("remote shadow session lock poisoned"))?;
+    if sessions.len() >= MAX_REMOTE_SHADOW_SESSIONS && !sessions.contains_key(&session_id) {
+        if let Some(oldest) = sessions.keys().next().cloned() {
+            sessions.remove(&oldest);
+        }
+    }
+    let session = RemotePlaybackShadowSession::new(
+        &session_id,
+        &url,
+        content_type_hint.as_deref(),
+        ekey.as_deref(),
+        duration_ms.max(0) as u64,
+    );
+    let snapshot = session.snapshot();
+    sessions.insert(session_id, session);
+    serde_json::to_string(&snapshot).map_err(|err| napi::Error::from_reason(err.to_string()))
+}
+
+/// Update shadow session with upstream HTTP response metadata.
+#[napi]
+pub fn remote_playback_shadow_update_response(
+    session_id: String,
+    status_code: u32,
+    content_length: Option<i64>,
+    content_range: Option<String>,
+    upstream_content_type: Option<String>,
+) -> napi::Result<Option<String>> {
+    let mut sessions = remote_shadow_sessions()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("remote shadow session lock poisoned"))?;
+    let Some(session) = sessions.get_mut(&session_id) else {
+        return Ok(None);
+    };
+    let snapshot = session.update_response(
+        status_code as u16,
+        content_length.filter(|cl| *cl > 0).map(|cl| cl as u64),
+        content_range.as_deref(),
+        upstream_content_type.as_deref(),
+    );
+    serde_json::to_string(&snapshot)
+        .map(Some)
+        .map_err(|err| napi::Error::from_reason(err.to_string()))
+}
+
+/// Update shadow session with received chunk byte offset and length.
+#[napi]
+pub fn remote_playback_shadow_receive_chunk(
+    session_id: String,
+    offset: i64,
+    length: i64,
+) -> napi::Result<Option<String>> {
+    if offset < 0 || length <= 0 {
+        return Ok(None);
+    }
+    let mut sessions = remote_shadow_sessions()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("remote shadow session lock poisoned"))?;
+    let Some(session) = sessions.get_mut(&session_id) else {
+        return Ok(None);
+    };
+    let snapshot = session.receive_chunk(offset as u64, length as u64);
+    serde_json::to_string(&snapshot)
+        .map(Some)
+        .map_err(|err| napi::Error::from_reason(err.to_string()))
+}
+
+/// Record seek intent in the shadow session and update watermark/seek state.
+#[napi]
+pub fn remote_playback_shadow_seek(
+    session_id: String,
+    target_ms: i64,
+    duration_ms: i64,
+) -> napi::Result<Option<String>> {
+    let mut sessions = remote_shadow_sessions()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("remote shadow session lock poisoned"))?;
+    let Some(session) = sessions.get_mut(&session_id) else {
+        return Ok(None);
+    };
+    let snapshot = session.seek(target_ms.max(0) as u64, duration_ms.max(0) as u64);
+    serde_json::to_string(&snapshot)
+        .map(Some)
+        .map_err(|err| napi::Error::from_reason(err.to_string()))
+}
+
+/// Record play/pause intent in the shadow session.
+#[napi]
+pub fn remote_playback_shadow_set_play_state(
+    session_id: String,
+    playing: bool,
+) -> napi::Result<Option<String>> {
+    let mut sessions = remote_shadow_sessions()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("remote shadow session lock poisoned"))?;
+    let Some(session) = sessions.get_mut(&session_id) else {
+        return Ok(None);
+    };
+    let snapshot = session.set_play_state(playing);
+    serde_json::to_string(&snapshot)
+        .map(Some)
+        .map_err(|err| napi::Error::from_reason(err.to_string()))
+}
+
+/// Query current snapshot of a remote shadow playback session.
+#[napi]
+pub fn remote_playback_shadow_snapshot(session_id: String) -> napi::Result<Option<String>> {
+    let sessions = remote_shadow_sessions()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("remote shadow session lock poisoned"))?;
+    let Some(session) = sessions.get(&session_id) else {
+        return Ok(None);
+    };
+    serde_json::to_string(&session.snapshot())
+        .map(Some)
+        .map_err(|err| napi::Error::from_reason(err.to_string()))
+}
+
+/// Close and remove a remote shadow playback session.
+#[napi]
+pub fn remote_playback_shadow_close(session_id: String) -> bool {
+    remote_shadow_sessions()
+        .lock()
+        .map(|mut sessions| sessions.remove(&session_id).is_some())
         .unwrap_or(false)
 }
 

@@ -268,3 +268,117 @@ export function nativeAudioDecryptQmc2File(path, ekey) {
     return false
   }
 }
+
+export function nativeRemoteStreamNegotiateFormat(url, contentTypeHint, upstreamContentType, ekey) {
+  try {
+    const call = loadBinding()?.remoteStreamNegotiateFormat
+    if (typeof call !== 'function') return null
+    const raw = call(url, contentTypeHint ?? null, upstreamContentType ?? null, ekey ?? null)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeRemotePlaybackShadowCreate(
+  sessionId,
+  url,
+  contentTypeHint,
+  ekey,
+  durationMs = 0
+) {
+  try {
+    const call = loadBinding()?.remotePlaybackShadowCreate
+    if (typeof call !== 'function') return null
+    const raw = call(
+      sessionId,
+      url,
+      contentTypeHint ?? null,
+      ekey ?? null,
+      Math.max(0, Math.round(durationMs))
+    )
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeRemotePlaybackShadowUpdateResponse(
+  sessionId,
+  statusCode,
+  contentLength,
+  contentRange,
+  upstreamContentType
+) {
+  try {
+    const call = loadBinding()?.remotePlaybackShadowUpdateResponse
+    if (typeof call !== 'function') return null
+    const raw = call(
+      sessionId,
+      statusCode,
+      contentLength == null ? null : Math.max(0, Math.round(contentLength)),
+      contentRange ?? null,
+      upstreamContentType ?? null
+    )
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeRemotePlaybackShadowReceiveChunk(sessionId, offset, length) {
+  try {
+    const call = loadBinding()?.remotePlaybackShadowReceiveChunk
+    if (typeof call !== 'function') return null
+    const raw = call(sessionId, Math.max(0, Math.round(offset)), Math.max(0, Math.round(length)))
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeRemotePlaybackShadowSeek(sessionId, targetMs, durationMs = 0) {
+  try {
+    const call = loadBinding()?.remotePlaybackShadowSeek
+    if (typeof call !== 'function') return null
+    const raw = call(
+      sessionId,
+      Math.max(0, Math.round(targetMs)),
+      Math.max(0, Math.round(durationMs))
+    )
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeRemotePlaybackShadowSetPlayState(sessionId, playing) {
+  try {
+    const call = loadBinding()?.remotePlaybackShadowSetPlayState
+    if (typeof call !== 'function') return null
+    const raw = call(sessionId, !!playing)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeRemotePlaybackShadowSnapshot(sessionId) {
+  try {
+    const call = loadBinding()?.remotePlaybackShadowSnapshot
+    if (typeof call !== 'function') return null
+    const raw = call(sessionId)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeRemotePlaybackShadowClose(sessionId) {
+  try {
+    const call = loadBinding()?.remotePlaybackShadowClose
+    return typeof call === 'function' ? call(sessionId) === true : false
+  } catch {
+    return false
+  }
+}

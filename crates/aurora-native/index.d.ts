@@ -29,15 +29,7 @@ export declare function audioReplayGainLinear(db: number): number
  * The renderer can compare this result with its existing pure TypeScript
  * resolver before a future native mixer consumes the value directly.
  */
-export declare function audioReplayGainDb(
-  trackDb: number | undefined | null,
-  albumDb: number | undefined | null,
-  trackPeak: number | undefined | null,
-  albumPeak: number | undefined | null,
-  albumMode: boolean,
-  preampDb: number,
-  maxDb: number
-): number
+export declare function audioReplayGainDb(trackDb: number | undefined | null, albumDb: number | undefined | null, trackPeak: number | undefined | null, albumPeak: number | undefined | null, albumMode: boolean, preampDb: number, maxDb: number): number
 /**
  * Return the deterministic Rust-owned theme motion profile. The renderer
  * consumes the JSON only to apply CSS variables and final compositing.
@@ -46,12 +38,7 @@ export declare function audioReplayGainDb(
  * two-argument ABI used by older Electron builds. A request of zero selects
  * static mode; omitted values use native automatic pacing.
  */
-export declare function themeMotionProfile(
-  themeId: string,
-  reducedMotion: boolean,
-  requestedFps?: number | undefined | null,
-  displayRefreshHz?: number | undefined | null
-): string
+export declare function themeMotionProfile(themeId: string, reducedMotion: boolean, requestedFps?: number | undefined | null, displayRefreshHz?: number | undefined | null): string
 export declare function nativeAudioStartFile(path: string): string
 export declare function nativeAudioPlay(): string
 export declare function nativeAudioPause(): string
@@ -65,11 +52,7 @@ export declare function nativeAudioSnapshot(): string
  * be decrypted independently.  Invalid keys return an error and the host
  * keeps its TypeScript decryptor fallback.
  */
-export declare function audioDecryptQmc2Chunk(
-  ekey: string,
-  fileOffset: number,
-  chunk: Buffer
-): Buffer
+export declare function audioDecryptQmc2Chunk(ekey: string, fileOffset: number, chunk: Buffer): Buffer
 /**
  * Create a bounded-lifetime QMC2 stream session for one HTTP Range response.
  * The ekey is parsed once; subsequent chunks only carry the session id and
@@ -80,12 +63,34 @@ export declare function audioStreamCreate(ekey: string): number
 export declare function audioStreamDecrypt(id: number, fileOffset: number, chunk: Buffer): Buffer
 /** Release a QMC2 stream session after the corresponding HTTP response ends. */
 export declare function audioStreamClose(id: number): boolean
+/**
+ * Negotiate remote stream format (MIME, container, encryption, and normalized URL).
+ *
+ * This pure, host-neutral calculation provides the exact same contract as the
+ * Electron protocol handler while avoiding repeated JS regex/string operations.
+ */
+export declare function remoteStreamNegotiateFormat(url: string, contentTypeHint?: string | undefined | null, upstreamContentType?: string | undefined | null, ekey?: string | undefined | null): string
+/**
+ * Create or reset a testable shadow playback session for one remote stream.
+ *
+ * The shadow session tracks format negotiation, buffer watermarks, and seek
+ * state without taking over Chromium HTMLAudio decoding or Web Audio rendering.
+ */
+export declare function remotePlaybackShadowCreate(sessionId: string, url: string, contentTypeHint: string | undefined | null, ekey: string | undefined | null, durationMs: number): string
+/** Update shadow session with upstream HTTP response metadata. */
+export declare function remotePlaybackShadowUpdateResponse(sessionId: string, statusCode: number, contentLength?: number | undefined | null, contentRange?: string | undefined | null, upstreamContentType?: string | undefined | null): string | null
+/** Update shadow session with received chunk byte offset and length. */
+export declare function remotePlaybackShadowReceiveChunk(sessionId: string, offset: number, length: number): string | null
+/** Record seek intent in the shadow session and update watermark/seek state. */
+export declare function remotePlaybackShadowSeek(sessionId: string, targetMs: number, durationMs: number): string | null
+/** Record play/pause intent in the shadow session. */
+export declare function remotePlaybackShadowSetPlayState(sessionId: string, playing: boolean): string | null
+/** Query current snapshot of a remote shadow playback session. */
+export declare function remotePlaybackShadowSnapshot(sessionId: string): string | null
+/** Close and remove a remote shadow playback session. */
+export declare function remotePlaybackShadowClose(sessionId: string): boolean
 /** Start a bounded temporary-file download transaction. */
-export declare function downloadCreate(
-  tempPath: string,
-  finalPath: string,
-  maxBytes: number
-): number
+export declare function downloadCreate(tempPath: string, finalPath: string, maxBytes: number): number
 export declare function downloadWrite(id: number, chunk: Buffer): string
 export declare function downloadCommit(id: number): string
 export declare function downloadAbort(id: number): boolean
@@ -117,12 +122,7 @@ export declare function readSettings(path: string): string
  * optional native module is unavailable or rejects the payload.
  */
 export declare function writeSettings(path: string, settingsJson: string): boolean
-export declare function settingsRoundtrip(
-  source: string,
-  sandboxPath: string,
-  keyPath: string,
-  newValue: string
-): string
+export declare function settingsRoundtrip(source: string, sandboxPath: string, keyPath: string, newValue: string): string
 export declare function nativeVersion(): string
 /**
  * Normalize an LX sync server URL while preserving the TypeScript fallback

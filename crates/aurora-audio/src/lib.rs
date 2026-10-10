@@ -29,6 +29,13 @@ use symphonia::core::meta::MetadataOptions;
 mod qmc2;
 pub use qmc2::{decrypt_qmc2_chunk, Qmc2Decryptor};
 
+mod remote;
+pub use remote::{
+    negotiate_remote_format, normalize_upstream_url, AudioContainer, BufferWatermark,
+    EncryptionScheme, NegotiatedFormat, PlaybackState, RemotePlaybackShadowSession,
+    RemotePlaybackShadowSnapshot, RemoteSeekState, SeekStatus, WatermarkStatus,
+};
+
 /// ReplayGain DSP boundary shared by native output adapters.
 ///
 /// The renderer currently owns the Web Audio node, so this type deliberately
