@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.49 — 2026-10-10】
+【kunyin-neo 项目记忆 v5.50 — 2026-10-10】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,20 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10；v5.48 M47 Windows 现代化安装程序体系与多格式文件关联记档：2026-10-10；v5.49 M48 Apple Design 细节美学与质感微调记档：2026-10-10）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10；v5.48 M47 Windows 现代化安装程序体系与多格式文件关联记档：2026-10-10；v5.49 M48 Apple Design 细节美学与质感微调记档：2026-10-10；v5.50 M49 Windows 安装包构建打包与发布核验记档：2026-10-10）
+
+◆ M49 Windows 安装包构建打包与发布核验 (Windows Release Installer Packaging & Integrity Verification)（2026-10-10，事实与回执）
+- 按照用户明确指令（“别单文件，还是要安装，速推吧”），执行完整安装包打包与产物质量门禁：
+  · 运行 `npm run build:win`（`electron-builder --win`），成功生成现代化 NSIS x64 安装程序；
+  · 生产产物度量：
+    1. 安装器二进制：`dist/kunyin-desktop-1.1.0-setup.exe`，大小 `99,602,204 B`（~95.0 MB），SHA-256 `4C8117C7F839C3FDF9F783A679A7C2D9DE2354D0FD91D7F4D3B9668A46A5271D`；
+    2. 增量更新块映射：`dist/kunyin-desktop-1.1.0-setup.exe.blockmap`，大小 `105,002 B`；
+    3. 解包主程序：`dist/win-unpacked/kunyin-desktop.exe`，大小 `211,232,768 B`，SHA-256 `B35DE52365815A2C6F6B0A55BB09BC806F05E11C924A6B76F488AD2E95BA7716`；
+    4. Rust 原生注入模块：`dist/win-unpacked/resources/assets/aurora-native.win32-x64-msvc.node`，大小 `5,122,560 B`，SHA-256 `0761FC1EC20AE5E0D07563FD9467FC6E38717317DC6AC8E314E02C769D83F6C2`；
+    5. 资源文件：`resources/assets/icons/icon.ico` 与 `resources/assets/autoeq` 完整随包释放，许可协议与双语向导完全注入。
+- 自动化测试与质量门禁：
+  · 新增 `scripts/m49-release-installer-verification-tests.mjs`（`npm run test:m49`）：自动验证安装器存在性、文件大小合理区间、SHA-256 完整性、blockmap 校验、主程序解包及 Rust 优化动态链接库存在性；
+  · 全套回归验证：`npm run test:m49`、`npm run test:m48`、`npm run test:m47`、`npm run test:m46`、`npm run test:m45`、`npm run test:m44`、`npm test`（9 项全过）、`npm run typecheck`、`npm run build`、`git diff --check`（0 errors）全部通过。
 
 ◆ M48 Apple Design 细节美学与质感微调 (Apple Design UI Refinements & HIG Detail Polish)（2026-10-10，事实与回执）
 - 用户明确指示：“还要记得用apple-design把ui调整一下下，大体不变”；在保持现有架构与桌面四区布局稳定不变的前提下，依照 Apple HIG 设计规范进行像素级质感精进：
