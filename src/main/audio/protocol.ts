@@ -26,7 +26,10 @@ import {
   nativeRemotePlaybackShadowReceiveChunk,
   nativeRemotePlaybackShadowUpdateResponse,
   nativeRemoteStreamNegotiateFormat,
-  nativeRemoteStreamPlanRange
+  nativeRemoteStreamPlanRange,
+  nativeStreamCacheClose,
+  nativeStreamCacheCreate,
+  nativeStreamCacheWriteChunk
 } from '../native/bridge-runtime.js'
 
 /**
@@ -276,6 +279,7 @@ function decryptStream(
       controller.enqueue(output ?? buf)
       if (shadowToken) {
         nativeRemotePlaybackShadowReceiveChunk(shadowToken, offset, buf.length)
+        nativeStreamCacheWriteChunk(shadowToken, offset, output ?? buf)
       }
       offset += buf.length
     },
@@ -296,6 +300,7 @@ function tapShadowStream(
   const transform = new TransformStream<Uint8Array, Uint8Array>({
     transform(chunk, controller) {
       nativeRemotePlaybackShadowReceiveChunk(shadowToken, offset, chunk.length)
+      nativeStreamCacheWriteChunk(shadowToken, offset, chunk)
       offset += chunk.length
       controller.enqueue(chunk)
     }
@@ -453,6 +458,7 @@ export function registerAudioStream(spec: AudioStreamSpec): string {
     if (oldest === undefined) break
     registry.delete(oldest)
     nativeRemotePlaybackShadowClose(oldest)
+    nativeStreamCacheClose(oldest)
   }
   const token = randomBytes(8).toString('hex')
   const negotiated = spec.url
@@ -462,6 +468,7 @@ export function registerAudioStream(spec: AudioStreamSpec): string {
     negotiated?.normalizedUrl ?? (spec.url ? normalizeUpstreamUrl(spec.url) : undefined)
   if (spec.url && normalizedUrl) {
     nativeRemotePlaybackShadowCreate(token, normalizedUrl, spec.contentType, spec.ekey, 0)
+    nativeStreamCacheCreate(token, 8 * 1024 * 1024, null)
   }
   registry.set(token, normalizedUrl ? { ...spec, url: normalizedUrl } : spec)
   return `${SCHEME}://stream/${token}`

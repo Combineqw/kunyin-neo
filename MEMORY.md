@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.40 — 2026-10-10】
+【kunyin-neo 项目记忆 v5.41 — 2026-10-10】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,25 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10）
+
+◆ M40 原生流分块环形缓存与文件缓冲（2026-10-10，事实与回执）
+- `aurora-audio` 新增 `cache` 模块：
+  · 实现 `StreamCache`：双层有界音频流缓存器（内存块 BTreeMap + 自动溢出临时文件），严格限制 RAM 驻留（默认 8MB，超出后自动 dump 至磁盘临时文件并释放内存，Drop 时自动清理）。
+  · 原生实现 `std::io::Read` 与 `std::io::Seek`：统一抽象非连续 HTTP Range 网络分块为标准可读取、可随意 Seek 的虚拟媒体流输入，为 Symphonia 原生流式解码直接提供输入端。
+  · 提供状态监控 `CacheStats`（总缓存字节数、RAM 占用、磁盘文件大小、当前读取游标、向前连续可用深度等）。
+- `aurora-native` 新增 5 个 N-API 导出：
+  · `stream_cache_create`：创建/初始化有界流缓存会话。
+  · `stream_cache_write_chunk`：向指定 offset 写入流分块。
+  · `stream_cache_read`：随机读取已缓存切片。
+  · `stream_cache_stats`：获取缓存资源与游标统计快照。
+  · `stream_cache_close`：关闭并释放缓存资源。
+- Electron 接入与桥接包装：
+  · `bridge.ts` 与 `bridge-runtime.js` 导出强类型接口。
+  · `src/main/audio/protocol.ts` 在音频注册与分块到达（包含解密后流）时建立原生缓存注入（`nativeStreamCacheWriteChunk`）；现有网络取流、Chromium `<audio>` 解码与 Web Audio 混音 100% 保持不变，支持透明回退。
+- 新增 `scripts/m40-stream-cache-tests.mjs`（`npm run test:m40`），覆盖导出存在性、内存切片读写、跨分块边界读取、内存溢出到临时文件、文件读取验证与运行时包装。
+- 回归验证：`cargo test`（aurora-audio 24/24 全过）、`npm run native:build`、`npm run test:m40`、`npm run test:m39`、`npm run test:m38`、`npm run test:m37`、`npm run test:m36`、`npm test`（9 项全过）、`npm run typecheck`、`npm run build`、scoped ESLint、`git diff --check` 全部通过。
+- 本切片推进原生流式输入缓存媒介，不改变既有 Chromium 解码与 Web Audio 混音主链，不构成所有者验收通过结论。
 
 ◆ M39 远程流分块预加载调度与 HTTP Range 规划（2026-10-10，事实与回执）
 - `aurora-audio` 远程模块扩展：

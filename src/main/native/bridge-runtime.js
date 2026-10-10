@@ -439,3 +439,64 @@ export function nativeRemoteStreamCalculateSeekRange(
     return null
   }
 }
+
+export function nativeStreamCacheCreate(cacheId, maxMemoryBytes, tempDir) {
+  try {
+    const call = loadBinding()?.streamCacheCreate
+    if (typeof call !== 'function') return null
+    const raw = call(
+      cacheId,
+      maxMemoryBytes == null ? null : Math.max(0, Math.round(Number(maxMemoryBytes))),
+      tempDir ?? null
+    )
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeStreamCacheWriteChunk(cacheId, offset, chunk) {
+  try {
+    const call = loadBinding()?.streamCacheWriteChunk
+    if (typeof call !== 'function') return 0
+    const written = call(cacheId, Math.max(0, Math.round(Number(offset))), chunk)
+    return Number.isSafeInteger(written) && written > 0 ? written : 0
+  } catch {
+    return 0
+  }
+}
+
+export function nativeStreamCacheRead(cacheId, offset, maxLen) {
+  try {
+    const call = loadBinding()?.streamCacheRead
+    if (typeof call !== 'function') return null
+    const output = call(
+      cacheId,
+      Math.max(0, Math.round(Number(offset))),
+      Math.max(0, Math.round(Number(maxLen)))
+    )
+    return output instanceof Uint8Array ? output : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeStreamCacheStats(cacheId) {
+  try {
+    const call = loadBinding()?.streamCacheStats
+    if (typeof call !== 'function') return null
+    const raw = call(cacheId)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeStreamCacheClose(cacheId) {
+  try {
+    const call = loadBinding()?.streamCacheClose
+    return typeof call === 'function' ? call(cacheId) === true : false
+  } catch {
+    return false
+  }
+}

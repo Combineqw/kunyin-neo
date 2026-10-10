@@ -5,12 +5,12 @@
 ## 当前基线
 
 - 分支：`master`
-- M39 工作内容：远程流分块预加载调度与 HTTP Range 规划（Remote Stream Chunk Preload & Range Planning）
+- M40 工作内容：原生流分块环形缓存与文件缓冲（Native Stream Ring Cache & Spill Storage）
 - 产品版本：`1.1.0`
 - 远端：`https://github.com/Combineqw/kunyin-neo.git`
 - 技术栈：Electron 39、Vue 3、TypeScript、Rust、N-API-RS、Tauri 2 验证壳
 
-M39 把非连续已缓冲区间聚合（`ByteRange`、`BufferedRanges`，自动合并重叠/相邻分块、缺口探测）、HTTP Range 确定性预加载调度（`StreamRangePlanner`、`RangePlan`，按向前缓冲深度判定 `Critical` / `High` / `Normal` / `Idle` 优先级并做 64 KiB 对齐）以及 Seek 时间戳对齐计算引入 `crates/aurora-audio`。由 `crates/aurora-native` 暴露 4 个 N-API 导出，并在 `src/main/native/bridge.ts` 与 `src/main/audio/protocol.ts` 建立 Range 规划影子观测。现有网络取流、QMC2 解密、Chromium `<audio>` 解码与 Web Audio 渲染完全保留。
+M40 在 `crates/aurora-audio` 实现双层有界流缓存器 `StreamCache`（RAM 窗口 + 自动溢出临时文件），并原生实现 `std::io::Read` 与 `std::io::Seek`，将非连续 HTTP Range 网络分块抽象为标准可任意 Seek 的媒体流输入端。由 `crates/aurora-native` 暴露 5 个 N-API 导出，并在 `src/main/native/bridge.ts` 与 `src/main/audio/protocol.ts` 建立分块注入通道。现有网络取流、QMC2 解密、Chromium `<audio>` 解码与 Web Audio 渲染完全保留。
 
 ## Rust 迁移地图
 
@@ -50,6 +50,7 @@ npm run test:m36
 npm run test:m37
 npm run test:m38
 npm run test:m39
+npm run test:m40
 npm run build
 npm run build:win
 ```
@@ -64,11 +65,11 @@ cargo test --manifest-path crates/aurora-native/Cargo.toml
 cargo check --manifest-path src-tauri/Cargo.toml
 ```
 
-`npm run test:m39` 需要先执行 `npm run native:build`。全仓 lint 如果扫描到未跟踪 `work/` 脚本，应使用正式源码范围的 scoped lint，不要把临时脚本加入提交。
+`npm run test:m40` 需要先执行 `npm run native:build`。全仓 lint 如果扫描到未跟踪 `work/` 脚本，应使用正式源码范围的 scoped lint，不要把临时脚本加入提交。
 
 ## 下一步建议
 
-下一块适合推进原生流式下载分块写入缓存与本地环形预读缓冲区（Native Ring Buffer Cache），进一步把 Range 请求结果在 Rust 内存/临时文件中持久化，以便原生 Symphonia 解码管线直接对接而无需重复下载。每个切片都要保留旧路径、加入确定性回归、升级 `MEMORY.md`，并单独提交和普通推送。
+下一块进入 M41：对接 `StreamCache` 与原生 Symphonia 流式解码管线（Native Stream Decoder），将有界 PCM 环形缓冲区与网络流解封装打通。每个切片都要保留旧路径、加入确定性回归、升级 `MEMORY.md`，并单独提交和普通推送。
 
 ## 提交纪律
 

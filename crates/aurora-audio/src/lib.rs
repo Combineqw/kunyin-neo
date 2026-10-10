@@ -37,6 +37,9 @@ pub use remote::{
     SeekRangeCalculation, SeekStatus, StreamRangePlanner, WatermarkStatus,
 };
 
+mod cache;
+pub use cache::{CacheStats, StreamCache};
+
 /// ReplayGain DSP boundary shared by native output adapters.
 ///
 /// The renderer currently owns the Web Audio node, so this type deliberately

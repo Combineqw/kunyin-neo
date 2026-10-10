@@ -87,11 +87,31 @@ type NativeBinding = {
     durationMs: number,
     alignBytes?: number | null
   ): string | null
+  streamCacheCreate?(
+    cacheId: string,
+    maxMemoryBytes?: number | null,
+    tempDir?: string | null
+  ): string
+  streamCacheWriteChunk?(cacheId: string, offset: number, chunk: Uint8Array): number
+  streamCacheRead?(cacheId: string, offset: number, maxLen: number): Uint8Array | null
+  streamCacheStats?(cacheId: string): string | null
+  streamCacheClose?(cacheId: string): boolean
   audioDecryptQmc2File?(path: string, ekey: string): boolean
   syncNormalizeBaseUrl?(url: string): string
   syncValidateSession?(sessionJson: string): string
   providerParseQqTrack?(itemJson: string): string
   providerParseWyTrack?(itemJson: string): string
+}
+
+export type NativeCacheStats = {
+  cacheId: string
+  totalCachedBytes: number
+  memoryBytes: number
+  fileBytes: number
+  readCursor: number
+  contiguousForwardBytes: number
+  bufferedRangeCount: number
+  isSpilledToFile: boolean
 }
 
 export type NativeAudioBackendCapabilities = {
@@ -823,5 +843,79 @@ export function nativeRemoteStreamCalculateSeekRange(
     return raw ? (JSON.parse(raw) as NativeSeekRangeCalculation) : null
   } catch {
     return null
+  }
+}
+
+/** Optional initialization of native bounded stream cache. */
+export function nativeStreamCacheCreate(
+  cacheId: string,
+  maxMemoryBytes?: number | null,
+  tempDir?: string | null
+): NativeCacheStats | null {
+  try {
+    const call = loadBinding()?.streamCacheCreate
+    if (typeof call !== 'function') return null
+    const raw = call(
+      cacheId,
+      maxMemoryBytes == null ? null : Math.max(0, Math.round(maxMemoryBytes)),
+      tempDir ?? null
+    )
+    return raw ? (JSON.parse(raw) as NativeCacheStats) : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional chunk write into native stream cache. */
+export function nativeStreamCacheWriteChunk(
+  cacheId: string,
+  offset: number,
+  chunk: Uint8Array
+): number {
+  try {
+    const call = loadBinding()?.streamCacheWriteChunk
+    if (typeof call !== 'function') return 0
+    const written = call(cacheId, Math.max(0, Math.round(offset)), chunk)
+    return Number.isSafeInteger(written) && written > 0 ? written : 0
+  } catch {
+    return 0
+  }
+}
+
+/** Optional slice read from native stream cache. */
+export function nativeStreamCacheRead(
+  cacheId: string,
+  offset: number,
+  maxLen: number
+): Uint8Array | null {
+  try {
+    const call = loadBinding()?.streamCacheRead
+    if (typeof call !== 'function') return null
+    const output = call(cacheId, Math.max(0, Math.round(offset)), Math.max(0, Math.round(maxLen)))
+    return output instanceof Uint8Array ? output : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional stats query for native stream cache. */
+export function nativeStreamCacheStats(cacheId: string): NativeCacheStats | null {
+  try {
+    const call = loadBinding()?.streamCacheStats
+    if (typeof call !== 'function') return null
+    const raw = call(cacheId)
+    return raw ? (JSON.parse(raw) as NativeCacheStats) : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional close and cleanup of native stream cache. */
+export function nativeStreamCacheClose(cacheId: string): boolean {
+  try {
+    const call = loadBinding()?.streamCacheClose
+    return typeof call === 'function' ? call(cacheId) === true : false
+  } catch {
+    return false
   }
 }

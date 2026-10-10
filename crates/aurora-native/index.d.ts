@@ -97,6 +97,16 @@ export declare function remoteStreamGetBufferedRanges(sessionId: string): string
 export declare function remoteStreamIsOffsetBuffered(sessionId: string, offset: number): boolean
 /** Calculate block-aligned byte range for a target seek timestamp. */
 export declare function remoteStreamCalculateSeekRange(sessionId: string, targetMs: number, durationMs: number, alignBytes?: number | undefined | null): string | null
+/** Create or initialize a bounded two-tier stream cache. */
+export declare function streamCacheCreate(cacheId: string, maxMemoryBytes?: number | undefined | null, tempDir?: string | undefined | null): string
+/** Write a stream chunk at offset into the stream cache. */
+export declare function streamCacheWriteChunk(cacheId: string, offset: number, chunk: Buffer): number
+/** Read cached stream bytes at specific offset. */
+export declare function streamCacheRead(cacheId: string, offset: number, maxLen: number): Buffer | null
+/** Query stats snapshot of a stream cache. */
+export declare function streamCacheStats(cacheId: string): string | null
+/** Close and destroy a stream cache, freeing RAM and cleaning temp files. */
+export declare function streamCacheClose(cacheId: string): boolean
 /** Start a bounded temporary-file download transaction. */
 export declare function downloadCreate(tempPath: string, finalPath: string, maxBytes: number): number
 export declare function downloadWrite(id: number, chunk: Buffer): string

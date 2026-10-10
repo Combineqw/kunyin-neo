@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 
 use aurora_audio::{
     negotiate_remote_format, probe_capabilities, resolve_replay_gain_db, NativePlaybackEngine,
-    Qmc2Decryptor, RemotePlaybackShadowSession, ReplayGainDsp,
+    Qmc2Decryptor, RemotePlaybackShadowSession, ReplayGainDsp, StreamCache,
 };
 use aurora_core::{
     download::DownloadSession, lyrics, metadata, provider, scan, settings_io, sync, theme,
@@ -27,10 +27,16 @@ static QMC2_STREAMS: OnceLock<Mutex<HashMap<u64, Arc<Qmc2Decryptor>>>> = OnceLoc
 static NEXT_QMC2_STREAM_ID: OnceLock<Mutex<u64>> = OnceLock::new();
 static REMOTE_SHADOW_SESSIONS: OnceLock<Mutex<HashMap<String, RemotePlaybackShadowSession>>> =
     OnceLock::new();
+static STREAM_CACHES: OnceLock<Mutex<HashMap<String, StreamCache>>> = OnceLock::new();
 static DOWNLOADS: OnceLock<Mutex<HashMap<u64, DownloadSession>>> = OnceLock::new();
 static NEXT_DOWNLOAD_ID: OnceLock<Mutex<u64>> = OnceLock::new();
 const MAX_QMC2_STREAMS: usize = 64;
 const MAX_REMOTE_SHADOW_SESSIONS: usize = 64;
+const MAX_STREAM_CACHES: usize = 32;
+
+fn stream_caches() -> &'static Mutex<HashMap<String, StreamCache>> {
+    STREAM_CACHES.get_or_init(|| Mutex::new(HashMap::new()))
+}
 
 fn downloads() -> &'static Mutex<HashMap<u64, DownloadSession>> {
     DOWNLOADS.get_or_init(|| Mutex::new(HashMap::new()))
@@ -607,6 +613,102 @@ pub fn remote_stream_calculate_seek_range(
     serde_json::to_string(&calc)
         .map(Some)
         .map_err(|err| napi::Error::from_reason(err.to_string()))
+}
+
+/// Create or initialize a bounded two-tier stream cache.
+#[napi]
+pub fn stream_cache_create(
+    cache_id: String,
+    max_memory_bytes: Option<i64>,
+    temp_dir: Option<String>,
+) -> napi::Result<String> {
+    let mut caches = stream_caches()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("stream cache lock poisoned"))?;
+
+    if caches.len() >= MAX_STREAM_CACHES && !caches.contains_key(&cache_id) {
+        if let Some(oldest) = caches.keys().next().cloned() {
+            caches.remove(&oldest);
+        }
+    }
+
+    let max_mem = max_memory_bytes
+        .filter(|m| *m > 0)
+        .map(|m| m as usize)
+        .unwrap_or(8 * 1024 * 1024); // default 8 MiB
+    let dir = temp_dir.map(std::path::PathBuf::from);
+
+    let cache = StreamCache::new(&cache_id, max_mem, dir);
+    let stats = cache.stats();
+    caches.insert(cache_id, cache);
+
+    serde_json::to_string(&stats).map_err(|err| napi::Error::from_reason(err.to_string()))
+}
+
+/// Write a stream chunk at offset into the stream cache.
+#[napi]
+pub fn stream_cache_write_chunk(cache_id: String, offset: i64, chunk: Buffer) -> napi::Result<i64> {
+    if offset < 0 {
+        return Err(napi::Error::from_reason("offset cannot be negative"));
+    }
+    let mut caches = stream_caches()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("stream cache lock poisoned"))?;
+    let cache = caches
+        .get_mut(&cache_id)
+        .ok_or_else(|| napi::Error::from_reason("stream cache not found"))?;
+
+    let bytes_written = cache
+        .write_chunk(offset as u64, &chunk)
+        .map_err(|err| napi::Error::from_reason(err.to_string()))?;
+    Ok(bytes_written as i64)
+}
+
+/// Read cached stream bytes at specific offset.
+#[napi]
+pub fn stream_cache_read(
+    cache_id: String,
+    offset: i64,
+    max_len: i64,
+) -> napi::Result<Option<Buffer>> {
+    if offset < 0 || max_len <= 0 {
+        return Ok(None);
+    }
+    let mut caches = stream_caches()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("stream cache lock poisoned"))?;
+    let cache = caches
+        .get_mut(&cache_id)
+        .ok_or_else(|| napi::Error::from_reason("stream cache not found"))?;
+
+    let maybe_data = cache
+        .read_at(offset as u64, max_len as usize)
+        .map_err(|err| napi::Error::from_reason(err.to_string()))?;
+
+    Ok(maybe_data.map(Buffer::from))
+}
+
+/// Query stats snapshot of a stream cache.
+#[napi]
+pub fn stream_cache_stats(cache_id: String) -> napi::Result<Option<String>> {
+    let caches = stream_caches()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("stream cache lock poisoned"))?;
+    let Some(cache) = caches.get(&cache_id) else {
+        return Ok(None);
+    };
+    serde_json::to_string(&cache.stats())
+        .map(Some)
+        .map_err(|err| napi::Error::from_reason(err.to_string()))
+}
+
+/// Close and destroy a stream cache, freeing RAM and cleaning temp files.
+#[napi]
+pub fn stream_cache_close(cache_id: String) -> bool {
+    stream_caches()
+        .lock()
+        .map(|mut caches| caches.remove(&cache_id).is_some())
+        .unwrap_or(false)
 }
 
 /// Start a bounded temporary-file download transaction.
