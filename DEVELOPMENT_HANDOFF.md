@@ -5,13 +5,13 @@
 ## 当前基线
 
 - 分支：`master`
-- M45 工作内容：全原生播放器会话集成与主进程调度接管（Native Player Session Orchestration & Main Process Scheduler Takeover）
+- M46 工作内容：渲染层原生播放器状态无缝接管与双向同步（Renderer Native Player UI Takeover & Bidirectional State Synchronization）
 - 产品版本：`1.1.0`
 - 远端：`https://github.com/Combineqw/kunyin-neo.git`
 - 技术栈：Electron 39、Vue 3、TypeScript、Rust、N-API-RS、纯 Rust 原生化架构规划
 - 终极形态战略决策：彻底弃用 Web / WebView 运行时（不采用 Tauri，走向 100% 纯 Rust 原生 GUI 与音频引擎，发布形态采用 NSIS/MSI 现代化安装程序）
 
-M45 新增 `src/main/audio/orchestrator.ts` 实现 `NativePlayerOrchestrator` 单例类，完整集成并调度原生音频全链路：`StreamCache` ➔ `StreamDecoder` ➔ `resample_interleaved` ➔ `NativeDspPipeline` ➔ `AudioOutputEndpoint` (WASAPI 硬件 / 虚拟端点)。支持本地文件按块写入缓存直通与网络流缓存挂载，提供完整的播放、暂停、停止、Seek、音量渐变、10段EQ动态配置、输出设备热切换与格式合成回退能力。主进程 IPC 注册 10 项强类型 `NATIVE_PLAYER_*` 通道，`PLAYER_STREAM` 支持三级平滑降级容灾。现有 Chromium `<audio>` 与 Web Audio 混音 100% 保持不变。
+M46 在 Pinia player store (`src/renderer/src/stores/player.ts`) 全面接管原生播放状态。新增响应式 `isNativeActive`，在播放/暂停、Seek、音量渐变、10段EQ及 ReplayGain 音效变更时与主进程 `NativePlayerOrchestrator` 实现毫秒级事件双向穿透与状态同步。导出 `switchAudioDevice` 与 `getAudioDevices`，在原生直通音频激活时完全规避 HTML5 `<audio>` 播放并提供平滑容灾回退。现有 Chromium `<audio>` 与 Web Audio 混音 100% 保持不变。
 
 ## Rust 迁移地图
 
@@ -57,6 +57,7 @@ npm run test:m42
 npm run test:m43
 npm run test:m44
 npm run test:m45
+npm run test:m46
 npm run build
 npm run build:win
 ```
@@ -71,11 +72,11 @@ cargo test --manifest-path crates/aurora-native/Cargo.toml
 cargo check --manifest-path src-tauri/Cargo.toml
 ```
 
-`npm run test:m45` 覆盖主进程全原生调度中心。全仓 lint 如果扫描到未跟踪 `work/` 脚本，应使用正式源码范围的 scoped lint，不要把临时脚本加入提交。
+`npm run test:m46` 覆盖渲染层与主进程原生播放器全双工联动。全仓 lint 如果扫描到未跟踪 `work/` 脚本，应使用正式源码范围的 scoped lint，不要把临时脚本加入提交。
 
 ## 下一步建议
 
-下一步进入 M46：渲染层原生播放器状态无缝接管与双向同步（Renderer Native Player UI Takeover & Bidirectional State Synchronization）。在 Pinia player store 中把播放进度、控制指令（播放/暂停/Seek/音量/EQ/输出设备）与主进程 `NativePlayerOrchestrator` 进行无感状态联动与事件双向同步，当启用纯原生直通模式时完全绕过 HTML5 `<audio>` 播放，保持零卡顿、零跳音和零延迟。每个切片都要保留旧路径、加入确定性回归、升级 `MEMORY.md`，并单独提交和普通推送。
+下一步进入 M47：Windows 现代化多语言安装程序构建体系与便携包封装（Windows Modern Installer Packaging & Setup Verification）。基于 electron-builder 配置标准 NSIS 安装向导（桌面快捷方式、开始菜单目录、文件扩展名关联、静默安装支持与干净卸载逻辑），配合发布产物生成与 SHA-256 校验核验。每个切片都要保留旧路径、加入确定性回归、升级 `MEMORY.md`，并单独提交和普通推送。
 
 ## 提交纪律
 

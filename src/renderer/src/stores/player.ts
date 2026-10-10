@@ -1,6 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
-import type { IrsProfile, MusicItem, PlayMode, QualityId, RecommendationSong } from '@common'
+import type {
+  IrsProfile,
+  MusicItem,
+  NativePlayerDeviceInfo,
+  PlayMode,
+  QualityId,
+  RecommendationSong
+} from '@common'
 import {
   blockedQualityIds,
   createHeartbeatRecommendations,
@@ -70,6 +77,9 @@ export const usePlayerStore = defineStore('player', () => {
   function applyAudioVolume(): void {
     audio.volume = muted.value ? 0 : volume.value
     window.api.media.setVolume(volume.value, muted.value)
+    if (nativeAudioActive) {
+      void window.api.nativePlayer.setVolume(volume.value, muted.value).catch(() => {})
+    }
   }
 
   function persistVolume(value: number): void {
@@ -104,10 +114,19 @@ export const usePlayerStore = defineStore('player', () => {
   let transitionToken = 0
   let activeMediaUrl = ''
   let nativeAudioActive = false
+  const isNativeActive = ref(false)
   let nativeAudioPollTimer: ReturnType<typeof setInterval> | null = null
   let sessionItem: MusicItem | null = null
   let sessionStartedAt = 0
   let sessionMaxPositionMs = 0
+
+  function setNativeActive(active: boolean): void {
+    nativeAudioActive = active
+    isNativeActive.value = active
+    if (!active) {
+      void window.api.nativePlayer.stop().catch(() => {})
+    }
+  }
 
   function stopNativeAudioPolling(): void {
     if (nativeAudioPollTimer !== null) {
@@ -128,7 +147,7 @@ export const usePlayerStore = defineStore('player', () => {
           if (snapshot.durationMs != null) duration.value = snapshot.durationMs
           sessionMaxPositionMs = Math.max(sessionMaxPositionMs, currentTime.value)
           if (snapshot.status === 'ended') {
-            nativeAudioActive = false
+            setNativeActive(false)
             stopNativeAudioPolling()
             playing.value = false
             recordCurrentSession(true)
@@ -193,6 +212,27 @@ export const usePlayerStore = defineStore('player', () => {
 
   function applyAudioSettings(): void {
     const settings = useSettingsStore().settings.player
+    if (nativeAudioActive) {
+      const replayGainDb =
+        settings.replayGainEnabled && current.value
+          ? resolveReplayGainDb(
+              current.value.replayGain,
+              settings.replayGainMode,
+              settings.replayGainPreampDb,
+              settings.replayGainMaxDb
+            )
+          : 0
+      void window.api.nativePlayer
+        .configureDsp({
+          eqEnabled: settings.equalizerEnabled,
+          eqGainsDb: settings.equalizerGains,
+          replayGainDb,
+          volume: muted.value ? 0 : volume.value,
+          muted: muted.value,
+          limiterEnabled: true
+        })
+        .catch(() => {})
+    }
     const graph = audioGraph
     if (!graph) return
     graph.setEqualizerEnabled(settings.equalizerEnabled)
@@ -553,7 +593,7 @@ export const usePlayerStore = defineStore('player', () => {
 
     if (stale()) return
     if (nativeAudioActive) {
-      nativeAudioActive = false
+      setNativeActive(false)
       stopNativeAudioPolling()
       window.api.media.setState(false)
     }
@@ -571,7 +611,7 @@ export const usePlayerStore = defineStore('player', () => {
         if (res.ok) {
           quality.value = q
           if (res.native) {
-            nativeAudioActive = true
+            setNativeActive(true)
             activeMediaUrl = ''
             audio.pause()
             audio.removeAttribute('src')
@@ -580,12 +620,13 @@ export const usePlayerStore = defineStore('player', () => {
             currentTime.value = 0
             playing.value = true
             applyAudioVolume()
+            applyAudioSettings()
             window.api.media.setState(true)
             startNativeAudioPolling()
             loading.value = false
             return
           }
-          nativeAudioActive = false
+          setNativeActive(false)
           stopNativeAudioPolling()
           activeMediaUrl = res.url
           audio.src = res.url
@@ -629,7 +670,7 @@ export const usePlayerStore = defineStore('player', () => {
 
     if (stale()) return
     if (nativeAudioActive) {
-      nativeAudioActive = false
+      setNativeActive(false)
       stopNativeAudioPolling()
       window.api.media.setState(false)
     }
@@ -648,7 +689,7 @@ export const usePlayerStore = defineStore('player', () => {
         if (res.ok) {
           quality.value = q
           if (res.native) {
-            nativeAudioActive = true
+            setNativeActive(true)
             activeMediaUrl = ''
             audio.pause()
             audio.removeAttribute('src')
@@ -657,18 +698,21 @@ export const usePlayerStore = defineStore('player', () => {
             currentTime.value = Math.max(0, positionMs)
             playing.value = false
             applyAudioVolume()
+            applyAudioSettings()
             startNativeAudioPolling()
             if (positionMs > 0) {
               void window.api.nativeAudio.seek(positionMs).catch(() => {})
+              void window.api.nativePlayer.seek(positionMs).catch(() => {})
             }
             if (autoplay) {
               playing.value = true
               window.api.media.setState(true)
+              void window.api.nativePlayer.play().catch(() => {})
             }
             loading.value = false
             return
           }
-          nativeAudioActive = false
+          setNativeActive(false)
           stopNativeAudioPolling()
           activeMediaUrl = res.url
           audio.src = res.url
@@ -832,6 +876,11 @@ export const usePlayerStore = defineStore('player', () => {
     if (nativeAudioActive) {
       playing.value = !playing.value
       window.api.media.setState(playing.value)
+      if (playing.value) {
+        void window.api.nativePlayer.play().catch(() => {})
+      } else {
+        void window.api.nativePlayer.pause().catch(() => {})
+      }
       return
     }
     enableAudioSpectrum()
@@ -894,6 +943,7 @@ export const usePlayerStore = defineStore('player', () => {
     if (nativeAudioActive) {
       currentTime.value = positionMs
       void window.api.nativeAudio.seek(positionMs).catch(() => {})
+      void window.api.nativePlayer.seek(positionMs).catch(() => {})
     } else {
       audio.currentTime = positionMs / 1000
       currentTime.value = positionMs
@@ -1063,6 +1113,14 @@ export const usePlayerStore = defineStore('player', () => {
     await loadForResume(item, currentTime.value, playing.value)
   }
 
+  async function switchAudioDevice(deviceName?: string, exclusive?: boolean): Promise<boolean> {
+    return window.api.nativePlayer.switchDevice(deviceName, exclusive).catch(() => false)
+  }
+
+  async function getAudioDevices(): Promise<NativePlayerDeviceInfo[]> {
+    return window.api.nativePlayer.getDevices().catch(() => [])
+  }
+
   if (import.meta.env.DEV) {
     Object.assign(window, {
       __kunyinAudioDebug: {
@@ -1114,6 +1172,9 @@ export const usePlayerStore = defineStore('player', () => {
     toggleMute,
     cyclePlayMode,
     changeQuality,
-    restore
+    restore,
+    isNativeActive,
+    switchAudioDevice,
+    getAudioDevices
   }
 })

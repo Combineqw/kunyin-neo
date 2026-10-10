@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.46 — 2026-10-10】
+【kunyin-neo 项目记忆 v5.47 — 2026-10-10】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,21 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10）
+
+◆ M46 渲染层原生播放器状态无缝接管与双向同步 (Renderer Native Player UI Takeover & Bidirectional State Synchronization)（2026-10-10，事实与回执）
+- 渲染层 Pinia Player Store 全双工状态接管 (`src/renderer/src/stores/player.ts`)：
+  · 新增响应式状态 `isNativeActive: Ref<boolean>` 与内部统一切换器 `setNativeActive(active)`，当原生直通音频激活时挂起 HTML `<audio>` 播放并开启高精度定时轮询；
+  · 状态双向同步联动：
+    1. 播放/暂停控制：在 `toggle()` 中针对原生直通音轨直接下发 `window.api.nativePlayer.play()` / `pause()`，杜绝误唤醒空 HTMLAudio；
+    2. Seek 跳转同步：在 `seek()` 中双发 `nativePlayer.seek()` 与 `nativeAudio.seek()`，确保精确重置时间戳；
+    3. 音量与静音动态穿透：在 `applyAudioVolume()` 中实时下发 `nativePlayer.setVolume(vol, muted)`；
+    4. 10段EQ 与 ReplayGain 音效穿透：在 `applyAudioSettings()` 中无论 Web Audio 上下文状态，均向 `nativePlayer.configureDsp` 下发完整均衡器与增益矩阵；
+    5. 启动续播（`loadForResume`）与切歌（`loadAndPlay`）无感桥接原生直通；
+  · 导出 `isNativeActive`、`switchAudioDevice(name, exclusive)` 与 `getAudioDevices()` 供设置页和播放组件直接消费。
+- 自动化测试与质量门禁：
+  · 新增 `scripts/m46-renderer-native-player-sync-tests.mjs`（`npm run test:m46`）：覆盖类型契约、Preload 暴露、Store 状态接管逻辑、主渲染进程指令双向穿透与虚拟端点全流程验证；
+  · 回归验证：`npm run test:m46`、`npm run test:m45`、`npm run test:m44`、`npm run test:m43`、`npm test`（9 项全过）、`npm run typecheck`、`npm run build`、`git diff --check`（0 errors）全部通过。
 
 ◆ M45 全原生播放器会话集成与主进程调度接管 (Native Player Session Orchestration & Main Process Scheduler Takeover)（2026-10-10，事实与回执）
 - 新增 `src/main/audio/orchestrator.ts`：
