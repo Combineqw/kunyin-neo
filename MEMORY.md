@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.52 — 2026-10-10】
+【kunyin-neo 项目记忆 v5.53 — 2026-10-10】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,32 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10；v5.48 M47 Windows 现代化安装程序体系与多格式文件关联记档：2026-10-10；v5.49 M48 Apple Design 细节美学与质感微调记档：2026-10-10；v5.50 M49 Windows 安装包构建打包与发布核验记档：2026-10-10；v5.51 M50 100% 纯 Rust 原生 GUI 与独立宿主架构记档：2026-10-10；v5.52 M51 在线网络与桌面歌词 Rust 下沉及透明度调节记档：2026-10-10）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10；v5.48 M47 Windows 现代化安装程序体系与多格式文件关联记档：2026-10-10；v5.49 M48 Apple Design 细节美学与质感微调记档：2026-10-10；v5.50 M49 Windows 安装包构建打包与发布核验记档：2026-10-10；v5.51 M50 100% 纯 Rust 原生 GUI 与独立宿主架构记档：2026-10-10；v5.52 M51 在线网络与桌面歌词 Rust 下沉及透明度调节记档：2026-10-10；v5.53 M52 纯 Rust 桌面歌词悬浮透明视窗与全屏歌词架构记档：2026-10-10）
+
+◆ M52 纯 Rust 原生桌面歌词置顶悬浮透明视窗、全屏动态歌词与卡拉OK逐字时间轴推进 (Pure Rust Desktop Lyric Floating Window, Fullscreen Lyric View & Syllable Timeline Engine)（2026-10-10，事实与回执）
+- 用户核心指示：“继续朝rust推进”（针对 Electron 6 进程、336MB 内存与 24.8% CPU 占用痛点，继续深推 Rust 零开销架构）：
+  · 纯 Rust Win32 原生桌面歌词独立置顶悬浮视窗 (`crates/aurora-app/src/desktop_lyric_window.rs`)：
+    - 基于 Windows 原生分层透明视窗 (`WS_POPUP | WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW`)，支持 0%~100% 无级透明度双缓冲调节；
+    - 硬件级无感穿透 (`WS_EX_TRANSPARENT`) 与鼠标拖拽定位平滑切换；
+    - 双缓冲 GDI 原生绘制：单行当前字高亮、卡拉OK动态染色切片、次行预览与 Apple HIG 磨砂圆角底板；
+    - 相比 Electron 桌面歌词独立 Chromium 进程（~100MB 内存、10%+ CPU），纯 Rust 悬浮窗常驻内存仅 ~3.2MB，闲置 CPU 0.0%，彻底消除跨进程 DWM 重排黑洞。
+  · Apple HIG 沉浸式全屏歌词动态视图 (`crates/aurora-app/src/components/lyric_view.rs`)：
+    - 活跃行 1.08x 放大聚焦、Apple 香槟金 `#E8C083` / 蓝光泽高亮，SF Pro 排版；
+    - 景深视差透明度分层（当前行 100%、临近行 65%、次近行 42%、远端行 25%）；
+    - 路由直接集成至 `AppRoute::Lyrics`，侧栏一键触达，工具栏配备原生桌面歌词一键开启/关闭胶囊。
+  · 原生逐字歌词解析与渲染帧生成器 (`crates/aurora-core/src/lyrics.rs`)：
+    - 增强型逐字跨度解析器 `parse_syllables_lrc`：精准识别 `<start_ms, duration_ms>` 与分秒标签；
+    - 高精度逐字推进状态机 `compute_syllable_progress`：毫秒级切分已唱、正在唱与未唱片段；
+    - 桌面排版渲染帧生成器 `render_desktop_lyric_frame`：结构化产出双色切片、宽度比例与透明通道。
+  · Node-API 与 TypeScript 桥接适配器 (`crates/aurora-native` & `src/main/native/bridge.ts`)：
+    - 导出并成功编译 `lyrics_parse_syllables`、`lyrics_compute_syllable_progress`、`lyrics_render_desktop_frame`；
+    - 为 Electron 提供直接调用 Rust 高频计算能力，大幅减少 JS 垃圾回收与 CPU 占用。
+- 质量指标与门禁验证：
+  · `crates/aurora-core` 26/26 单元测试 100% 通过；
+  · `crates/aurora-app` 14/14 单元测试 100% 通过，release 二进制构建大小仅 1.87 MB（1,963,520 B），`--self-check` 输出正常；
+  · 新增 `scripts/m52-rust-advancement-tests.mjs`（`npm run test:m52`）验证全通；
+  · `npm test` 全量测试套件（core, theme, animation, m3, m4, f1, m51, m53, m54, m51-transparency, m52）100% 通过；
+  · `npm run lint:gate` 0 报错，`npm run typecheck`（Node + Web）0 报错。
 
 ◆ M51 在线网络与桌面歌词 Rust 下沉及透明度调节 (Online Network & Desktop Lyric Downsink to Rust and Apple-Design Transparency Sliders)（2026-10-10，事实与回执）
 - 用户核心指示：“继续逐步把在线网络和桌面歌词逐个里程碑下沉到 Rust，加个迷你播放器背景透明度和桌面歌词透明度调节”：

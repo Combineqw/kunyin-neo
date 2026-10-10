@@ -97,4 +97,57 @@ mod tests {
         assert_eq!(written, source);
         let _ = std::fs::remove_file(path);
     }
+
+    #[test]
+    fn syllables_parsing_and_progress_computation_work() {
+        let lrc_line = "[00:10.00]<10000,400>你<10400,600>好<11000,500>世界";
+        let parsed = lyrics::parse_syllable_line(lrc_line).expect("should parse syllable line");
+        assert_eq!(parsed.start_ms, 10000);
+        assert_eq!(parsed.raw_text, "你好世界");
+        assert_eq!(parsed.syllables.len(), 3);
+        assert_eq!(parsed.end_ms, 11500);
+
+        // Before start
+        let p_before = lyrics::compute_syllable_progress(&parsed, 9000);
+        assert_eq!(p_before.line_progress, 0.0);
+        assert_eq!(p_before.sang_text, "");
+        assert_eq!(p_before.unsang_text, "你好世界");
+
+        // Middle of second syllable "好" (10400..11000, at 10700)
+        let p_mid = lyrics::compute_syllable_progress(&parsed, 10700);
+        assert_eq!(p_mid.current_syllable_index, 1);
+        assert_eq!(p_mid.current_text, "好");
+        assert_eq!(p_mid.sang_text, "你");
+        assert_eq!(p_mid.unsang_text, "世界");
+        assert!((p_mid.syllable_progress - 0.5).abs() < 0.05);
+
+        // After end
+        let p_after = lyrics::compute_syllable_progress(&parsed, 12000);
+        assert_eq!(p_after.line_progress, 1.0);
+        assert_eq!(p_after.sang_text, "你好世界");
+        assert_eq!(p_after.current_text, "");
+    }
+
+    #[test]
+    fn desktop_lyric_render_frame_generation_works() {
+        let appearance = lyrics::compute_desktop_lyric_appearance(0.45, 95.0, 600, 0.70, 2);
+        let frame = lyrics::render_desktop_lyric_frame(
+            "测试歌词主文本",
+            Some("Test Lyric Translation"),
+            0.62,
+            "#E8C083",
+            "#F5F5F2",
+            &appearance,
+            28,
+            true,
+        );
+
+        assert_eq!(frame.main_text, "测试歌词主文本");
+        assert_eq!(frame.sub_text, Some("Test Lyric Translation".to_string()));
+        assert!((frame.highlight_ratio - 0.62).abs() < 0.001);
+        assert_eq!(frame.font_size, 28);
+        assert_eq!(frame.font_weight, 600);
+        assert!(frame.background_rgba.contains("0.45"));
+        assert!(frame.is_playing);
+    }
 }

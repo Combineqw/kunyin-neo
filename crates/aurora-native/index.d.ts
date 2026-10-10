@@ -222,3 +222,9 @@ export declare function networkBuildHeaders(provider: string, targetUrl: string,
 export declare function networkPlanStreamRange(startByte: number, totalBytes: number, chunkSize: number): string
 /** Validate and normalize network proxy setting. */
 export declare function networkValidateProxy(enable: boolean, host: string, port: number): string
+/** Parse full LRC content into syllable lines array with word-level timestamps. */
+export declare function lyricsParseSyllables(lrcText: string): string
+/** Compute real-time karaoke syllable progress within a line. */
+export declare function lyricsComputeSyllableProgress(lineJson: string, timeMs: number): string
+/** Render structured desktop lyric frame with progress, color palette, and typography. */
+export declare function lyricsRenderDesktopFrame(mainLine: string, subLine: string | undefined | null, progress: number, activeColor: string, normalColor: string, bgOpacity: number, textOpacity: number, fontSize: number, isPlaying: boolean): string

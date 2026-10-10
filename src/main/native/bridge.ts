@@ -168,6 +168,19 @@ type NativeBinding = {
     chunkSize: number
   ): string
   networkValidateProxy?(enable: boolean, host: string, port: number): string
+  lyricsParseSyllables?(lrcText: string): string
+  lyricsComputeSyllableProgress?(lineJson: string, timeMs: number): string
+  lyricsRenderDesktopFrame?(
+    mainLine: string,
+    subLine: string | null | undefined,
+    progress: number,
+    activeColor: string,
+    normalColor: string,
+    bgOpacity: number,
+    textOpacity: number,
+    fontSize: number,
+    isPlaying: boolean
+  ): string
 }
 
 export type NativeAudioDeviceInfo = {
@@ -1585,5 +1598,112 @@ export function nativeNetworkValidateProxy(
   } catch {
     if (!enable || !host) return null
     return `http://${host}:${port}`
+  }
+}
+
+export interface NativeSyllableSpan {
+  text: string
+  start_ms: number
+  duration_ms: number
+}
+
+export interface NativeSyllableLine {
+  start_ms: number
+  end_ms: number
+  raw_text: string
+  syllables: NativeSyllableSpan[]
+}
+
+export interface NativeSyllableProgress {
+  current_syllable_index: number
+  syllable_progress: number
+  line_progress: number
+  sang_text: string
+  current_text: string
+  unsang_text: string
+}
+
+export interface NativeDesktopLyricRenderFrame {
+  main_text: string
+  sub_text?: string | null
+  highlight_ratio: number
+  active_color: string
+  normal_color: string
+  background_rgba: string
+  font_size: number
+  font_weight: number
+  is_playing: boolean
+}
+
+/** Parse full LRC into syllable lines with word-level timestamps via Rust. */
+export function nativeLyricsParseSyllables(lrcText: string): NativeSyllableLine[] {
+  try {
+    const raw = loadBinding()?.lyricsParseSyllables?.(lrcText)
+    if (raw) return JSON.parse(raw) as NativeSyllableLine[]
+  } catch {
+    // fallback
+  }
+  return []
+}
+
+/** Compute real-time karaoke syllable progress within a line via Rust. */
+export function nativeLyricsComputeSyllableProgress(
+  line: NativeSyllableLine,
+  timeMs: number
+): NativeSyllableProgress {
+  try {
+    const raw = loadBinding()?.lyricsComputeSyllableProgress?.(JSON.stringify(line), timeMs)
+    if (raw) return JSON.parse(raw) as NativeSyllableProgress
+  } catch {
+    // fallback
+  }
+  return {
+    current_syllable_index: 0,
+    syllable_progress: 0,
+    line_progress: 0,
+    sang_text: '',
+    current_text: '',
+    unsang_text: line.raw_text
+  }
+}
+
+/** Render structured desktop lyric frame with typography and appearance via Rust. */
+export function nativeLyricsRenderDesktopFrame(
+  mainLine: string,
+  subLine: string | null | undefined,
+  progress: number,
+  activeColor: string,
+  normalColor: string,
+  bgOpacity: number,
+  textOpacity: number,
+  fontSize: number,
+  isPlaying: boolean
+): NativeDesktopLyricRenderFrame {
+  try {
+    const raw = loadBinding()?.lyricsRenderDesktopFrame?.(
+      mainLine,
+      subLine,
+      progress,
+      activeColor,
+      normalColor,
+      bgOpacity,
+      textOpacity,
+      fontSize,
+      isPlaying
+    )
+    if (raw) return JSON.parse(raw) as NativeDesktopLyricRenderFrame
+  } catch {
+    // fallback
+  }
+  return {
+    main_text: mainLine,
+    sub_text: subLine,
+    highlight_ratio: Math.max(0, Math.min(1, progress)),
+    active_color: activeColor,
+    normal_color: normalColor,
+    background_rgba: `rgba(9, 12, 11, ${bgOpacity.toFixed(2)})`,
+    font_size: fontSize,
+    font_weight: 600,
+    is_playing: isPlaying
   }
 }

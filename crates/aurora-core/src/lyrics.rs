@@ -465,3 +465,264 @@ pub fn compute_mini_player_appearance(opacity_percent: f64) -> MiniPlayerAppeara
         border_rgba: "rgba(255, 255, 255, 0.20)".to_string(),
     }
 }
+
+/// 逐字歌词跨度单元（支持卡拉OK逐字时间戳）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SyllableSpan {
+    pub text: String,
+    pub start_ms: u64,
+    pub duration_ms: u64,
+}
+
+/// 包含逐字时间戳的单行歌词模型。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SyllableLine {
+    pub start_ms: u64,
+    pub end_ms: u64,
+    pub raw_text: String,
+    pub syllables: Vec<SyllableSpan>,
+}
+
+/// 逐字歌词推进进度切分。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SyllableProgress {
+    pub current_syllable_index: usize,
+    pub syllable_progress: f64,
+    pub line_progress: f64,
+    pub sang_text: String,
+    pub current_text: String,
+    pub unsang_text: String,
+}
+
+/// 桌面歌词结构化排版渲染帧。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DesktopLyricRenderFrame {
+    pub main_text: String,
+    pub sub_text: Option<String>,
+    pub highlight_ratio: f64,
+    pub active_color: String,
+    pub normal_color: String,
+    pub background_rgba: String,
+    pub font_size: u32,
+    pub font_weight: u32,
+    pub is_playing: bool,
+}
+
+/// 解析单行逐字时间标签歌词。
+///
+/// 支持格式：
+/// 1. 毫秒绝对时间戳：`[00:12.34]<12340,300>你<12640,400>好`
+/// 2. 分秒时间戳：`[00:12.34]<00:12.34>你<00:12.74>好`
+/// 3. 普通非逐字行：按字符长度均分行时长。
+pub fn parse_syllable_line(raw: &str) -> Option<SyllableLine> {
+    let line_str = raw.trim();
+    if line_str.is_empty() {
+        return None;
+    }
+
+    // 提取行首时间标签，如 [00:12.34]
+    let (line_start_ms, body) = if let Some(stripped) = line_str.strip_prefix('[') {
+        if let Some((tag, rest)) = stripped.split_once(']') {
+            let start = parse_time(tag)?;
+            (start, rest.trim())
+        } else {
+            return None;
+        }
+    } else {
+        return None;
+    };
+
+    if body.is_empty() {
+        return Some(SyllableLine {
+            start_ms: line_start_ms,
+            end_ms: line_start_ms,
+            raw_text: String::new(),
+            syllables: Vec::new(),
+        });
+    }
+
+    let mut syllables = Vec::new();
+    let mut chars = body.chars().peekable();
+    let mut current_offset = line_start_ms;
+
+    while let Some(&c) = chars.peek() {
+        if c == '<' {
+            chars.next(); // consume '<'
+            let mut tag_buf = String::new();
+            while let Some(&tc) = chars.peek() {
+                chars.next();
+                if tc == '>' {
+                    break;
+                }
+                tag_buf.push(tc);
+            }
+
+            // tag_buf 可能形如 "12340,300" 或 "00:12.34"
+            let (span_start, span_duration) = if let Some((st, dur)) = tag_buf.split_once(',') {
+                let start_ms = st.trim().parse::<u64>().unwrap_or(current_offset);
+                let duration_ms = dur.trim().parse::<u64>().unwrap_or(300);
+                (start_ms, duration_ms)
+            } else if let Some(parsed) = parse_time(&tag_buf) {
+                (parsed, 350)
+            } else {
+                (current_offset, 300)
+            };
+
+            // 提取紧随其后的字词内容直到下一个 '<' 或行尾
+            let mut text_buf = String::new();
+            while let Some(&tc) = chars.peek() {
+                if tc == '<' {
+                    break;
+                }
+                text_buf.push(tc);
+                chars.next();
+            }
+
+            if !text_buf.is_empty() {
+                syllables.push(SyllableSpan {
+                    text: text_buf,
+                    start_ms: span_start,
+                    duration_ms: span_duration,
+                });
+                current_offset = span_start + span_duration;
+            }
+        } else {
+            // 普通无标签字词，整段提取
+            let mut text_buf = String::new();
+            while let Some(&tc) = chars.peek() {
+                if tc == '<' {
+                    break;
+                }
+                text_buf.push(tc);
+                chars.next();
+            }
+
+            let dur = (text_buf.chars().count() as u64 * 280).max(1000);
+            syllables.push(SyllableSpan {
+                text: text_buf,
+                start_ms: current_offset,
+                duration_ms: dur,
+            });
+            current_offset += dur;
+        }
+    }
+
+    let end_ms = syllables
+        .last()
+        .map(|s| s.start_ms + s.duration_ms)
+        .unwrap_or(line_start_ms);
+
+    let raw_text = syllables
+        .iter()
+        .map(|s| s.text.as_str())
+        .collect::<Vec<_>>()
+        .join("");
+
+    Some(SyllableLine {
+        start_ms: line_start_ms,
+        end_ms,
+        raw_text,
+        syllables,
+    })
+}
+
+/// 解析全篇 LRC 为包含逐字时间戳的 SyllableLine 列表。
+pub fn parse_syllables_lrc(lrc_text: &str) -> Vec<SyllableLine> {
+    lrc_text
+        .lines()
+        .filter_map(parse_syllable_line)
+        .filter(|l| !l.raw_text.is_empty())
+        .collect()
+}
+
+/// 计算当前时间戳在单行逐字歌词中的详细推进进度。
+pub fn compute_syllable_progress(line: &SyllableLine, time_ms: u64) -> SyllableProgress {
+    if line.syllables.is_empty() {
+        return SyllableProgress {
+            current_syllable_index: 0,
+            syllable_progress: 0.0,
+            line_progress: 0.0,
+            sang_text: String::new(),
+            current_text: String::new(),
+            unsang_text: String::new(),
+        };
+    }
+
+    let line_dur = (line.end_ms.saturating_sub(line.start_ms)).max(1);
+    let line_prog = ((time_ms.saturating_sub(line.start_ms)) as f64 / line_dur as f64).clamp(0.0, 1.0);
+
+    if time_ms < line.start_ms {
+        return SyllableProgress {
+            current_syllable_index: 0,
+            syllable_progress: 0.0,
+            line_progress: 0.0,
+            sang_text: String::new(),
+            current_text: String::new(),
+            unsang_text: line.raw_text.clone(),
+        };
+    }
+
+    if time_ms >= line.end_ms {
+        return SyllableProgress {
+            current_syllable_index: line.syllables.len().saturating_sub(1),
+            syllable_progress: 1.0,
+            line_progress: 1.0,
+            sang_text: line.raw_text.clone(),
+            current_text: String::new(),
+            unsang_text: String::new(),
+        };
+    }
+
+    let mut sang_acc = String::new();
+    let mut current_idx = 0;
+    let mut curr_prog = 0.0;
+    let mut current_txt = String::new();
+    let mut unsang_acc = String::new();
+
+    for (idx, span) in line.syllables.iter().enumerate() {
+        let span_end = span.start_ms + span.duration_ms;
+        if time_ms >= span_end {
+            sang_acc.push_str(&span.text);
+        } else if time_ms >= span.start_ms {
+            current_idx = idx;
+            let span_dur = span.duration_ms.max(1);
+            curr_prog = ((time_ms - span.start_ms) as f64 / span_dur as f64).clamp(0.0, 1.0);
+            current_txt = span.text.clone();
+        } else {
+            unsang_acc.push_str(&span.text);
+        }
+    }
+
+    SyllableProgress {
+        current_syllable_index: current_idx,
+        syllable_progress: curr_prog,
+        line_progress: line_prog,
+        sang_text: sang_acc,
+        current_text: current_txt,
+        unsang_text: unsang_acc,
+    }
+}
+
+/// 生成桌面歌词排版渲染帧，整合进度比例、外观色彩与文字排印。
+pub fn render_desktop_lyric_frame(
+    main_line: &str,
+    sub_line: Option<&str>,
+    progress: f64,
+    active_color: &str,
+    normal_color: &str,
+    appearance: &DesktopLyricAppearance,
+    font_size: u32,
+    is_playing: bool,
+) -> DesktopLyricRenderFrame {
+    DesktopLyricRenderFrame {
+        main_text: main_line.to_string(),
+        sub_text: sub_line.map(str::to_string),
+        highlight_ratio: progress.clamp(0.0, 1.0),
+        active_color: active_color.to_string(),
+        normal_color: normal_color.to_string(),
+        background_rgba: appearance.background_rgba.clone(),
+        font_size: font_size.clamp(14, 72),
+        font_weight: appearance.font_weight,
+        is_playing,
+    }
+}

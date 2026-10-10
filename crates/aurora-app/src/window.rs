@@ -73,6 +73,30 @@ pub mod win32 {
                         if let Some(app) = guard.as_mut() {
                             if app.state.snapshot().status == aurora_player::PlaybackStatus::Playing {
                                 app.state.tick(100);
+
+                                if app.state.desktop_lyric_visible {
+                                    if let Some(active) = &app.state.active_lyric {
+                                        let appearance = aurora_core::lyrics::compute_desktop_lyric_appearance(
+                                            app.state.desktop_lyric_opacity as f64,
+                                            100.0,
+                                            600,
+                                            0.72,
+                                            2,
+                                        );
+                                        let frame = aurora_core::lyrics::render_desktop_lyric_frame(
+                                            &active.text,
+                                            active.next_text.as_deref(),
+                                            active.progress,
+                                            "#E8C083",
+                                            "#8E8E93",
+                                            &appearance,
+                                            24,
+                                            true,
+                                        );
+                                        crate::desktop_lyric_window::win32::refresh_desktop_lyric(frame);
+                                    }
+                                }
+
                                 InvalidateRect(hwnd, null(), 0);
                             }
                         }
@@ -110,10 +134,23 @@ pub mod win32 {
     unsafe fn handle_click(hwnd: HWND, x: i32, y: i32) {
         let mut rect: RECT = std::mem::zeroed();
         GetClientRect(hwnd, &mut rect);
+        let win_width = rect.right;
         let win_height = rect.bottom;
 
         if let Ok(mut guard) = APP_INSTANCE.lock() {
             if let Some(app) = guard.as_mut() {
+                // Toolbar Desktop Lyric Pill toggle (x: win_width - 400 .. win_width - 275, y: 12..40)
+                if x >= win_width - 400 && x <= win_width - 275 && y >= 12 && y <= 40 {
+                    let active = app.state.toggle_desktop_lyric();
+                    if active {
+                        crate::desktop_lyric_window::win32::show_desktop_lyric_window();
+                    } else {
+                        crate::desktop_lyric_window::win32::hide_desktop_lyric_window();
+                    }
+                    InvalidateRect(hwnd, null(), 0);
+                    return;
+                }
+
                 // 1. Sidebar items (x: 0..220)
                 if x < 220 {
                     let nav_routes = [
@@ -121,6 +158,7 @@ pub mod win32 {
                         AppRoute::Library,
                         AppRoute::Trial,
                         AppRoute::Favorites,
+                        AppRoute::Lyrics,
                         AppRoute::Settings,
                     ];
                     let start_y = 70;
@@ -319,6 +357,7 @@ pub mod win32 {
             ("本地曲库", AppRoute::Library),
             ("试听列表", AppRoute::Trial),
             ("我的收藏", AppRoute::Favorites),
+            ("歌词视窗", AppRoute::Lyrics),
             ("音频设置", AppRoute::Settings),
         ];
 
@@ -423,6 +462,30 @@ pub mod win32 {
             DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX,
         );
 
+        // Desktop Lyric Toggle Pill in Toolbar (x: width - 420 .. width - 280)
+        let dl_active = app.map(|a| a.state.desktop_lyric_visible).unwrap_or(false);
+        let dl_brush = CreateSolidBrush(if dl_active { rgb(28, 54, 90) } else { rgb(32, 32, 38) });
+        let dl_rect = RECT {
+            left: width - 420,
+            top: 12,
+            right: width - 280,
+            bottom: 40,
+        };
+        FillRect(mem_dc, &dl_rect, dl_brush);
+        DeleteObject(dl_brush);
+
+        SelectObject(mem_dc, font_small);
+        SetTextColor(mem_dc, if dl_active { rgb(10, 132, 255) } else { rgb(160, 160, 170) });
+        let mut dl_text_rect = dl_rect;
+        let dl_text = to_wide(if dl_active { "★ 桌面歌词: 开启" } else { "☆ 桌面歌词: 关闭" });
+        DrawTextW(
+            mem_dc,
+            dl_text.as_ptr(),
+            -1,
+            &mut dl_text_rect,
+            DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX,
+        );
+
         // Engine Status Pill in Toolbar
         let badge_brush = CreateSolidBrush(rgb(22, 40, 32));
         let badge_rect = RECT {
@@ -454,6 +517,7 @@ pub mod win32 {
             AppRoute::Library => "本地无损曲库",
             AppRoute::Trial => "试听列表",
             AppRoute::Favorites => "我的收藏",
+            AppRoute::Lyrics => "实时逐字歌词视窗",
             AppRoute::Settings => "音频引擎与均衡器设置",
             _ => "音乐列表",
         };
@@ -472,53 +536,100 @@ pub mod win32 {
             DT_LEFT | DT_SINGLELINE | DT_NOPREFIX,
         );
 
-        // Table Column Headers
-        SelectObject(mem_dc, font_small);
-        SetTextColor(mem_dc, rgb(130, 130, 140));
-        let col_y = 108;
-        let mut c1 = RECT {
-            left: 240,
-            top: col_y,
-            right: 270,
-            bottom: col_y + 20,
-        };
-        let mut c2 = RECT {
-            left: 270,
-            top: col_y,
-            right: 560,
-            bottom: col_y + 20,
-        };
-        let mut c3 = RECT {
-            left: 560,
-            top: col_y,
-            right: 740,
-            bottom: col_y + 20,
-        };
-        let mut c4 = RECT {
-            left: 740,
-            top: col_y,
-            right: 920,
-            bottom: col_y + 20,
-        };
-        let mut c5 = RECT {
-            left: width - 100,
-            top: col_y,
-            right: width - 40,
-            bottom: col_y + 20,
-        };
+        if current_route == AppRoute::Lyrics {
+            let default_lrc = "[00:00.00]昆音 (KUNYIN Neo) - 纯原生无损音频引擎\n[00:05.00]零 WebView · 零 Electron · 纯 Rust 打造\n[00:10.00]Apple Human Interface Guidelines 经典美学\n[00:15.00]10 段双二阶 IIR 均衡器与 WASAPI 独占硬件输出\n[00:20.00]高精度毫秒级时间轴与逐字卡拉OK平滑推进\n[00:25.00]原生 Win32 分层透明置顶桌面歌词视窗\n[00:30.00]极低内存常驻 · 零 CPU 浪费 · 极速启动";
+            let lines = if let Some(app_ref) = app {
+                if app_ref.state.lyrics_lines.is_empty() {
+                    aurora_core::lyrics::parse_lrc(default_lrc)
+                } else {
+                    app_ref.state.lyrics_lines.clone()
+                }
+            } else {
+                aurora_core::lyrics::parse_lrc(default_lrc)
+            };
 
-        DrawTextW(mem_dc, to_wide("#").as_ptr(), -1, &mut c1, DT_LEFT | DT_SINGLELINE);
-        DrawTextW(mem_dc, to_wide("曲目标题").as_ptr(), -1, &mut c2, DT_LEFT | DT_SINGLELINE);
-        DrawTextW(mem_dc, to_wide("歌手").as_ptr(), -1, &mut c3, DT_LEFT | DT_SINGLELINE);
-        DrawTextW(mem_dc, to_wide("专辑").as_ptr(), -1, &mut c4, DT_LEFT | DT_SINGLELINE);
-        DrawTextW(mem_dc, to_wide("时长").as_ptr(), -1, &mut c5, DT_RIGHT | DT_SINGLELINE);
+            let cur_pos = app.map(|a| a.state.snapshot().position_ms).unwrap_or(0);
+            let model = crate::components::LyricViewModel::new(lines);
+            let viewport = model.build_viewport(cur_pos, 7);
 
-        // Sample Songs Render
-        let songs = get_sample_tracks();
-        let playing_title = app
-            .and_then(|a| a.state.current_track.as_ref())
-            .map(|t| t.title.as_str())
-            .unwrap_or("");
+            let l_top = 130;
+            let l_height = 56;
+            for (idx, item) in viewport.into_iter().enumerate() {
+                let row_y = l_top + (idx as i32) * l_height;
+                if row_y + l_height > height - 80 {
+                    break;
+                }
+
+                if item.is_active {
+                    SelectObject(mem_dc, font_title);
+                    SetTextColor(mem_dc, rgb(232, 192, 131)); // Gold active accent #E8C083
+                } else {
+                    SelectObject(mem_dc, font_body);
+                    SetTextColor(mem_dc, rgb(142, 142, 147)); // Secondary muted
+                }
+
+                let mut r_line = RECT {
+                    left: 240,
+                    top: row_y,
+                    right: width - 40,
+                    bottom: row_y + l_height,
+                };
+                DrawTextW(
+                    mem_dc,
+                    to_wide(&item.text).as_ptr(),
+                    -1,
+                    &mut r_line,
+                    DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX,
+                );
+            }
+        } else {
+            // Table Column Headers
+            SelectObject(mem_dc, font_small);
+            SetTextColor(mem_dc, rgb(130, 130, 140));
+            let col_y = 108;
+            let mut c1 = RECT {
+                left: 240,
+                top: col_y,
+                right: 270,
+                bottom: col_y + 20,
+            };
+            let mut c2 = RECT {
+                left: 270,
+                top: col_y,
+                right: 560,
+                bottom: col_y + 20,
+            };
+            let mut c3 = RECT {
+                left: 560,
+                top: col_y,
+                right: 740,
+                bottom: col_y + 20,
+            };
+            let mut c4 = RECT {
+                left: 740,
+                top: col_y,
+                right: 920,
+                bottom: col_y + 20,
+            };
+            let mut c5 = RECT {
+                left: width - 100,
+                top: col_y,
+                right: width - 40,
+                bottom: col_y + 20,
+            };
+
+            DrawTextW(mem_dc, to_wide("#").as_ptr(), -1, &mut c1, DT_LEFT | DT_SINGLELINE);
+            DrawTextW(mem_dc, to_wide("曲目标题").as_ptr(), -1, &mut c2, DT_LEFT | DT_SINGLELINE);
+            DrawTextW(mem_dc, to_wide("歌手").as_ptr(), -1, &mut c3, DT_LEFT | DT_SINGLELINE);
+            DrawTextW(mem_dc, to_wide("专辑").as_ptr(), -1, &mut c4, DT_LEFT | DT_SINGLELINE);
+            DrawTextW(mem_dc, to_wide("时长").as_ptr(), -1, &mut c5, DT_RIGHT | DT_SINGLELINE);
+
+            // Sample Songs Render
+            let songs = get_sample_tracks();
+            let playing_title = app
+                .and_then(|a| a.state.current_track.as_ref())
+                .map(|t| t.title.as_str())
+                .unwrap_or("");
 
         for (idx, song) in songs.iter().enumerate() {
             let row_top = 136 + (idx as i32) * 48;
@@ -635,6 +746,7 @@ pub mod win32 {
                 &mut r_dur,
                 DT_RIGHT | DT_VCENTER | DT_SINGLELINE,
             );
+        }
         }
 
         // 5. Bottom PlayerBar (Height: 80px)
@@ -891,6 +1003,9 @@ pub mod win32 {
             SetTimer(hwnd, TIMER_ID_PLAYBACK, 100, None);
             ShowWindow(hwnd, SW_SHOW);
             UpdateWindow(hwnd);
+            crate::desktop_lyric_window::win32::init_desktop_lyric_window(
+                crate::desktop_lyric_window::DesktopLyricWindowConfig::default(),
+            );
         }
 
         // Standard Windows Message Pump

@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use aurora_library::{Library, Playlist, SongRecord};
 use aurora_player::{PlaybackSession, PlaybackSnapshot, PlaybackStatus};
+use aurora_core::lyrics::{find_active_line, parse_lrc, LyricLine, LyricLineMatch};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -20,6 +21,7 @@ pub enum AppRoute {
     Favorites,
     Playlist(i64),
     Settings,
+    Lyrics,
 }
 
 impl Default for AppRoute {
@@ -100,6 +102,11 @@ pub struct AppState {
     pub search_query: String,
     pub search_results: Vec<AppTrack>,
     pub dsp: DspSettings,
+    pub lyrics_lines: Vec<LyricLine>,
+    pub active_lyric: Option<LyricLineMatch>,
+    pub desktop_lyric_visible: bool,
+    pub desktop_lyric_opacity: f32,
+    pub desktop_lyric_locked: bool,
 }
 
 impl Default for AppState {
@@ -124,6 +131,11 @@ impl AppState {
             search_query: String::new(),
             search_results: Vec::new(),
             dsp: DspSettings::default(),
+            lyrics_lines: Vec::new(),
+            active_lyric: None,
+            desktop_lyric_visible: false,
+            desktop_lyric_opacity: 0.72,
+            desktop_lyric_locked: false,
         }
     }
 
@@ -213,11 +225,43 @@ impl AppState {
     }
 
     pub fn seek_to(&mut self, position_ms: u64) -> PlaybackSnapshot {
-        self.player_session.seek(position_ms)
+        let snap = self.player_session.seek(position_ms);
+        if !self.lyrics_lines.is_empty() {
+            self.active_lyric = find_active_line(&self.lyrics_lines, snap.position_ms);
+        }
+        snap
     }
 
     pub fn tick(&mut self, elapsed_ms: u64) -> PlaybackSnapshot {
-        self.player_session.tick(elapsed_ms)
+        let snap = self.player_session.tick(elapsed_ms);
+        if !self.lyrics_lines.is_empty() {
+            self.active_lyric = find_active_line(&self.lyrics_lines, snap.position_ms);
+        }
+        snap
+    }
+
+    pub fn load_lyrics(&mut self, lrc_text: &str) {
+        let parsed = parse_lrc(lrc_text);
+        self.lyrics_lines = parsed;
+        if !self.lyrics_lines.is_empty() {
+            let pos_ms = self.player_session.snapshot().position_ms;
+            self.active_lyric = find_active_line(&self.lyrics_lines, pos_ms);
+        } else {
+            self.active_lyric = None;
+        }
+    }
+
+    pub fn toggle_desktop_lyric(&mut self) -> bool {
+        self.desktop_lyric_visible = !self.desktop_lyric_visible;
+        self.desktop_lyric_visible
+    }
+
+    pub fn set_desktop_lyric_opacity(&mut self, opacity: f32) {
+        self.desktop_lyric_opacity = opacity.clamp(0.0, 1.0);
+    }
+
+    pub fn set_desktop_lyric_locked(&mut self, locked: bool) {
+        self.desktop_lyric_locked = locked;
     }
 
     pub fn set_volume(&mut self, volume: f32) {
@@ -237,6 +281,31 @@ impl AppState {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn app_state_lyrics_and_desktop_lyric_toggling() {
+        let mut state = AppState::new();
+        assert!(!state.desktop_lyric_visible);
+
+        state.toggle_desktop_lyric();
+        assert!(state.desktop_lyric_visible);
+
+        state.set_desktop_lyric_opacity(0.85);
+        assert_eq!(state.desktop_lyric_opacity, 0.85);
+
+        let sample_lrc = "[00:00.00]前奏\n[00:05.00]第一句主歌\n[00:10.00]第二句副歌";
+        state.load_lyrics(sample_lrc);
+        assert_eq!(state.lyrics_lines.len(), 3);
+
+        // Advance playback
+        state.player_session.load("test:1".to_string(), 30000);
+        state.player_session.play();
+        state.tick(6000); // at 6s
+
+        let active = state.active_lyric.as_ref().expect("active lyric must exist at 6s");
+        assert_eq!(active.text, "第一句主歌");
+        assert_eq!(active.index, 1);
+    }
 
     #[test]
     fn app_state_navigation_and_playback_session() {

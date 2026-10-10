@@ -11,10 +11,12 @@ pub mod theme;
 pub mod state;
 pub mod components;
 pub mod window;
+pub mod desktop_lyric_window;
 
 pub use theme::{AppleTheme, ThemeMode, AppleColors, AppleMetrics};
 pub use state::{AppState, AppRoute, AppTrack, DspSettings};
 pub use components::*;
+pub use desktop_lyric_window::{DesktopLyricWindowConfig, DesktopLyricWindowState};
 
 use serde::{Deserialize, Serialize};
 

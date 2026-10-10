@@ -1534,3 +1534,56 @@ pub fn network_validate_proxy(enable: bool, host: String, port: i32) -> napi::Re
     let res = network::validate_and_normalize_proxy(enable, &host, port).map_err(to_napi_error)?;
     Ok(res.unwrap_or_default())
 }
+
+/// Parse full LRC content into syllable lines array with word-level timestamps.
+#[napi]
+pub fn lyrics_parse_syllables(lrc_text: String) -> napi::Result<String> {
+    let lines = lyrics::parse_syllables_lrc(&lrc_text);
+    serde_json::to_string(&lines).map_err(|e| napi::Error::from_reason(e.to_string()))
+}
+
+/// Compute real-time karaoke syllable progress within a line.
+#[napi]
+pub fn lyrics_compute_syllable_progress(
+    line_json: String,
+    time_ms: i64,
+) -> napi::Result<String> {
+    let line: lyrics::SyllableLine = serde_json::from_str(&line_json)
+        .map_err(|e| napi::Error::from_reason(format!("invalid syllable line json: {e}")))?;
+    let time = time_ms.max(0) as u64;
+    let progress = lyrics::compute_syllable_progress(&line, time);
+    serde_json::to_string(&progress).map_err(|e| napi::Error::from_reason(e.to_string()))
+}
+
+/// Render structured desktop lyric frame with progress, color palette, and typography.
+#[napi]
+pub fn lyrics_render_desktop_frame(
+    main_line: String,
+    sub_line: Option<String>,
+    progress: f64,
+    active_color: String,
+    normal_color: String,
+    bg_opacity: f64,
+    text_opacity: f64,
+    font_size: u32,
+    is_playing: bool,
+) -> napi::Result<String> {
+    let appearance = lyrics::compute_desktop_lyric_appearance(
+        bg_opacity,
+        text_opacity,
+        600,
+        0.72,
+        2,
+    );
+    let frame = lyrics::render_desktop_lyric_frame(
+        &main_line,
+        sub_line.as_deref(),
+        progress,
+        &active_color,
+        &normal_color,
+        &appearance,
+        font_size,
+        is_playing,
+    );
+    serde_json::to_string(&frame).map_err(|e| napi::Error::from_reason(e.to_string()))
+}
