@@ -310,7 +310,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { playbackSnapshot, playbackLoad, playbackPlay, playbackPause, playbackSeek, playbackTick, playbackStop, audioBackendCapabilities, audioReplayGainLinear, audioReplayGainDb, themeMotionProfile, nativeAudioStartFile, nativeAudioPlay, nativeAudioPause, nativeAudioSetVolume, nativeAudioSeek, nativeAudioStop, nativeAudioSnapshot, audioDecryptQmc2Chunk, audioStreamCreate, audioStreamDecrypt, audioStreamClose, remoteStreamNegotiateFormat, remotePlaybackShadowCreate, remotePlaybackShadowUpdateResponse, remotePlaybackShadowReceiveChunk, remotePlaybackShadowSeek, remotePlaybackShadowSetPlayState, remotePlaybackShadowSnapshot, remotePlaybackShadowClose, remoteStreamPlanRange, remoteStreamGetBufferedRanges, remoteStreamIsOffsetBuffered, remoteStreamCalculateSeekRange, streamCacheCreate, streamCacheWriteChunk, streamCacheRead, streamCacheStats, streamCacheSetTotalLength, streamCacheClose, streamDecoderCreate, streamDecoderProbe, streamDecoderStep, streamDecoderSeek, streamDecoderSnapshot, streamDecoderClose, dspPipelineCreate, dspPipelineConfigure, dspPipelineProcess, dspPipelineReset, dspPipelineSnapshot, dspPipelineClose, downloadCreate, downloadWrite, downloadCommit, downloadAbort, audioDecryptQmc2File, scanDirectory, parseTrack, readAudioTags, writeAudioTags, scanLyrics, readSettings, writeSettings, settingsRoundtrip, nativeVersion, syncNormalizeBaseUrl, syncValidateSession, providerParseQqTrack, providerParseWyTrack } = nativeBinding
+const { playbackSnapshot, playbackLoad, playbackPlay, playbackPause, playbackSeek, playbackTick, playbackStop, audioBackendCapabilities, audioReplayGainLinear, audioReplayGainDb, themeMotionProfile, nativeAudioStartFile, nativeAudioPlay, nativeAudioPause, nativeAudioSetVolume, nativeAudioSeek, nativeAudioStop, nativeAudioSnapshot, audioDecryptQmc2Chunk, audioStreamCreate, audioStreamDecrypt, audioStreamClose, remoteStreamNegotiateFormat, remotePlaybackShadowCreate, remotePlaybackShadowUpdateResponse, remotePlaybackShadowReceiveChunk, remotePlaybackShadowSeek, remotePlaybackShadowSetPlayState, remotePlaybackShadowSnapshot, remotePlaybackShadowClose, remoteStreamPlanRange, remoteStreamGetBufferedRanges, remoteStreamIsOffsetBuffered, remoteStreamCalculateSeekRange, streamCacheCreate, streamCacheWriteChunk, streamCacheRead, streamCacheStats, streamCacheSetTotalLength, streamCacheClose, streamDecoderCreate, streamDecoderProbe, streamDecoderStep, streamDecoderSeek, streamDecoderSnapshot, streamDecoderClose, dspPipelineCreate, dspPipelineConfigure, dspPipelineProcess, dspPipelineReset, dspPipelineSnapshot, dspPipelineClose, audioSinkCreate, audioSinkPlay, audioSinkPause, audioSinkStop, audioSinkSeek, audioSinkSetVolume, audioSinkConfigureDsp, audioSinkSnapshot, audioSinkClose, downloadCreate, downloadWrite, downloadCommit, downloadAbort, audioDecryptQmc2File, scanDirectory, parseTrack, readAudioTags, writeAudioTags, scanLyrics, readSettings, writeSettings, settingsRoundtrip, nativeVersion, syncNormalizeBaseUrl, syncValidateSession, providerParseQqTrack, providerParseWyTrack } = nativeBinding
 
 module.exports.playbackSnapshot = playbackSnapshot
 module.exports.playbackLoad = playbackLoad
@@ -364,6 +364,15 @@ module.exports.dspPipelineProcess = dspPipelineProcess
 module.exports.dspPipelineReset = dspPipelineReset
 module.exports.dspPipelineSnapshot = dspPipelineSnapshot
 module.exports.dspPipelineClose = dspPipelineClose
+module.exports.audioSinkCreate = audioSinkCreate
+module.exports.audioSinkPlay = audioSinkPlay
+module.exports.audioSinkPause = audioSinkPause
+module.exports.audioSinkStop = audioSinkStop
+module.exports.audioSinkSeek = audioSinkSeek
+module.exports.audioSinkSetVolume = audioSinkSetVolume
+module.exports.audioSinkConfigureDsp = audioSinkConfigureDsp
+module.exports.audioSinkSnapshot = audioSinkSnapshot
+module.exports.audioSinkClose = audioSinkClose
 module.exports.downloadCreate = downloadCreate
 module.exports.downloadWrite = downloadWrite
 module.exports.downloadCommit = downloadCommit

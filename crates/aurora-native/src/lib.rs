@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 
 use aurora_audio::{
     negotiate_remote_format, probe_capabilities, resolve_replay_gain_db, DspPipelineConfig,
-    NativeDspPipeline, NativePlaybackEngine, PcmFormat, Qmc2Decryptor,
+    NativeAudioSink, NativeDspPipeline, NativePlaybackEngine, PcmFormat, Qmc2Decryptor,
     RemotePlaybackShadowSession, ReplayGainDsp, StreamCache, StreamDecodeOutput, StreamDecoder,
 };
 use aurora_core::{
@@ -31,6 +31,7 @@ static REMOTE_SHADOW_SESSIONS: OnceLock<Mutex<HashMap<String, RemotePlaybackShad
 static STREAM_CACHES: OnceLock<Mutex<HashMap<String, Arc<Mutex<StreamCache>>>>> = OnceLock::new();
 static STREAM_DECODERS: OnceLock<Mutex<HashMap<String, StreamDecoder>>> = OnceLock::new();
 static DSP_PIPELINES: OnceLock<Mutex<HashMap<String, NativeDspPipeline>>> = OnceLock::new();
+static AUDIO_SINKS: OnceLock<Mutex<HashMap<String, Arc<NativeAudioSink>>>> = OnceLock::new();
 static DOWNLOADS: OnceLock<Mutex<HashMap<u64, DownloadSession>>> = OnceLock::new();
 static NEXT_DOWNLOAD_ID: OnceLock<Mutex<u64>> = OnceLock::new();
 const MAX_QMC2_STREAMS: usize = 64;
@@ -38,9 +39,14 @@ const MAX_REMOTE_SHADOW_SESSIONS: usize = 64;
 const MAX_STREAM_CACHES: usize = 32;
 const MAX_STREAM_DECODERS: usize = 16;
 const MAX_DSP_PIPELINES: usize = 16;
+const MAX_AUDIO_SINKS: usize = 16;
 
 fn dsp_pipelines() -> &'static Mutex<HashMap<String, NativeDspPipeline>> {
     DSP_PIPELINES.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn audio_sinks() -> &'static Mutex<HashMap<String, Arc<NativeAudioSink>>> {
+    AUDIO_SINKS.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
 fn stream_caches() -> &'static Mutex<HashMap<String, Arc<Mutex<StreamCache>>>> {
@@ -1027,6 +1033,173 @@ pub fn dsp_pipeline_close(pipeline_id: String) -> bool {
     dsp_pipelines()
         .lock()
         .map(|mut pipelines| pipelines.remove(&pipeline_id).is_some())
+        .unwrap_or(false)
+}
+
+/// Create an end-to-end native streaming audio sink (Decoder -> Resampler -> Native DSP -> Output/WASAPI).
+#[napi]
+pub fn audio_sink_create(
+    sink_id: String,
+    cache_id: String,
+    container_hint: Option<String>,
+    mime_hint: Option<String>,
+    dsp_config_json: Option<String>,
+    force_virtual: Option<bool>,
+) -> napi::Result<String> {
+    let cache = {
+        let caches = stream_caches()
+            .lock()
+            .map_err(|_| napi::Error::from_reason("stream cache lock poisoned"))?;
+        caches
+            .get(&cache_id)
+            .cloned()
+            .ok_or_else(|| napi::Error::from_reason("associated stream cache not found"))?
+    };
+
+    let dsp_config = if let Some(json_str) = dsp_config_json {
+        Some(
+            serde_json::from_str::<DspPipelineConfig>(&json_str)
+                .map_err(|err| napi::Error::from_reason(format!("invalid DSP config JSON: {err}")))?,
+        )
+    } else {
+        None
+    };
+
+    let mut sinks = audio_sinks()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("audio sink lock poisoned"))?;
+
+    if sinks.len() >= MAX_AUDIO_SINKS && !sinks.contains_key(&sink_id) {
+        if let Some(oldest) = sinks.keys().next().cloned() {
+            sinks.remove(&oldest);
+        }
+    }
+
+    let sink = Arc::new(NativeAudioSink::new(
+        &sink_id,
+        cache,
+        container_hint,
+        mime_hint,
+        dsp_config,
+        force_virtual.unwrap_or(false),
+    ));
+    let snapshot = sink.snapshot();
+    sinks.insert(sink_id, sink);
+
+    serde_json::to_string(&snapshot).map_err(|err| napi::Error::from_reason(err.to_string()))
+}
+
+/// Start or resume native audio playback pump.
+#[napi]
+pub fn audio_sink_play(sink_id: String) -> napi::Result<bool> {
+    let sinks = audio_sinks()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("audio sink lock poisoned"))?;
+    let sink = sinks
+        .get(&sink_id)
+        .ok_or_else(|| napi::Error::from_reason("audio sink not found"))?;
+
+    sink.play().map_err(napi::Error::from_reason)?;
+    Ok(true)
+}
+
+/// Pause native audio playback pump.
+#[napi]
+pub fn audio_sink_pause(sink_id: String) -> napi::Result<bool> {
+    let sinks = audio_sinks()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("audio sink lock poisoned"))?;
+    let sink = sinks
+        .get(&sink_id)
+        .ok_or_else(|| napi::Error::from_reason("audio sink not found"))?;
+
+    sink.pause().map_err(napi::Error::from_reason)?;
+    Ok(true)
+}
+
+/// Stop native audio playback pump and flush buffers.
+#[napi]
+pub fn audio_sink_stop(sink_id: String) -> napi::Result<bool> {
+    let sinks = audio_sinks()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("audio sink lock poisoned"))?;
+    let sink = sinks
+        .get(&sink_id)
+        .ok_or_else(|| napi::Error::from_reason("audio sink not found"))?;
+
+    sink.stop().map_err(napi::Error::from_reason)?;
+    Ok(true)
+}
+
+/// Seek native audio sink to target time in milliseconds.
+#[napi]
+pub fn audio_sink_seek(sink_id: String, target_ms: i64) -> napi::Result<bool> {
+    if target_ms < 0 {
+        return Err(napi::Error::from_reason("target_ms cannot be negative"));
+    }
+    let sinks = audio_sinks()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("audio sink lock poisoned"))?;
+    let sink = sinks
+        .get(&sink_id)
+        .ok_or_else(|| napi::Error::from_reason("audio sink not found"))?;
+
+    sink.seek_ms(target_ms as u64)
+        .map_err(napi::Error::from_reason)?;
+    Ok(true)
+}
+
+/// Adjust master volume and mute state for native audio sink.
+#[napi]
+pub fn audio_sink_set_volume(sink_id: String, volume: f64, muted: bool) -> napi::Result<bool> {
+    let sinks = audio_sinks()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("audio sink lock poisoned"))?;
+    let sink = sinks
+        .get(&sink_id)
+        .ok_or_else(|| napi::Error::from_reason("audio sink not found"))?;
+
+    sink.set_volume(volume as f32, muted);
+    Ok(true)
+}
+
+/// Dynamically update DSP effect parameters (10-Band EQ, ReplayGain, Soft Limiter).
+#[napi]
+pub fn audio_sink_configure_dsp(sink_id: String, dsp_config_json: String) -> napi::Result<String> {
+    let config = serde_json::from_str::<DspPipelineConfig>(&dsp_config_json)
+        .map_err(|err| napi::Error::from_reason(format!("invalid DSP config JSON: {err}")))?;
+
+    let sinks = audio_sinks()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("audio sink lock poisoned"))?;
+    let sink = sinks
+        .get(&sink_id)
+        .ok_or_else(|| napi::Error::from_reason("audio sink not found"))?;
+
+    sink.configure_dsp(config);
+    serde_json::to_string(&sink.snapshot()).map_err(|err| napi::Error::from_reason(err.to_string()))
+}
+
+/// Retrieve snapshot and real-time playback metrics of native audio sink.
+#[napi]
+pub fn audio_sink_snapshot(sink_id: String) -> napi::Result<Option<String>> {
+    let sinks = audio_sinks()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("audio sink lock poisoned"))?;
+    let Some(sink) = sinks.get(&sink_id) else {
+        return Ok(None);
+    };
+    serde_json::to_string(&sink.snapshot())
+        .map(Some)
+        .map_err(|err| napi::Error::from_reason(err.to_string()))
+}
+
+/// Close and destroy native audio sink session.
+#[napi]
+pub fn audio_sink_close(sink_id: String) -> bool {
+    audio_sinks()
+        .lock()
+        .map(|mut sinks| sinks.remove(&sink_id).is_some())
         .unwrap_or(false)
 }
 

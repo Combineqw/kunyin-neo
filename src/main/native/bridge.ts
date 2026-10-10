@@ -119,11 +119,44 @@ type NativeBinding = {
   dspPipelineReset?(pipelineId: string): boolean
   dspPipelineSnapshot?(pipelineId: string): string | null
   dspPipelineClose?(pipelineId: string): boolean
+  audioSinkCreate?(
+    sinkId: string,
+    cacheId: string,
+    containerHint?: string | null,
+    mimeHint?: string | null,
+    dspConfigJson?: string | null,
+    forceVirtual?: boolean | null
+  ): string
+  audioSinkPlay?(sinkId: string): boolean
+  audioSinkPause?(sinkId: string): boolean
+  audioSinkStop?(sinkId: string): boolean
+  audioSinkSeek?(sinkId: string, targetMs: number): boolean
+  audioSinkSetVolume?(sinkId: string, volume: number, muted: boolean): boolean
+  audioSinkConfigureDsp?(sinkId: string, dspConfigJson: string): string
+  audioSinkSnapshot?(sinkId: string): string | null
+  audioSinkClose?(sinkId: string): boolean
   audioDecryptQmc2File?(path: string, ekey: string): boolean
   syncNormalizeBaseUrl?(url: string): string
   syncValidateSession?(sessionJson: string): string
   providerParseQqTrack?(itemJson: string): string
   providerParseWyTrack?(itemJson: string): string
+}
+
+export type NativeSinkStatus = 'idle' | 'buffering' | 'playing' | 'paused' | 'ended' | 'error'
+
+export type NativeSinkSnapshot = {
+  sinkId: string
+  status: NativeSinkStatus
+  positionMs: number
+  durationMs: number | null
+  sourceFormat: { sampleRate: number; channels: number } | null
+  outputFormat: { sampleRate: number; channels: number }
+  queuedFrames: number
+  droppedFrames: number
+  deviceName: string | null
+  dsp: NativeDspPipelineSnapshot
+  underflowCount: number
+  isVirtual: boolean
 }
 
 export type NativeDspPipelineConfig = {
@@ -1160,6 +1193,120 @@ export function nativeDspPipelineClose(pipelineId: string): boolean {
   try {
     const call = loadBinding()?.dspPipelineClose
     return typeof call === 'function' ? call(pipelineId) === true : false
+  } catch {
+    return false
+  }
+}
+
+/** Optional creation of native streaming audio sink. */
+export function nativeAudioSinkCreate(
+  sinkId: string,
+  cacheId: string,
+  containerHint?: string | null,
+  mimeHint?: string | null,
+  dspConfig?: Partial<NativeDspPipelineConfig> | null,
+  forceVirtual?: boolean | null
+): NativeSinkSnapshot | null {
+  try {
+    const call = loadBinding()?.audioSinkCreate
+    if (typeof call !== 'function') return null
+    const dspStr = dspConfig ? JSON.stringify(dspConfig) : null
+    const raw = call(
+      sinkId,
+      cacheId,
+      containerHint ?? null,
+      mimeHint ?? null,
+      dspStr,
+      forceVirtual ?? null
+    )
+    return raw ? (JSON.parse(raw) as NativeSinkSnapshot) : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional start or resume of native audio playback pump. */
+export function nativeAudioSinkPlay(sinkId: string): boolean {
+  try {
+    const call = loadBinding()?.audioSinkPlay
+    return typeof call === 'function' ? call(sinkId) === true : false
+  } catch {
+    return false
+  }
+}
+
+/** Optional pause of native audio playback pump. */
+export function nativeAudioSinkPause(sinkId: string): boolean {
+  try {
+    const call = loadBinding()?.audioSinkPause
+    return typeof call === 'function' ? call(sinkId) === true : false
+  } catch {
+    return false
+  }
+}
+
+/** Optional stop of native audio playback pump and buffer flush. */
+export function nativeAudioSinkStop(sinkId: string): boolean {
+  try {
+    const call = loadBinding()?.audioSinkStop
+    return typeof call === 'function' ? call(sinkId) === true : false
+  } catch {
+    return false
+  }
+}
+
+/** Optional seek of native audio sink to target timestamp in milliseconds. */
+export function nativeAudioSinkSeek(sinkId: string, targetMs: number): boolean {
+  try {
+    const call = loadBinding()?.audioSinkSeek
+    return typeof call === 'function' ? call(sinkId, Math.max(0, Math.round(targetMs))) === true : false
+  } catch {
+    return false
+  }
+}
+
+/** Optional master volume and mute control for native audio sink. */
+export function nativeAudioSinkSetVolume(sinkId: string, volume: number, muted: boolean): boolean {
+  try {
+    const call = loadBinding()?.audioSinkSetVolume
+    return typeof call === 'function' ? call(sinkId, volume, muted) === true : false
+  } catch {
+    return false
+  }
+}
+
+/** Optional DSP effect configuration for native audio sink. */
+export function nativeAudioSinkConfigureDsp(
+  sinkId: string,
+  config: NativeDspPipelineConfig
+): NativeSinkSnapshot | null {
+  try {
+    const call = loadBinding()?.audioSinkConfigureDsp
+    if (typeof call !== 'function') return null
+    const raw = call(sinkId, JSON.stringify(config))
+    return raw ? (JSON.parse(raw) as NativeSinkSnapshot) : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional snapshot query of native audio sink. */
+export function nativeAudioSinkSnapshot(sinkId: string): NativeSinkSnapshot | null {
+  try {
+    const call = loadBinding()?.audioSinkSnapshot
+    if (typeof call !== 'function') return null
+    const raw = call(sinkId)
+    return raw ? (JSON.parse(raw) as NativeSinkSnapshot) : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional close and destroy of native audio sink. */
+export function nativeAudioSinkClose(sinkId: string): boolean {
+  try {
+    const call = loadBinding()?.audioSinkClose
+    return typeof call === 'function' ? call(sinkId) === true : false
   } catch {
     return false
   }

@@ -642,3 +642,107 @@ export function nativeDspPipelineClose(pipelineId) {
     return false
   }
 }
+
+export function nativeAudioSinkCreate(
+  sinkId,
+  cacheId,
+  containerHint,
+  mimeHint,
+  dspConfig,
+  forceVirtual
+) {
+  try {
+    const call = loadBinding()?.audioSinkCreate
+    if (typeof call !== 'function') return null
+    const dspStr = dspConfig ? JSON.stringify(dspConfig) : null
+    const raw = call(
+      sinkId,
+      cacheId,
+      containerHint ?? null,
+      mimeHint ?? null,
+      dspStr,
+      forceVirtual ?? null
+    )
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeAudioSinkPlay(sinkId) {
+  try {
+    const call = loadBinding()?.audioSinkPlay
+    return typeof call === 'function' ? call(sinkId) === true : false
+  } catch {
+    return false
+  }
+}
+
+export function nativeAudioSinkPause(sinkId) {
+  try {
+    const call = loadBinding()?.audioSinkPause
+    return typeof call === 'function' ? call(sinkId) === true : false
+  } catch {
+    return false
+  }
+}
+
+export function nativeAudioSinkStop(sinkId) {
+  try {
+    const call = loadBinding()?.audioSinkStop
+    return typeof call === 'function' ? call(sinkId) === true : false
+  } catch {
+    return false
+  }
+}
+
+export function nativeAudioSinkSeek(sinkId, targetMs) {
+  try {
+    const call = loadBinding()?.audioSinkSeek
+    return typeof call === 'function'
+      ? call(sinkId, Math.max(0, Math.round(Number(targetMs)))) === true
+      : false
+  } catch {
+    return false
+  }
+}
+
+export function nativeAudioSinkSetVolume(sinkId, volume, muted) {
+  try {
+    const call = loadBinding()?.audioSinkSetVolume
+    return typeof call === 'function' ? call(sinkId, Number(volume), Boolean(muted)) === true : false
+  } catch {
+    return false
+  }
+}
+
+export function nativeAudioSinkConfigureDsp(sinkId, config) {
+  try {
+    const call = loadBinding()?.audioSinkConfigureDsp
+    if (typeof call !== 'function') return null
+    const raw = call(sinkId, JSON.stringify(config))
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeAudioSinkSnapshot(sinkId) {
+  try {
+    const call = loadBinding()?.audioSinkSnapshot
+    if (typeof call !== 'function') return null
+    const raw = call(sinkId)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeAudioSinkClose(sinkId) {
+  try {
+    const call = loadBinding()?.audioSinkClose
+    return typeof call === 'function' ? call(sinkId) === true : false
+  } catch {
+    return false
+  }
+}

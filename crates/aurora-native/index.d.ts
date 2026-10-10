@@ -133,6 +133,24 @@ export declare function dspPipelineReset(pipelineId: string): boolean
 export declare function dspPipelineSnapshot(pipelineId: string): string | null
 /** Close and destroy a DSP pipeline. */
 export declare function dspPipelineClose(pipelineId: string): boolean
+/** Create an end-to-end native streaming audio sink (Decoder -> Resampler -> Native DSP -> Output/WASAPI). */
+export declare function audioSinkCreate(sinkId: string, cacheId: string, containerHint?: string | undefined | null, mimeHint?: string | undefined | null, dspConfigJson?: string | undefined | null, forceVirtual?: boolean | undefined | null): string
+/** Start or resume native audio playback pump. */
+export declare function audioSinkPlay(sinkId: string): boolean
+/** Pause native audio playback pump. */
+export declare function audioSinkPause(sinkId: string): boolean
+/** Stop native audio playback pump and flush buffers. */
+export declare function audioSinkStop(sinkId: string): boolean
+/** Seek native audio sink to target time in milliseconds. */
+export declare function audioSinkSeek(sinkId: string, targetMs: number): boolean
+/** Adjust master volume and mute state for native audio sink. */
+export declare function audioSinkSetVolume(sinkId: string, volume: number, muted: boolean): boolean
+/** Dynamically update DSP effect parameters (10-Band EQ, ReplayGain, Soft Limiter). */
+export declare function audioSinkConfigureDsp(sinkId: string, dspConfigJson: string): string
+/** Retrieve snapshot and real-time playback metrics of native audio sink. */
+export declare function audioSinkSnapshot(sinkId: string): string | null
+/** Close and destroy native audio sink session. */
+export declare function audioSinkClose(sinkId: string): boolean
 /** Start a bounded temporary-file download transaction. */
 export declare function downloadCreate(tempPath: string, finalPath: string, maxBytes: number): number
 export declare function downloadWrite(id: number, chunk: Buffer): string

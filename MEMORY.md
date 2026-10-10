@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.43 — 2026-10-10】
+【kunyin-neo 项目记忆 v5.44 — 2026-10-10】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,37 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10）
+
+◆ M43 原生音频渲染管线与 WASAPI 端点直通 (Native Audio Sink & WASAPI Pipeline Direct Pump)（2026-10-10，事实与回执）
+- `aurora-audio` 新增 `sink` 模块：
+  · 实现 `AudioOutputEndpoint`：输出端抽象（Windows 真实 WASAPI `NativeOutputController` 模式与单元测试隔离的虚拟 `Virtual` 环形队列模式），支持动态启动、暂停、清空与音量控制。
+  · 导出公共 `pub fn resample_interleaved`：多通道有界线性插值重采样，确保任意输入采样率/通道数自适应匹配输出设备。
+  · 实现 `NativeAudioSink`：流式全链路音频播放引擎，闭环串接：
+    `StreamCache` ➔ `StreamDecoder` ➔ `resample_interleaved` ➔ `NativeDspPipeline` (10段EQ + ReplayGain + 20ms Smooth Ramp + Soft Limiter) ➔ `AudioOutputEndpoint`。
+  · 专用异步 Pump 工作线程：
+    1. 队列水位控制：达到 75% 容量时自动挂起 5ms 防 CPU 空转；
+    2. 网络流欠载（Underflow）自适应：收到 `NeedMoreData` 时进入 `Buffering` 状态等待网络灌入，后续数据到达自动无缝恢复 `Playing`，防断流防崩溃；
+    3. 流结束平滑排空：遇到 `EndOfStream` 时等待硬件队列完全消费完成后标记 `Ended`；
+    4. 毫秒级时间戳连续精确推算 `position_ms`。
+  · 单元测试：`sink::tests::audio_sink_lifecycle_and_virtual_pump_playback`（覆盖创建、虚拟泵启动、状态迁移、暂停、Seek、停止），`cargo test` 33/33 全过。
+- `aurora-native` 扩展 N-API：
+  · 增加 `AUDIO_SINKS: OnceLock<Mutex<HashMap<String, Arc<NativeAudioSink>>>>`。
+  · 暴露 9 个 N-API 导出：
+    `audio_sink_create`：基于缓存与 DSP 配置创建端到端音频 Sink；
+    `audio_sink_play`：启动/恢复后台泵循环；
+    `audio_sink_pause`：暂停播放；
+    `audio_sink_stop`：停止并清空缓冲；
+    `audio_sink_seek`：精确时间戳 Seek；
+    `audio_sink_set_volume`：主音量/静音控制；
+    `audio_sink_configure_dsp`：动态无锁下发 10 段 EQ 与 DSP 参数；
+    `audio_sink_snapshot`：获取包含格式、队列、DSP与网络欠载指标的快照；
+    `audio_sink_close`：销毁 Sink 并停止工作线程。
+- 主进程与桥接层：
+  · `bridge.ts` 与 `bridge-runtime.js` 导出强类型的 `nativeAudioSinkCreate`、`nativeAudioSinkPlay`、`nativeAudioSinkPause`、`nativeAudioSinkStop`、`nativeAudioSinkSeek`、`nativeAudioSinkSetVolume`、`nativeAudioSinkConfigureDsp`、`nativeAudioSinkSnapshot`、`nativeAudioSinkClose`。
+- 新增 `scripts/m43-native-audio-pump-tests.mjs`（`npm run test:m43`），覆盖 N-API 导出、立体声 WAV 分块写入、多格式解码 ➔ 重采样 ➔ 10段EQ ➔ 限幅 ➔ 输出全链路异步泵循环、动态 DSP 配置、音量调节、暂停/恢复、Seek 时间重置、停止与销毁。
+- 回归验证：`cargo test`（aurora-audio 33/33 全过）、`npm run native:build`、`npm run test:m43`、`npm run test:m42`、`npm run test:m41`、`npm test`（9 项全过）、`npm run typecheck`、`npm run build`、`git diff --check`（0 errors）全部通过。
+- 本切片推进端到端全链路原生流式音频直通，不改变既有 Chromium 解码与 Web Audio 混音主链，不构成所有者验收通过结论。
 
 ◆ M42 原生 DSP 音效引擎 (Native Audio DSP Engine)（2026-10-10，事实与回执）
 - `aurora-audio` 新增 `dsp` 模块：

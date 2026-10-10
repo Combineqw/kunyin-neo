@@ -52,6 +52,10 @@ pub use dsp::{
     NativeDspPipeline, EQ_BAND_COUNT, EQ_FREQUENCIES,
 };
 
+mod sink;
+pub use sink::{AudioOutputEndpoint, NativeAudioSink, NativeSinkSnapshot, NativeSinkStatus};
+
+
 /// ReplayGain DSP boundary shared by native output adapters.
 ///
 /// The renderer currently owns the Web Audio node, so this type deliberately
@@ -914,7 +918,7 @@ impl From<NativeOutputError> for NativePlaybackError {
 /// interpolation and deterministic channel mapping. Decoder packets are
 /// already bounded, so the temporary buffer remains proportional to one
 /// packet rather than the full track.
-fn resample_interleaved(
+pub fn resample_interleaved(
     input: &[f32],
     input_frames: usize,
     input_format: PcmFormat,
