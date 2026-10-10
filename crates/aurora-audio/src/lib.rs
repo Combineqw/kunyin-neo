@@ -46,6 +46,12 @@ pub use stream_decoder::{
     StreamDecoderSnapshot,
 };
 
+mod dsp;
+pub use dsp::{
+    BiquadCoeffs, BiquadFilter, DspPipelineConfig, DspPipelineSnapshot, EqualizerDsp, FilterType,
+    NativeDspPipeline, EQ_BAND_COUNT, EQ_FREQUENCIES,
+};
+
 /// ReplayGain DSP boundary shared by native output adapters.
 ///
 /// The renderer currently owns the Web Audio node, so this type deliberately

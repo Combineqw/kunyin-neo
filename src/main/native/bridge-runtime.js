@@ -575,3 +575,70 @@ export function nativeStreamDecoderClose(decoderId) {
     return false
   }
 }
+
+export function nativeDspPipelineCreate(pipelineId, sampleRate, channels, config) {
+  try {
+    const call = loadBinding()?.dspPipelineCreate
+    if (typeof call !== 'function') return null
+    const jsonStr = config ? JSON.stringify(config) : null
+    const raw = call(
+      pipelineId,
+      Math.max(1, Math.round(Number(sampleRate))),
+      Math.max(1, Math.round(Number(channels))),
+      jsonStr
+    )
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeDspPipelineConfigure(pipelineId, config) {
+  try {
+    const call = loadBinding()?.dspPipelineConfigure
+    if (typeof call !== 'function') return null
+    const raw = call(pipelineId, JSON.stringify(config))
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeDspPipelineProcess(pipelineId, chunk) {
+  try {
+    const call = loadBinding()?.dspPipelineProcess
+    if (typeof call !== 'function') return null
+    return call(pipelineId, chunk) ?? null
+  } catch {
+    return null
+  }
+}
+
+export function nativeDspPipelineReset(pipelineId) {
+  try {
+    const call = loadBinding()?.dspPipelineReset
+    return typeof call === 'function' ? call(pipelineId) === true : false
+  } catch {
+    return false
+  }
+}
+
+export function nativeDspPipelineSnapshot(pipelineId) {
+  try {
+    const call = loadBinding()?.dspPipelineSnapshot
+    if (typeof call !== 'function') return null
+    const raw = call(pipelineId)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeDspPipelineClose(pipelineId) {
+  try {
+    const call = loadBinding()?.dspPipelineClose
+    return typeof call === 'function' ? call(pipelineId) === true : false
+  } catch {
+    return false
+  }
+}

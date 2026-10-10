@@ -5,13 +5,13 @@
 ## 当前基线
 
 - 分支：`master`
-- M41 工作内容：原生流式解码管线（Native Stream Decoder via Symphonia）
+- M42 工作内容：原生 DSP 音效引擎（Native Audio DSP Engine）
 - 产品版本：`1.1.0`
 - 远端：`https://github.com/Combineqw/kunyin-neo.git`
 - 技术栈：Electron 39、Vue 3、TypeScript、Rust、N-API-RS、纯 Rust 原生化架构规划
-- 终极形态战略决策：彻底弃用 Web / WebView 运行时（不采用 Tauri，走向 100% 纯 Rust 原生 GUI 与音频引擎）
+- 终极形态战略决策：彻底弃用 Web / WebView 运行时（不采用 Tauri，走向 100% 纯 Rust 原生 GUI 与音频引擎，发布形态采用 NSIS/MSI 现代化安装程序）
 
-M41 在 `crates/aurora-audio` 实现流式解码模块 `stream_decoder`，基于 Symphonia 驱动多格式音频解码并对接 `StreamCache`。支持自适应 Header 探测、流式包解码、欠载保护（Underflow 自动等待后续网络分块而非中断报错）、有界 `SharedPcmQueue` 缓冲泵入与精准 Seek 重置。`crates/aurora-native` 升级缓存共享架构并暴露 7 个 N-API 接口，由 `bridge.ts` 与 `bridge-runtime.js` 完成类型化导出。现有网络取流、QMC2 解密、Chromium `<audio>` 解码与 Web Audio 渲染完全保留。
+M42 在 `crates/aurora-audio` 实现原生 DSP 音效流水线 `dsp` 模块。包含 10 段 Direct Form II Transposed 双二阶 IIR 均衡器（Cookbook 传函标准，$\pm 0.01\text{ dB}$ 自动 Bypass）、ReplayGain 增益级、20ms 帧步进平滑音量渐变（Smooth Gain Ramp，杜绝瞬态爆音）、软饱和限幅器（Soft Limiter，在振幅超过 0.95 时平滑三次饱和压缩，杜绝硬削顶失真）与实时峰值统计。`crates/aurora-native` 暴露 6 个 N-API 接口，由 `bridge.ts` 与 `bridge-runtime.js` 导出强类型绑定。现有网络取流、Chromium `<audio>` 与 Web Audio 混音 100% 保持不变。
 
 ## Rust 迁移地图
 
@@ -53,6 +53,7 @@ npm run test:m38
 npm run test:m39
 npm run test:m40
 npm run test:m41
+npm run test:m42
 npm run build
 npm run build:win
 ```
@@ -67,11 +68,11 @@ cargo test --manifest-path crates/aurora-native/Cargo.toml
 cargo check --manifest-path src-tauri/Cargo.toml
 ```
 
-`npm run test:m41` 需要先执行 `npm run native:build`。全仓 lint 如果扫描到未跟踪 `work/` 脚本，应使用正式源码范围的 scoped lint，不要把临时脚本加入提交。
+`npm run test:m42` 需要先执行 `npm run native:build`。全仓 lint 如果扫描到未跟踪 `work/` 脚本，应使用正式源码范围的 scoped lint，不要把临时脚本加入提交。
 
 ## 下一步建议
 
-下一块进入 M42：原生 DSP 音效引擎（Native Audio DSP Engine），实现 10 段 Biquad IIR 均衡器（Peak/Shelf，算法精度对齐 Web Audio 传函系数）、ReplayGain 原生增益应用与平滑淡入淡出（防爆音），将算法与管线彻底收拢在 Rust 音频核心中。每个切片都要保留旧路径、加入确定性回归、升级 `MEMORY.md`，并单独提交和普通推送。
+下一步进入 M43：原生音频渲染管线与 WASAPI 端点直通（Native Audio Sink & WASAPI Pipeline Direct Pump），将 StreamDecoder ➔ NativeDspPipeline ➔ SharedPcmQueue ➔ NativeOutputController（WASAPI Shared/Exclusive）无缝串联为端到端全链路原生音频流，完成脱离 Chromium `<audio>` 与 Web Audio 的闭环直通。每个切片都要保留旧路径、加入确定性回归、升级 `MEMORY.md`，并单独提交和普通推送。
 
 ## 提交纪律
 

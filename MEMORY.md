@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.42 — 2026-10-10】
+【kunyin-neo 项目记忆 v5.43 — 2026-10-10】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,34 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10）
+
+◆ M42 原生 DSP 音效引擎 (Native Audio DSP Engine)（2026-10-10，事实与回执）
+- `aurora-audio` 新增 `dsp` 模块：
+  · 实现 `BiquadCoeffs`：Audio EQ Cookbook 标准公式，严格针对 Peaking、LowShelf、HighShelf 计算归一化数字双二阶滤波器系数。
+  · 实现 `BiquadFilter`：Direct Form II Transposed（直接转置 II 型）滤波器拓扑，每声道仅保存 $s_1, s_2$ 两个延迟状态浮点数，零动态堆内存分配。增益在 $\pm 0.01\text{ dB}$ 范围内自动 Bypass 跳过计算。
+  · 实现 `EqualizerDsp`：10 段 IIR 均衡器（31Hz, 62Hz, 125Hz, 250Hz, 500Hz, 1kHz, 2kHz, 4kHz, 8kHz, 16kHz），支持采样率动态重设、声道重构与状态重置（切歌/Seek 防爆音）。
+  · 实现 `NativeDspPipeline`：全栈原生处理流水线：
+    1. Equalizer 滤波级；
+    2. ReplayGain 增益级；
+    3. 20ms 基于帧步进的平滑音量渐变（Smooth Gain Ramp，杜绝滑块拖动或暂停瞬态爆音）；
+    4. 软饱和限幅器（Soft Limiter，在振幅超过 0.95 时采用平滑三次饱和曲线压缩，杜绝硬削顶失真）；
+    5. 实时峰值统计 `peakLevel`。
+  · 单元测试：5 项 DSP 单元测试（滤波器中性系数、全频带 Bypass、目标频段增益/衰减验证、音量渐变平滑度、软限幅防爆音），`cargo test` 32/32 全过。
+- `aurora-native` 扩展 N-API：
+  · 增加 `DSP_PIPELINES: OnceLock<Mutex<HashMap<String, NativeDspPipeline>>>`。
+  · 暴露 6 个 N-API 导出：
+    `dsp_pipeline_create`：创建指定采样率、声道数与初始参数的管线；
+    `dsp_pipeline_configure`：动态重设 EQ 增益、ReplayGain、音量与限幅开关；
+    `dsp_pipeline_process`：原地处理包含 interleaved f32 PCM 的 Buffer；
+    `dsp_pipeline_reset`：重置延迟状态与平滑增益；
+    `dsp_pipeline_snapshot`：获取当前管线运行快照与峰值；
+    `dsp_pipeline_close`：销毁管线会话。
+- 主进程与桥接层：
+  · `bridge.ts` 与 `bridge-runtime.js` 导出强类型的 `nativeDspPipelineCreate`、`nativeDspPipelineConfigure`、`nativeDspPipelineProcess`、`nativeDspPipelineReset`、`nativeDspPipelineSnapshot`、`nativeDspPipelineClose`。
+- 新增 `scripts/m42-native-dsp-tests.mjs`（`npm run test:m42`），覆盖 N-API 导出、立体声 48kHz 正弦波通过率（零失真）、1kHz 频段 +6dB 增强与 -12dB 衰减、超载信号软限幅（$\le 1.0$）、重置与销毁生命周期、以及 Bridge 运行时高阶封装。
+- 回归验证：`cargo test`（aurora-audio 32/32 全过）、`npm run native:build`、`npm run test:m42`、`npm run test:m41`、`npm run test:m40`、`npm run test:m39`、`npm test`（9 项全过）、`npm run typecheck`、`npm run build`、`git diff --check`（0 errors）全部通过。
+- 本切片推进原生 DSP 处理流水线，不改变既有 Chromium 解码与 Web Audio 混音主链，不构成所有者验收通过结论。
 
 ◆ M41 原生流式解码管线 (Symphonia Stream Decoder)（2026-10-10，事实与回执）
 - `aurora-audio` 新增 `stream_decoder` 模块：

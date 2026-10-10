@@ -121,6 +121,18 @@ export declare function streamDecoderSeek(decoderId: string, targetMs: number): 
 export declare function streamDecoderSnapshot(decoderId: string): string | null
 /** Close and destroy a stream decoder. */
 export declare function streamDecoderClose(decoderId: string): boolean
+/** Create a native DSP pipeline (10-Band EQ, ReplayGain, Gain Ramp, Soft Limiter). */
+export declare function dspPipelineCreate(pipelineId: string, sampleRate: number, channels: number, configJson?: string | undefined | null): string
+/** Update configuration for an existing DSP pipeline. */
+export declare function dspPipelineConfigure(pipelineId: string, configJson: string): string
+/** In-place process interleaved PCM f32 chunk buffer through the DSP pipeline. */
+export declare function dspPipelineProcess(pipelineId: string, chunk: Buffer): Buffer | null
+/** Reset internal state (biquad delay line and peak stats) of the DSP pipeline. */
+export declare function dspPipelineReset(pipelineId: string): boolean
+/** Query snapshot status of a DSP pipeline. */
+export declare function dspPipelineSnapshot(pipelineId: string): string | null
+/** Close and destroy a DSP pipeline. */
+export declare function dspPipelineClose(pipelineId: string): boolean
 /** Start a bounded temporary-file download transaction. */
 export declare function downloadCreate(tempPath: string, finalPath: string, maxBytes: number): number
 export declare function downloadWrite(id: number, chunk: Buffer): string

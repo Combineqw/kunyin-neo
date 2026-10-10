@@ -108,11 +108,43 @@ type NativeBinding = {
   streamDecoderSeek?(decoderId: string, targetMs: number): string
   streamDecoderSnapshot?(decoderId: string): string | null
   streamDecoderClose?(decoderId: string): boolean
+  dspPipelineCreate?(
+    pipelineId: string,
+    sampleRate: number,
+    channels: number,
+    configJson?: string | null
+  ): string
+  dspPipelineConfigure?(pipelineId: string, configJson: string): string
+  dspPipelineProcess?(pipelineId: string, chunk: Uint8Array): Uint8Array | null
+  dspPipelineReset?(pipelineId: string): boolean
+  dspPipelineSnapshot?(pipelineId: string): string | null
+  dspPipelineClose?(pipelineId: string): boolean
   audioDecryptQmc2File?(path: string, ekey: string): boolean
   syncNormalizeBaseUrl?(url: string): string
   syncValidateSession?(sessionJson: string): string
   providerParseQqTrack?(itemJson: string): string
   providerParseWyTrack?(itemJson: string): string
+}
+
+export type NativeDspPipelineConfig = {
+  eqEnabled: boolean
+  eqGainsDb: number[]
+  replayGainDb?: number | null
+  volume: number
+  muted: boolean
+  limiterEnabled: boolean
+}
+
+export type NativeDspPipelineSnapshot = {
+  format: {
+    sampleRate: number
+    channels: number
+  }
+  config: NativeDspPipelineConfig
+  eqActive: boolean
+  currentGainLinear: number
+  replayGainLinear: number
+  peakLevel: number
 }
 
 export type NativeCacheStats = {
@@ -1044,6 +1076,90 @@ export function nativeStreamDecoderClose(decoderId: string): boolean {
   try {
     const call = loadBinding()?.streamDecoderClose
     return typeof call === 'function' ? call(decoderId) === true : false
+  } catch {
+    return false
+  }
+}
+
+/** Optional creation of native DSP pipeline. */
+export function nativeDspPipelineCreate(
+  pipelineId: string,
+  sampleRate: number,
+  channels: number,
+  config?: Partial<NativeDspPipelineConfig> | null
+): NativeDspPipelineSnapshot | null {
+  try {
+    const call = loadBinding()?.dspPipelineCreate
+    if (typeof call !== 'function') return null
+    const jsonStr = config ? JSON.stringify(config) : null
+    const raw = call(
+      pipelineId,
+      Math.max(1, Math.round(sampleRate)),
+      Math.max(1, Math.round(channels)),
+      jsonStr
+    )
+    return raw ? (JSON.parse(raw) as NativeDspPipelineSnapshot) : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional configuration update for existing native DSP pipeline. */
+export function nativeDspPipelineConfigure(
+  pipelineId: string,
+  config: NativeDspPipelineConfig
+): NativeDspPipelineSnapshot | null {
+  try {
+    const call = loadBinding()?.dspPipelineConfigure
+    if (typeof call !== 'function') return null
+    const raw = call(pipelineId, JSON.stringify(config))
+    return raw ? (JSON.parse(raw) as NativeDspPipelineSnapshot) : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional in-place DSP processing for interleaved PCM f32 buffer. */
+export function nativeDspPipelineProcess(
+  pipelineId: string,
+  chunk: Uint8Array
+): Uint8Array | null {
+  try {
+    const call = loadBinding()?.dspPipelineProcess
+    if (typeof call !== 'function') return null
+    return call(pipelineId, chunk) ?? null
+  } catch {
+    return null
+  }
+}
+
+/** Optional state reset of native DSP pipeline. */
+export function nativeDspPipelineReset(pipelineId: string): boolean {
+  try {
+    const call = loadBinding()?.dspPipelineReset
+    return typeof call === 'function' ? call(pipelineId) === true : false
+  } catch {
+    return false
+  }
+}
+
+/** Optional snapshot query of native DSP pipeline. */
+export function nativeDspPipelineSnapshot(pipelineId: string): NativeDspPipelineSnapshot | null {
+  try {
+    const call = loadBinding()?.dspPipelineSnapshot
+    if (typeof call !== 'function') return null
+    const raw = call(pipelineId)
+    return raw ? (JSON.parse(raw) as NativeDspPipelineSnapshot) : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional close and destroy of native DSP pipeline. */
+export function nativeDspPipelineClose(pipelineId: string): boolean {
+  try {
+    const call = loadBinding()?.dspPipelineClose
+    return typeof call === 'function' ? call(pipelineId) === true : false
   } catch {
     return false
   }

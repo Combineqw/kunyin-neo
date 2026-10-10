@@ -9,9 +9,9 @@ use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
 
 use aurora_audio::{
-    negotiate_remote_format, probe_capabilities, resolve_replay_gain_db, NativePlaybackEngine,
-    Qmc2Decryptor, RemotePlaybackShadowSession, ReplayGainDsp, StreamCache, StreamDecodeOutput,
-    StreamDecoder,
+    negotiate_remote_format, probe_capabilities, resolve_replay_gain_db, DspPipelineConfig,
+    NativeDspPipeline, NativePlaybackEngine, PcmFormat, Qmc2Decryptor,
+    RemotePlaybackShadowSession, ReplayGainDsp, StreamCache, StreamDecodeOutput, StreamDecoder,
 };
 use aurora_core::{
     download::DownloadSession, lyrics, metadata, provider, scan, settings_io, sync, theme,
@@ -30,12 +30,18 @@ static REMOTE_SHADOW_SESSIONS: OnceLock<Mutex<HashMap<String, RemotePlaybackShad
     OnceLock::new();
 static STREAM_CACHES: OnceLock<Mutex<HashMap<String, Arc<Mutex<StreamCache>>>>> = OnceLock::new();
 static STREAM_DECODERS: OnceLock<Mutex<HashMap<String, StreamDecoder>>> = OnceLock::new();
+static DSP_PIPELINES: OnceLock<Mutex<HashMap<String, NativeDspPipeline>>> = OnceLock::new();
 static DOWNLOADS: OnceLock<Mutex<HashMap<u64, DownloadSession>>> = OnceLock::new();
 static NEXT_DOWNLOAD_ID: OnceLock<Mutex<u64>> = OnceLock::new();
 const MAX_QMC2_STREAMS: usize = 64;
 const MAX_REMOTE_SHADOW_SESSIONS: usize = 64;
 const MAX_STREAM_CACHES: usize = 32;
 const MAX_STREAM_DECODERS: usize = 16;
+const MAX_DSP_PIPELINES: usize = 16;
+
+fn dsp_pipelines() -> &'static Mutex<HashMap<String, NativeDspPipeline>> {
+    DSP_PIPELINES.get_or_init(|| Mutex::new(HashMap::new()))
+}
 
 fn stream_caches() -> &'static Mutex<HashMap<String, Arc<Mutex<StreamCache>>>> {
     STREAM_CACHES.get_or_init(|| Mutex::new(HashMap::new()))
@@ -890,6 +896,137 @@ pub fn stream_decoder_close(decoder_id: String) -> bool {
     stream_decoders()
         .lock()
         .map(|mut decoders| decoders.remove(&decoder_id).is_some())
+        .unwrap_or(false)
+}
+
+/// Create a native DSP pipeline (10-Band EQ, ReplayGain, Gain Ramp, Soft Limiter).
+#[napi]
+pub fn dsp_pipeline_create(
+    pipeline_id: String,
+    sample_rate: i64,
+    channels: i64,
+    config_json: Option<String>,
+) -> napi::Result<String> {
+    if sample_rate <= 0 || channels <= 0 {
+        return Err(napi::Error::from_reason("sample_rate and channels must be positive"));
+    }
+    let config = if let Some(json_str) = config_json {
+        serde_json::from_str::<DspPipelineConfig>(&json_str)
+            .map_err(|err| napi::Error::from_reason(format!("invalid DSP config JSON: {err}")))?
+    } else {
+        DspPipelineConfig::default()
+    };
+
+    let format = PcmFormat {
+        sample_rate: sample_rate as u32,
+        channels: channels as u16,
+    };
+
+    let mut pipelines = dsp_pipelines()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("dsp pipeline lock poisoned"))?;
+
+    if pipelines.len() >= MAX_DSP_PIPELINES && !pipelines.contains_key(&pipeline_id) {
+        if let Some(oldest) = pipelines.keys().next().cloned() {
+            pipelines.remove(&oldest);
+        }
+    }
+
+    let pipeline = NativeDspPipeline::new(format, config);
+    let snapshot = pipeline.snapshot();
+    pipelines.insert(pipeline_id, pipeline);
+
+    serde_json::to_string(&snapshot).map_err(|err| napi::Error::from_reason(err.to_string()))
+}
+
+/// Update configuration for an existing DSP pipeline.
+#[napi]
+pub fn dsp_pipeline_configure(pipeline_id: String, config_json: String) -> napi::Result<String> {
+    let config = serde_json::from_str::<DspPipelineConfig>(&config_json)
+        .map_err(|err| napi::Error::from_reason(format!("invalid DSP config JSON: {err}")))?;
+
+    let mut pipelines = dsp_pipelines()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("dsp pipeline lock poisoned"))?;
+    let pipeline = pipelines
+        .get_mut(&pipeline_id)
+        .ok_or_else(|| napi::Error::from_reason("dsp pipeline not found"))?;
+
+    pipeline.configure(config);
+    serde_json::to_string(&pipeline.snapshot())
+        .map_err(|err| napi::Error::from_reason(err.to_string()))
+}
+
+/// In-place process interleaved PCM f32 chunk buffer through the DSP pipeline.
+#[napi]
+pub fn dsp_pipeline_process(pipeline_id: String, mut chunk: Buffer) -> napi::Result<Option<Buffer>> {
+    let bytes: &mut [u8] = chunk.as_mut();
+    if bytes.is_empty() {
+        return Ok(Some(chunk));
+    }
+    if bytes.len() % 4 != 0 {
+        return Err(napi::Error::from_reason("chunk buffer size must be a multiple of 4 bytes (f32)"));
+    }
+
+    let mut pipelines = dsp_pipelines()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("dsp pipeline lock poisoned"))?;
+    let pipeline = pipelines
+        .get_mut(&pipeline_id)
+        .ok_or_else(|| napi::Error::from_reason("dsp pipeline not found"))?;
+
+    let (prefix, samples, suffix) = unsafe { bytes.align_to_mut::<f32>() };
+    if prefix.is_empty() && suffix.is_empty() {
+        pipeline.process_interleaved(samples);
+    } else {
+        let mut sample_vec: Vec<f32> = bytes
+            .chunks_exact(4)
+            .map(|c| f32::from_le_bytes([c[0], c[1], c[2], c[3]]))
+            .collect();
+        pipeline.process_interleaved(&mut sample_vec);
+        for (i, sample) in sample_vec.iter().enumerate() {
+            let b = sample.to_le_bytes();
+            bytes[i * 4..i * 4 + 4].copy_from_slice(&b);
+        }
+    }
+
+    Ok(Some(chunk))
+}
+
+/// Reset internal state (biquad delay line and peak stats) of the DSP pipeline.
+#[napi]
+pub fn dsp_pipeline_reset(pipeline_id: String) -> napi::Result<bool> {
+    let mut pipelines = dsp_pipelines()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("dsp pipeline lock poisoned"))?;
+    let pipeline = pipelines
+        .get_mut(&pipeline_id)
+        .ok_or_else(|| napi::Error::from_reason("dsp pipeline not found"))?;
+
+    pipeline.reset();
+    Ok(true)
+}
+
+/// Query snapshot status of a DSP pipeline.
+#[napi]
+pub fn dsp_pipeline_snapshot(pipeline_id: String) -> napi::Result<Option<String>> {
+    let pipelines = dsp_pipelines()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("dsp pipeline lock poisoned"))?;
+    let Some(pipeline) = pipelines.get(&pipeline_id) else {
+        return Ok(None);
+    };
+    serde_json::to_string(&pipeline.snapshot())
+        .map(Some)
+        .map_err(|err| napi::Error::from_reason(err.to_string()))
+}
+
+/// Close and destroy a DSP pipeline.
+#[napi]
+pub fn dsp_pipeline_close(pipeline_id: String) -> bool {
+    dsp_pipelines()
+        .lock()
+        .map(|mut pipelines| pipelines.remove(&pipeline_id).is_some())
         .unwrap_or(false)
 }
 
