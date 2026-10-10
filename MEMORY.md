@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.44 — 2026-10-10】
+【kunyin-neo 项目记忆 v5.45 — 2026-10-10】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,30 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10）
+
+◆ M44 WASAPI 独占模式与系统多设备无缝热插拔切换 (WASAPI Exclusive Bit-Perfect & Dynamic Device Hotplug)（2026-10-10，事实与回执）
+- `aurora-audio` 扩展：
+  · 新增 `AudioDeviceInfo` 结构体（包含 `name`、`is_default`、`sample_rate`、`channels`），新增 `enumerate_audio_devices()` 枚举 Windows 音频端点，精准标记系统默认输出设备并采集最高支持采样率/声道数。
+  · `probe_capabilities()` 更新支持标识：`supports_exclusive_output: true`。
+  · `NativeOutputSnapshot` 扩展输出模式状态标记 `is_exclusive: bool`。
+  · `NativeOutputController` 实现 `open_device(target_device_name, exclusive, capacity)` 与 `switch_device`：
+    在切换设备时安全暂停旧流、清空/排空环形队列、重新初始化指定设备音频硬件端点与独占/共享模式流，并在新设备准备就绪后自适应恢复播放，彻底杜绝爆音、静音与资源泄漏。
+  · `AudioOutputEndpoint` 与 `NativeAudioSink` 贯通 `switch_device(target_device, exclusive)` 方法，在流播放期间可无缝动态热插拔切换硬件声卡与独占模式，并在虚拟端点下实现确定性双态切换测试。
+  · `aurora-audio` 单元测试：`cargo test` 33/33 项全数通过。
+- `aurora-native` 扩展 N-API：
+  · 导出 `audio_devices_enumerate`：实时枚举系统所有可用音频设备与参数；
+  · 导出 `audio_sink_switch_device`：对运行中的原生 Audio Sink 下发动态切换目标设备与独占模式指令。
+- 主进程与桥接层：
+  · `bridge.ts` 与 `bridge-runtime.js` 导出强类型接口：
+    `nativeAudioDevicesEnumerate(): NativeAudioDeviceInfo[]`；
+    `nativeAudioSinkSwitchDevice(sinkId: string, deviceName?: string, exclusive?: boolean): boolean`。
+- 新增 `scripts/m44-wasapi-exclusive-device-tests.mjs`（`npm run test:m44`）：
+  · 验证 `audio_devices_enumerate` 成功枚举系统音频端点与包含默认设备；
+  · 验证全链路 Sink 从创建、启动到动态切换虚拟设备与独占模式标记，快照状态实时同步且播放状态持续稳定；
+  · 验证流停止与资源安全释放。
+- 回归验证：
+  · `npm run native:build`、`npm run test:m44`、`npm run test:m43`、`npm run test:m42`、`npm run test:m41`、`npm test`（9 项全过）、`npm run typecheck`、`npm run build`、`git diff --check`（0 errors）全部通过。
 
 ◆ M43 原生音频渲染管线与 WASAPI 端点直通 (Native Audio Sink & WASAPI Pipeline Direct Pump)（2026-10-10，事实与回执）
 - `aurora-audio` 新增 `sink` 模块：

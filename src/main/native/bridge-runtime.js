@@ -746,3 +746,25 @@ export function nativeAudioSinkClose(sinkId) {
     return false
   }
 }
+
+export function nativeAudioDevicesEnumerate() {
+  try {
+    const call = loadBinding()?.audioDevicesEnumerate
+    if (typeof call !== 'function') return []
+    const raw = call()
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+export function nativeAudioSinkSwitchDevice(sinkId, deviceName, exclusive) {
+  try {
+    const call = loadBinding()?.audioSinkSwitchDevice
+    return typeof call === 'function'
+      ? call(sinkId, deviceName ?? null, Boolean(exclusive)) === true
+      : false
+  } catch {
+    return false
+  }
+}

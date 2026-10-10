@@ -9,9 +9,10 @@ use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
 
 use aurora_audio::{
-    negotiate_remote_format, probe_capabilities, resolve_replay_gain_db, DspPipelineConfig,
-    NativeAudioSink, NativeDspPipeline, NativePlaybackEngine, PcmFormat, Qmc2Decryptor,
-    RemotePlaybackShadowSession, ReplayGainDsp, StreamCache, StreamDecodeOutput, StreamDecoder,
+    enumerate_audio_devices, negotiate_remote_format, probe_capabilities, resolve_replay_gain_db,
+    DspPipelineConfig, NativeAudioSink, NativeDspPipeline, NativePlaybackEngine, PcmFormat,
+    Qmc2Decryptor, RemotePlaybackShadowSession, ReplayGainDsp, StreamCache, StreamDecodeOutput,
+    StreamDecoder,
 };
 use aurora_core::{
     download::DownloadSession, lyrics, metadata, provider, scan, settings_io, sync, theme,
@@ -1201,6 +1202,32 @@ pub fn audio_sink_close(sink_id: String) -> bool {
         .lock()
         .map(|mut sinks| sinks.remove(&sink_id).is_some())
         .unwrap_or(false)
+}
+
+/// Enumerate host audio output devices and their supported format parameters.
+#[napi]
+pub fn audio_devices_enumerate() -> napi::Result<String> {
+    serde_json::to_string(&enumerate_audio_devices())
+        .map_err(|err| napi::Error::from_reason(err.to_string()))
+}
+
+/// Seamlessly switch native audio sink to a different output device or toggle exclusive mode.
+#[napi]
+pub fn audio_sink_switch_device(
+    sink_id: String,
+    device_name: Option<String>,
+    exclusive: Option<bool>,
+) -> napi::Result<bool> {
+    let sinks = audio_sinks()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("audio sink lock poisoned"))?;
+    let sink = sinks
+        .get(&sink_id)
+        .ok_or_else(|| napi::Error::from_reason("audio sink not found"))?;
+
+    sink.switch_device(device_name.as_deref(), exclusive.unwrap_or(false))
+        .map_err(napi::Error::from_reason)?;
+    Ok(true)
 }
 
 /// Start a bounded temporary-file download transaction.

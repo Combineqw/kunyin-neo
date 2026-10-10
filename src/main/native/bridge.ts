@@ -135,11 +135,26 @@ type NativeBinding = {
   audioSinkConfigureDsp?(sinkId: string, dspConfigJson: string): string
   audioSinkSnapshot?(sinkId: string): string | null
   audioSinkClose?(sinkId: string): boolean
+  audioDevicesEnumerate?(): string
+  audioSinkSwitchDevice?(
+    sinkId: string,
+    deviceName?: string | null,
+    exclusive?: boolean | null
+  ): boolean
   audioDecryptQmc2File?(path: string, ekey: string): boolean
   syncNormalizeBaseUrl?(url: string): string
   syncValidateSession?(sessionJson: string): string
   providerParseQqTrack?(itemJson: string): string
   providerParseWyTrack?(itemJson: string): string
+}
+
+export type NativeAudioDeviceInfo = {
+  name: string
+  isDefault: boolean
+  minSampleRate: number
+  maxSampleRate: number
+  channels: number
+  supportsExclusive: boolean
 }
 
 export type NativeSinkStatus = 'idle' | 'buffering' | 'playing' | 'paused' | 'ended' | 'error'
@@ -157,6 +172,7 @@ export type NativeSinkSnapshot = {
   dsp: NativeDspPipelineSnapshot
   underflowCount: number
   isVirtual: boolean
+  isExclusive: boolean
 }
 
 export type NativeDspPipelineConfig = {
@@ -1307,6 +1323,34 @@ export function nativeAudioSinkClose(sinkId: string): boolean {
   try {
     const call = loadBinding()?.audioSinkClose
     return typeof call === 'function' ? call(sinkId) === true : false
+  } catch {
+    return false
+  }
+}
+
+/** Optional enumeration of host audio output devices. */
+export function nativeAudioDevicesEnumerate(): NativeAudioDeviceInfo[] {
+  try {
+    const call = loadBinding()?.audioDevicesEnumerate
+    if (typeof call !== 'function') return []
+    const raw = call()
+    return raw ? (JSON.parse(raw) as NativeAudioDeviceInfo[]) : []
+  } catch {
+    return []
+  }
+}
+
+/** Optional dynamic device switching or exclusive mode toggle for native audio sink. */
+export function nativeAudioSinkSwitchDevice(
+  sinkId: string,
+  deviceName?: string | null,
+  exclusive?: boolean
+): boolean {
+  try {
+    const call = loadBinding()?.audioSinkSwitchDevice
+    return typeof call === 'function'
+      ? call(sinkId, deviceName ?? null, exclusive ?? false) === true
+      : false
   } catch {
     return false
   }

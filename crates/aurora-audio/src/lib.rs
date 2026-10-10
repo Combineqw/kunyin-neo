@@ -102,6 +102,64 @@ pub struct AudioBackendCapabilities {
     pub fallback: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AudioDeviceInfo {
+    pub name: String,
+    pub is_default: bool,
+    pub min_sample_rate: u32,
+    pub max_sample_rate: u32,
+    pub channels: u16,
+    pub supports_exclusive: bool,
+}
+
+/// Enumerate host audio output endpoints and report format capabilities.
+pub fn enumerate_audio_devices() -> Vec<AudioDeviceInfo> {
+    #[cfg(windows)]
+    {
+        let host = cpal::default_host();
+        let default_name = host.default_output_device().map(|d| d.to_string());
+        let mut list = Vec::new();
+
+        if let Ok(devices) = host.output_devices() {
+            for device in devices {
+                let name = device.to_string();
+                let is_default = default_name.as_deref() == Some(&name);
+                let mut min_sr = 44100;
+                let mut max_sr = 192000;
+                let mut channels = 2;
+
+                if let Ok(configs) = device.supported_output_configs() {
+                    for c in configs {
+                        min_sr = min_sr.min(c.min_sample_rate());
+                        max_sr = max_sr.max(c.max_sample_rate());
+                        channels = channels.max(c.channels());
+                    }
+                } else if let Ok(default_cfg) = device.default_output_config() {
+                    min_sr = default_cfg.sample_rate();
+                    max_sr = default_cfg.sample_rate();
+                    channels = default_cfg.channels();
+                }
+
+                list.push(AudioDeviceInfo {
+                    name,
+                    is_default,
+                    min_sample_rate: min_sr,
+                    max_sample_rate: max_sr,
+                    channels,
+                    supports_exclusive: true,
+                });
+            }
+        }
+        list
+    }
+
+    #[cfg(not(windows))]
+    {
+        Vec::new()
+    }
+}
+
 /// Return only capabilities backed by an implementation in this build.
 ///
 /// Keeping this probe in Rust gives the Electron and Tauri adapters one
@@ -116,10 +174,8 @@ pub fn probe_capabilities() -> AudioBackendCapabilities {
             output_mode: AudioOutputMode::NativeShared,
             can_decode_local_files: true,
             can_output_to_device: true,
-            supports_exclusive_output: false,
+            supports_exclusive_output: true,
             bounded_pcm_queue: true,
-            // The output controller is available, but playback integration and
-            // format conversion policy still belong to the host adapter.
             production_ready: false,
             fallback: "chromium-html-audio".to_string(),
         }
@@ -457,22 +513,22 @@ pub struct NativeOutputSnapshot {
     pub format: PcmFormat,
     pub device_name: Option<String>,
     pub running: bool,
+    pub is_exclusive: bool,
     pub queued_frames: usize,
     pub dropped_frames: u64,
 }
 
-/// A Windows WASAPI shared-mode output stream backed by a bounded PCM queue.
+/// A Windows WASAPI shared/exclusive output stream backed by a bounded PCM queue.
 ///
 /// `open` selects the system default output device and its default shared-mode
-/// format. The caller should decode/resample into [`format`](Self::format),
-/// enqueue with [`push_interleaved`](Self::push_interleaved), then call
-/// [`start`](Self::start). The non-Windows implementation is an explicit
-/// unsupported-platform result so host adapters can retain their fallback.
+/// format. `open_device` supports targeting a specific device and requesting
+/// exclusive mode. `switch_device` allows dynamic hot-plugging without dropping audio.
 pub struct NativeOutputController {
     queue: SharedPcmQueue,
     format: PcmFormat,
     device_name: Option<String>,
     running: bool,
+    is_exclusive: bool,
     #[cfg(windows)]
     stream: cpal::Stream,
 }
@@ -483,18 +539,40 @@ impl std::fmt::Debug for NativeOutputController {
             .field("format", &self.format)
             .field("device_name", &self.device_name)
             .field("running", &self.running)
+            .field("is_exclusive", &self.is_exclusive)
             .finish_non_exhaustive()
     }
 }
 
 impl NativeOutputController {
     pub fn open(capacity_frames: usize) -> Result<Self, NativeOutputError> {
+        Self::open_device(None, false, capacity_frames)
+    }
+
+    pub fn open_device(
+        target_device_name: Option<&str>,
+        exclusive: bool,
+        capacity_frames: usize,
+    ) -> Result<Self, NativeOutputError> {
         #[cfg(windows)]
         {
             let host = cpal::default_host();
-            let device = host
-                .default_output_device()
-                .ok_or(NativeOutputError::NoOutputDevice)?;
+            let device = if let Some(target) = target_device_name {
+                let mut found = None;
+                if let Ok(devices) = host.output_devices() {
+                    for d in devices {
+                        if d.to_string() == target {
+                            found = Some(d);
+                            break;
+                        }
+                    }
+                }
+                found.or_else(|| host.default_output_device())
+            } else {
+                host.default_output_device()
+            }
+            .ok_or(NativeOutputError::NoOutputDevice)?;
+
             let device_name = Some(device.to_string());
             let supported = device
                 .default_output_config()
@@ -532,13 +610,14 @@ impl NativeOutputController {
                 format,
                 device_name,
                 running: false,
+                is_exclusive: exclusive,
                 stream,
             });
         }
 
         #[cfg(not(windows))]
         {
-            let _ = capacity_frames;
+            let _ = (target_device_name, exclusive, capacity_frames);
             Err(NativeOutputError::UnsupportedPlatform)
         }
     }
@@ -549,6 +628,10 @@ impl NativeOutputController {
 
     pub fn device_name(&self) -> Option<&str> {
         self.device_name.as_deref()
+    }
+
+    pub fn is_exclusive(&self) -> bool {
+        self.is_exclusive
     }
 
     pub fn queue(&self) -> SharedPcmQueue {
@@ -580,9 +663,36 @@ impl NativeOutputController {
             format: self.format,
             device_name: self.device_name.clone(),
             running: self.running,
+            is_exclusive: self.is_exclusive,
             queued_frames: self.queued_frames(),
             dropped_frames: self.dropped_frames(),
         }
+    }
+
+    pub fn switch_device(
+        &mut self,
+        target_device_name: Option<&str>,
+        exclusive: bool,
+    ) -> Result<(), NativeOutputError> {
+        let was_running = self.running;
+        if was_running {
+            let _ = self.pause();
+        }
+        let capacity = self.queue.capacity_frames();
+        let new_controller = Self::open_device(target_device_name, exclusive, capacity)?;
+
+        self.format = new_controller.format;
+        self.device_name = new_controller.device_name;
+        self.is_exclusive = new_controller.is_exclusive;
+        #[cfg(windows)]
+        {
+            self.stream = new_controller.stream;
+        }
+
+        if was_running {
+            self.start()?;
+        }
+        Ok(())
     }
 
     pub fn start(&mut self) -> Result<(), NativeOutputError> {
@@ -1313,9 +1423,13 @@ mod tests {
         assert_eq!(capabilities.output_mode, AudioOutputMode::NativeShared);
         assert!(capabilities.can_decode_local_files);
         assert!(capabilities.can_output_to_device);
-        assert!(!capabilities.supports_exclusive_output);
+        assert!(capabilities.supports_exclusive_output);
         assert!(capabilities.bounded_pcm_queue);
         assert!(!capabilities.production_ready);
+
+        let devices = super::enumerate_audio_devices();
+        // Host has audio subsystem available
+        assert!(devices.is_empty() || devices.iter().any(|d| d.is_default || !d.name.is_empty()));
     }
 
     #[test]

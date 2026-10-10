@@ -151,6 +151,10 @@ export declare function audioSinkConfigureDsp(sinkId: string, dspConfigJson: str
 export declare function audioSinkSnapshot(sinkId: string): string | null
 /** Close and destroy native audio sink session. */
 export declare function audioSinkClose(sinkId: string): boolean
+/** Enumerate host audio output devices and their supported format parameters. */
+export declare function audioDevicesEnumerate(): string
+/** Seamlessly switch native audio sink to a different output device or toggle exclusive mode. */
+export declare function audioSinkSwitchDevice(sinkId: string, deviceName?: string | undefined | null, exclusive?: boolean | undefined | null): boolean
 /** Start a bounded temporary-file download transaction. */
 export declare function downloadCreate(tempPath: string, finalPath: string, maxBytes: number): number
 export declare function downloadWrite(id: number, chunk: Buffer): string

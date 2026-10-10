@@ -44,6 +44,7 @@ pub struct NativeSinkSnapshot {
     pub dsp: DspPipelineSnapshot,
     pub underflow_count: u64,
     pub is_virtual: bool,
+    pub is_exclusive: bool,
 }
 
 pub enum AudioOutputEndpoint {
@@ -52,6 +53,8 @@ pub enum AudioOutputEndpoint {
         queue: SharedPcmQueue,
         format: PcmFormat,
         running: bool,
+        device_name: String,
+        is_exclusive: bool,
     },
 }
 
@@ -71,6 +74,8 @@ impl AudioOutputEndpoint {
             queue,
             format,
             running: false,
+            device_name: "virtual-aurora-sink".to_string(),
+            is_exclusive: false,
         }
     }
 
@@ -84,12 +89,42 @@ impl AudioOutputEndpoint {
     pub fn device_name(&self) -> Option<String> {
         match self {
             Self::Hardware(c) => c.device_name().map(str::to_string),
-            Self::Virtual { .. } => Some("virtual-aurora-sink".to_string()),
+            Self::Virtual { device_name, .. } => Some(device_name.clone()),
         }
     }
 
     pub fn is_virtual(&self) -> bool {
         matches!(self, Self::Virtual { .. })
+    }
+
+    pub fn is_exclusive(&self) -> bool {
+        match self {
+            Self::Hardware(c) => c.is_exclusive(),
+            Self::Virtual { is_exclusive, .. } => *is_exclusive,
+        }
+    }
+
+    pub fn switch_device(
+        &mut self,
+        target_device: Option<&str>,
+        exclusive: bool,
+    ) -> Result<(), String> {
+        match self {
+            Self::Hardware(c) => c
+                .switch_device(target_device, exclusive)
+                .map_err(|e| e.to_string()),
+            Self::Virtual {
+                device_name,
+                is_exclusive,
+                ..
+            } => {
+                *device_name = target_device
+                    .unwrap_or("virtual-aurora-sink")
+                    .to_string();
+                *is_exclusive = exclusive;
+                Ok(())
+            }
+        }
     }
 
     pub fn start(&mut self) -> Result<(), String> {
@@ -380,6 +415,19 @@ impl NativeAudioSink {
         }
     }
 
+    pub fn switch_device(&self, target_device: Option<&str>, exclusive: bool) -> Result<(), String> {
+        let mut endpoint = self
+            .endpoint
+            .lock()
+            .map_err(|_| "endpoint lock poisoned".to_string())?;
+        endpoint.switch_device(target_device, exclusive)?;
+        let output_format = endpoint.format();
+        if let Ok(mut dsp) = self.dsp.lock() {
+            dsp.set_format(output_format);
+        }
+        Ok(())
+    }
+
     pub fn snapshot(&self) -> NativeSinkSnapshot {
         let (lock, _) = &*self.state;
         let state = lock
@@ -396,6 +444,7 @@ impl NativeAudioSink {
         let dropped_frames = endpoint.dropped_frames();
         let device_name = endpoint.device_name();
         let is_virtual = endpoint.is_virtual();
+        let is_exclusive = endpoint.is_exclusive();
 
         let source_rate = state
             .source_format
@@ -445,6 +494,7 @@ impl NativeAudioSink {
             dsp: dsp_snap,
             underflow_count: self.underflow_count.load(Ordering::Relaxed),
             is_virtual,
+            is_exclusive,
         }
     }
 
@@ -659,5 +709,12 @@ mod tests {
         sink.stop().unwrap();
         let snap5 = sink.snapshot();
         assert_eq!(snap5.status, NativeSinkStatus::Idle);
+
+        // Verify device switching & exclusive flag
+        sink.switch_device(Some("dac-exclusive-device"), true)
+            .unwrap();
+        let snap6 = sink.snapshot();
+        assert_eq!(snap6.device_name.as_deref(), Some("dac-exclusive-device"));
+        assert!(snap6.is_exclusive);
     }
 }
