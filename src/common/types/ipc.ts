@@ -180,6 +180,18 @@ export const IpcChannels = {
   NATIVE_AUDIO_SNAPSHOT: 'native-audio:snapshot',
   NATIVE_AUDIO_SEEK: 'native-audio:seek',
 
+  // 原生播放器会话调度 (M45)
+  NATIVE_PLAYER_LOAD: 'nativePlayer:load',
+  NATIVE_PLAYER_PLAY: 'nativePlayer:play',
+  NATIVE_PLAYER_PAUSE: 'nativePlayer:pause',
+  NATIVE_PLAYER_STOP: 'nativePlayer:stop',
+  NATIVE_PLAYER_SEEK: 'nativePlayer:seek',
+  NATIVE_PLAYER_VOLUME: 'nativePlayer:volume',
+  NATIVE_PLAYER_CONFIGURE_DSP: 'nativePlayer:configureDsp',
+  NATIVE_PLAYER_GET_DEVICES: 'nativePlayer:getDevices',
+  NATIVE_PLAYER_SWITCH_DEVICE: 'nativePlayer:switchDevice',
+  NATIVE_PLAYER_SNAPSHOT: 'nativePlayer:snapshot',
+
   // 桌面歌词悬浮窗
   DESKTOP_LYRIC_TOGGLE: 'desktopLyric:toggle', // 渲染 → 主：开/关窗口
   DESKTOP_LYRIC_PUSH: 'desktopLyric:push', // 主窗口 → 主：推送歌词/进度/播放态
@@ -476,6 +488,29 @@ export interface NativeAudioSnapshot {
   droppedFrames: number
 }
 
+export interface NativePlayerDeviceInfo {
+  name: string
+  isDefault: boolean
+  sampleRate: number
+  channels: number
+}
+
+export interface NativePlayerLoadOptions {
+  filePath?: string
+  cacheId?: string
+  containerHint?: string
+  mimeHint?: string
+  forceVirtual?: boolean
+  dspConfig?: any
+}
+
+export interface NativePlayerLoadResult {
+  ok: boolean
+  sinkId?: string
+  snapshot?: any
+  error?: string
+}
+
 export interface WindowApi {
   app: {
     getVersion(): Promise<string>
@@ -714,6 +749,19 @@ export interface WindowApi {
   nativeAudio: {
     snapshot(): Promise<NativeAudioSnapshot | null>
     seek(positionMs: number): Promise<NativeAudioSnapshot | null>
+  }
+
+  nativePlayer: {
+    load(options: NativePlayerLoadOptions): Promise<NativePlayerLoadResult>
+    play(): Promise<boolean>
+    pause(): Promise<boolean>
+    stop(): Promise<boolean>
+    seek(positionMs: number): Promise<boolean>
+    setVolume(volume: number, muted?: boolean): Promise<boolean>
+    configureDsp(config: any): Promise<boolean>
+    getDevices(): Promise<NativePlayerDeviceInfo[]>
+    switchDevice(deviceName?: string, exclusive?: boolean): Promise<boolean>
+    snapshot(): Promise<any | null>
   }
 
   /** 桌面歌词悬浮窗 */

@@ -35,6 +35,7 @@
     "test:m42": "node scripts/m42-native-dsp-tests.mjs",
     "test:m43": "node scripts/m43-native-audio-pump-tests.mjs",
     "test:m44": "node scripts/m44-wasapi-exclusive-device-tests.mjs",
+    "test:m45": "node --experimental-strip-types scripts/m45-native-player-orchestrator-tests.mjs",
     "test": "npm run test:core && npm run test:theme && npm run test:animation && npm run test:m3 && npm run test:m4 && npm run test:f1 && npm run test:m51 && npm run test:m53 && npm run test:m54",
     "verify": "npm run lint:gate && npm run typecheck && npm run test",
     "start": "electron-vite preview",

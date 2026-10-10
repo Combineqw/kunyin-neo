@@ -5,13 +5,13 @@
 ## 当前基线
 
 - 分支：`master`
-- M44 工作内容：WASAPI 独占模式与系统多设备无缝热插拔切换（WASAPI Exclusive Bit-Perfect & Dynamic Device Hotplug）
+- M45 工作内容：全原生播放器会话集成与主进程调度接管（Native Player Session Orchestration & Main Process Scheduler Takeover）
 - 产品版本：`1.1.0`
 - 远端：`https://github.com/Combineqw/kunyin-neo.git`
 - 技术栈：Electron 39、Vue 3、TypeScript、Rust、N-API-RS、纯 Rust 原生化架构规划
 - 终极形态战略决策：彻底弃用 Web / WebView 运行时（不采用 Tauri，走向 100% 纯 Rust 原生 GUI 与音频引擎，发布形态采用 NSIS/MSI 现代化安装程序）
 
-M44 在 `crates/aurora-audio` 实现 Windows WASAPI 独占模式（Bit-Perfect 源码输出与超低延迟）与系统多设备动态枚举及平滑热插拔切换。新增 `AudioDeviceInfo` 与 `enumerate_audio_devices`，更新 `probe_capabilities`（`supports_exclusive_output: true`）。`NativeOutputController` 实现带防爆音平滑淡入淡出/排空的设备动态热切换 `switch_device` 与独占模式支持。`NativeAudioSink` 贯通热切换能力。`crates/aurora-native` 暴露 `audio_devices_enumerate` 与 `audio_sink_switch_device` N-API 接口，由 `bridge.ts` 与 `bridge-runtime.js` 导出强类型接口。现有 Chromium `<audio>` 与 Web Audio 混音 100% 保持不变。
+M45 新增 `src/main/audio/orchestrator.ts` 实现 `NativePlayerOrchestrator` 单例类，完整集成并调度原生音频全链路：`StreamCache` ➔ `StreamDecoder` ➔ `resample_interleaved` ➔ `NativeDspPipeline` ➔ `AudioOutputEndpoint` (WASAPI 硬件 / 虚拟端点)。支持本地文件按块写入缓存直通与网络流缓存挂载，提供完整的播放、暂停、停止、Seek、音量渐变、10段EQ动态配置、输出设备热切换与格式合成回退能力。主进程 IPC 注册 10 项强类型 `NATIVE_PLAYER_*` 通道，`PLAYER_STREAM` 支持三级平滑降级容灾。现有 Chromium `<audio>` 与 Web Audio 混音 100% 保持不变。
 
 ## Rust 迁移地图
 
@@ -56,6 +56,7 @@ npm run test:m41
 npm run test:m42
 npm run test:m43
 npm run test:m44
+npm run test:m45
 npm run build
 npm run build:win
 ```
@@ -70,11 +71,11 @@ cargo test --manifest-path crates/aurora-native/Cargo.toml
 cargo check --manifest-path src-tauri/Cargo.toml
 ```
 
-`npm run test:m44` 需要先执行 `npm run native:build`。全仓 lint 如果扫描到未跟踪 `work/` 脚本，应使用正式源码范围的 scoped lint，不要把临时脚本加入提交。
+`npm run test:m45` 覆盖主进程全原生调度中心。全仓 lint 如果扫描到未跟踪 `work/` 脚本，应使用正式源码范围的 scoped lint，不要把临时脚本加入提交。
 
 ## 下一步建议
 
-下一步进入 M45：全原生播放器会话集成与主进程调度接管（Native Player Session Orchestration & Main Process Scheduler Takeover）。在 Electron 主进程中将远程流分块预加载（M39 Range Planner）、原生分块环形缓存（M40 StreamCache）、原生流式解码（M41 StreamDecoder）、原生 DSP 音效引擎（M42 NativeDspPipeline）、原生音频渲染管线与 WASAPI 端点直通（M43 NativeAudioSink）及独占模式/多设备热切换（M44 Dynamic Device Switch）完整串联，形成主进程原生播放器调度中心，支持平滑降级与无缝切歌。每个切片都要保留旧路径、加入确定性回归、升级 `MEMORY.md`，并单独提交和普通推送。
+下一步进入 M46：渲染层原生播放器状态无缝接管与双向同步（Renderer Native Player UI Takeover & Bidirectional State Synchronization）。在 Pinia player store 中把播放进度、控制指令（播放/暂停/Seek/音量/EQ/输出设备）与主进程 `NativePlayerOrchestrator` 进行无感状态联动与事件双向同步，当启用纯原生直通模式时完全绕过 HTML5 `<audio>` 播放，保持零卡顿、零跳音和零延迟。每个切片都要保留旧路径、加入确定性回归、升级 `MEMORY.md`，并单独提交和普通推送。
 
 ## 提交纪律
 

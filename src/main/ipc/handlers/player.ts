@@ -23,6 +23,10 @@ import {
   nativeAudioStop,
   nativePlaybackLoad
 } from '../../native/bridge-runtime.js'
+import {
+  nativePlayerOrchestrator,
+  type LoadTrackOptions
+} from '../../audio/orchestrator'
 
 /**
  * 播放/歌词相关 IPC。
@@ -40,7 +44,7 @@ function readSidecarLrc(filePath?: string): string {
     const buf = readFileSync(lrcPath)
     const utf8 = buf.toString('utf-8')
     // U+FFFD 出现说明不是合法 utf-8，按国标编码重解
-    if (utf8.includes('�')) return new TextDecoder('gb18030').decode(buf)
+    if (utf8.includes('\uFFFD')) return new TextDecoder('gb18030').decode(buf)
     return utf8
   } catch {
     return ''
@@ -58,8 +62,41 @@ async function loadKgFallback(item: MusicItem): Promise<Lyric> {
 }
 
 export function registerPlayerHandlers(): void {
-  handle(IpcChannels.NATIVE_AUDIO_SNAPSHOT, () => nativeAudioSnapshot())
-  handle(IpcChannels.NATIVE_AUDIO_SEEK, (positionMs: number) => nativeAudioSeek(positionMs))
+  handle(IpcChannels.NATIVE_AUDIO_SNAPSHOT, () => {
+    if (nativePlayerOrchestrator.isActive()) {
+      return nativePlayerOrchestrator.synthesizeLegacySnapshot() ?? nativeAudioSnapshot()
+    }
+    return nativeAudioSnapshot()
+  })
+  handle(IpcChannels.NATIVE_AUDIO_SEEK, (positionMs: number) => {
+    if (nativePlayerOrchestrator.isActive()) {
+      nativePlayerOrchestrator.seek(positionMs)
+      return nativePlayerOrchestrator.synthesizeLegacySnapshot()
+    }
+    return nativeAudioSeek(positionMs)
+  })
+
+  // 原生播放器会话调度 IPC (M45)
+  handle(IpcChannels.NATIVE_PLAYER_LOAD, (options: LoadTrackOptions) =>
+    nativePlayerOrchestrator.loadTrack(options)
+  )
+  handle(IpcChannels.NATIVE_PLAYER_PLAY, () => nativePlayerOrchestrator.play())
+  handle(IpcChannels.NATIVE_PLAYER_PAUSE, () => nativePlayerOrchestrator.pause())
+  handle(IpcChannels.NATIVE_PLAYER_STOP, () => nativePlayerOrchestrator.stop())
+  handle(IpcChannels.NATIVE_PLAYER_SEEK, (positionMs: number) =>
+    nativePlayerOrchestrator.seek(positionMs)
+  )
+  handle(IpcChannels.NATIVE_PLAYER_VOLUME, (volume: number, muted?: boolean) =>
+    nativePlayerOrchestrator.setVolume(volume, muted)
+  )
+  handle(IpcChannels.NATIVE_PLAYER_CONFIGURE_DSP, (config: any) =>
+    nativePlayerOrchestrator.configureDsp(config)
+  )
+  handle(IpcChannels.NATIVE_PLAYER_GET_DEVICES, () => nativePlayerOrchestrator.getDevices())
+  handle(IpcChannels.NATIVE_PLAYER_SWITCH_DEVICE, (deviceName?: string, exclusive?: boolean) =>
+    nativePlayerOrchestrator.switchDevice(deviceName, exclusive)
+  )
+  handle(IpcChannels.NATIVE_PLAYER_SNAPSHOT, () => nativePlayerOrchestrator.getSnapshot())
 
   handle(
     IpcChannels.PLAYER_RESOLVE_URL,
@@ -71,19 +108,27 @@ export function registerPlayerHandlers(): void {
     async (item: MusicItem, qualityId: string): Promise<AudioStreamResult> => {
       // A new stream always owns the output session. Remote/provider playback
       // remains on the existing protocol path and explicitly releases native output.
+      nativePlayerOrchestrator.closeCurrent()
       nativeAudioStop()
       // 本地歌曲：不走解析后端，直接注册文件流
       if (item.type === 'local') {
         if (!item.filePath || !existsSync(item.filePath)) {
           return { ok: false, url: '', expire: 0, quality: qualityId, reason: '本地文件不存在' }
         }
+        // 优先使用 M45 全原生播放器调度中心 (StreamCache ➔ StreamDecoder ➔ DSP ➔ WASAPI)
+        const orchestratorResult = await nativePlayerOrchestrator.loadTrack({ filePath: item.filePath })
+        if (orchestratorResult.ok && nativePlayerOrchestrator.play()) {
+          nativePlaybackLoad(getMusicItemKey(item), item.duration)
+          return { ok: true, url: '', expire: 0, quality: qualityId, native: true }
+        }
+        // 次级回退：现有原生文件输出
         const nativeSnapshot = nativeAudioStartFile(item.filePath)
         if (nativeSnapshot) {
           nativePlaybackLoad(getMusicItemKey(item), item.duration)
           return { ok: true, url: '', expire: 0, quality: qualityId, native: true }
         }
-        // Native output is opt-in by capability and format. Any open/play
-        // failure falls back immediately to the proven HTMLAudio protocol.
+        // 终极回退：HTMLAudio 协议流
+        nativePlayerOrchestrator.closeCurrent()
         nativeAudioStop()
         const url = registerAudioStream({ filePath: item.filePath })
         nativePlaybackLoad(getMusicItemKey(item), item.duration)

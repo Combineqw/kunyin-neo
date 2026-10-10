@@ -219,6 +219,20 @@ const api: WindowApi = {
     seek: (positionMs) =>
       ipcRenderer.invoke(IpcChannels.NATIVE_AUDIO_SEEK, Math.max(0, Math.round(positionMs)))
   },
+  nativePlayer: {
+    load: (options) => ipcRenderer.invoke(IpcChannels.NATIVE_PLAYER_LOAD, options),
+    play: () => ipcRenderer.invoke(IpcChannels.NATIVE_PLAYER_PLAY),
+    pause: () => ipcRenderer.invoke(IpcChannels.NATIVE_PLAYER_PAUSE),
+    stop: () => ipcRenderer.invoke(IpcChannels.NATIVE_PLAYER_STOP),
+    seek: (positionMs) => ipcRenderer.invoke(IpcChannels.NATIVE_PLAYER_SEEK, positionMs),
+    setVolume: (volume, muted) =>
+      ipcRenderer.invoke(IpcChannels.NATIVE_PLAYER_VOLUME, volume, muted),
+    configureDsp: (config) => ipcRenderer.invoke(IpcChannels.NATIVE_PLAYER_CONFIGURE_DSP, config),
+    getDevices: () => ipcRenderer.invoke(IpcChannels.NATIVE_PLAYER_GET_DEVICES),
+    switchDevice: (deviceName, exclusive) =>
+      ipcRenderer.invoke(IpcChannels.NATIVE_PLAYER_SWITCH_DEVICE, deviceName, exclusive),
+    snapshot: () => ipcRenderer.invoke(IpcChannels.NATIVE_PLAYER_SNAPSHOT)
+  },
   desktopLyric: {
     toggle: (enabled) => ipcRenderer.invoke(IpcChannels.DESKTOP_LYRIC_TOGGLE, enabled),
     push: (state) => ipcRenderer.send(IpcChannels.DESKTOP_LYRIC_PUSH, state),

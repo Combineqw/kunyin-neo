@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.45 — 2026-10-10】
+【kunyin-neo 项目记忆 v5.46 — 2026-10-10】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,26 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10）
+
+◆ M45 全原生播放器会话集成与主进程调度接管 (Native Player Session Orchestration & Main Process Scheduler Takeover)（2026-10-10，事实与回执）
+- 新增 `src/main/audio/orchestrator.ts`：
+  · 实现 `NativePlayerOrchestrator` 单例类，完整串联 Rust 原生音频管线：`StreamCache` ➔ `StreamDecoder` ➔ `resample_interleaved` ➔ `NativeDspPipeline` ➔ `AudioOutputEndpoint` (WASAPI 硬件 / 虚拟端点)；
+  · 支持 `loadTrack` 双模式调度：
+    1. 本地音频文件直接按块灌入独立 `StreamCache`，自适应识别容器格式并启动全链路原生解码与音效渲染；
+    2. 外部/网络流缓存（如 `protocol.ts` 边下边解密的 `StreamCache`）挂载并直通 NativeAudioSink；
+  · 暴露统一播放控制 API：`play()`、`pause()`、`stop()`、`seek(positionMs)`、`setVolume(vol, muted)`、`configureDsp(config)`、`getDevices()`、`switchDevice(name, exclusive)`、`getSnapshot()`；
+  · 实现 `synthesizeLegacySnapshot()`：无缝将包含毫秒级时间戳、10段EQ、动态增益、设备名与独占标识的 `NativeSinkSnapshot` 映射为 `NativeAudioSnapshot`，保障向后平滑回退。
+- 主进程 IPC 处理器扩展 (`src/main/ipc/handlers/player.ts`)：
+  · 注册 10 项强类型原生调度通道：`IpcChannels.NATIVE_PLAYER_LOAD`、`PLAY`、`PAUSE`、`STOP`、`SEEK`、`VOLUME`、`CONFIGURE_DSP`、`GET_DEVICES`、`SWITCH_DEVICE`、`SNAPSHOT`；
+  · 现有 `NATIVE_AUDIO_SNAPSHOT` 与 `NATIVE_AUDIO_SEEK` 优先路由至 `NativePlayerOrchestrator`，无缝继承新引擎；
+  · `PLAYER_STREAM` 本地音轨播放优先尝试全原生直通调度，并提供「原生直通 ➔ 遗留文件输出 ➔ kunyin:// 协议流」三级平滑降级容灾。
+- 类型契约与 Preload 桥接：
+  · `src/common/types/ipc.ts` 新增 `NativePlayer*` 接口与 `WindowApi.nativePlayer`；
+  · `src/preload/index.ts` 暴露 `window.api.nativePlayer` 全部方法。
+- 自动化测试与质量门禁：
+  · 新增 `scripts/m45-native-player-orchestrator-tests.mjs`（`npm run test:m45`）：覆盖参数校验、本地音频加载、播放状态流转、暂停/恢复、Seek、音量渐变、10段EQ重配、多设备热切换/独占模式切换、遗留格式合成、外部流缓存挂载与优雅销毁；
+  · 回归验证：`npm run test:m45`、`npm run test:m44`、`npm run test:m43`、`npm run test:m42`、`npm run test:m41`、`npm test`（9 项全过）、`npm run typecheck`、`npm run build`、`git diff --check`（0 errors）全部通过。
 
 ◆ M44 WASAPI 独占模式与系统多设备无缝热插拔切换 (WASAPI Exclusive Bit-Perfect & Dynamic Device Hotplug)（2026-10-10，事实与回执）
 - `aurora-audio` 扩展：
