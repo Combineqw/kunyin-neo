@@ -5,13 +5,19 @@
 ## 当前基线
 
 - 分支：`master`
-- M47 工作内容：Windows 现代化安装程序体系与多格式文件关联（Windows Modern Installer Packaging & Setup Verification）
+- M48 工作内容：Apple Design 细节美学与质感微调（Apple Design UI Refinements & HIG Detail Polish）
 - 产品版本：`1.1.0`
 - 远端：`https://github.com/Combineqw/kunyin-neo.git`
 - 技术栈：Electron 39、Vue 3、TypeScript、Rust、N-API-RS、纯 Rust 原生化架构规划
 - 终极形态战略决策：彻底弃用 Web / WebView 运行时（不采用 Tauri，走向 100% 纯 Rust 原生 GUI 与音频引擎，发布形态采用 NSIS/MSI 现代化安装程序）
 
-M47 重构 `electron-builder.yml` Windows 构建与 NSIS 安装向导体系。显式声明 `win.target` 为 NSIS x64 安装包；配置 `.mp3`、`.flac`、`.wav`、`.m4a`、`.ogg` 原生多格式音频文件关联；深度定制向导式安装配置（`oneClick: false`、目录自主选择、强制生成桌面快捷方式与开始菜单目录、用户许可展示、中英双语向导、干净卸载保护）；校验 `scripts/afterPack.js` 自动将 Rust 优化原生二进制注入安装包 `resources/assets/` 目录。现有 Chromium `<audio>` 与 Web Audio 混音 100% 保持不变。
+M48 在保持整体结构与桌面四区布局大体不变的前提下，按照 Apple HIG（人机界面指南）规范深度打磨 UI 质感与微交互：
+1. 字体排印：body 与 page-title 补全 Apple SF Pro 字体渲染栈与微负字偶距（`-0.01em` / `-0.015em`），开启 `-moz-osx-font-smoothing: grayscale` 与 `text-rendering: optimizeLegibility`；
+2. 材质与高光：玻璃基础类 `.glass-surface` 注入 Apple 标志性内边缘高光描边（`box-shadow: inset 0 0.5px 0 0 var(--glass-highlight)`），暗色模式适配内高光与边框；
+3. 侧栏浮岛：`AppAside` 胶囊指示器与导航项外间距按 4pt 网格微调，增加 Apple spring 弹性曲线与微发光；
+4. 顶部搜索与窗口：`AppToolbar` 胶囊搜索框注入 `backdrop-filter: blur(14px)` 毛玻璃、微边框及精致清空按钮，窗口控件调整为柔和圆角微交互；
+5. 底部播放条：`PlayerBar` 播放按键升级为 44px 触感圆形大按钮，带微投影与按压弹性形变；封面增加 squircle 10px 连续圆角与微边框；音量弹层升级为 24px 毛玻璃高饱和质感；
+6. 歌曲列表与卡片：`SongRow` 歌曲行内封面、品质标签升级为 Apple HIG 胶囊徽章样式；`PlaylistCard` 封面圆角升级为 14px 并注入悬停弹性浮起；`DetailHeader` 播放全部升级为高质感胶囊按钮。
 
 ## Rust 迁移地图
 
@@ -58,6 +64,8 @@ npm run test:m43
 npm run test:m44
 npm run test:m45
 npm run test:m46
+npm run test:m47
+npm run test:m48
 npm run build
 npm run build:win
 ```
@@ -72,11 +80,11 @@ cargo test --manifest-path crates/aurora-native/Cargo.toml
 cargo check --manifest-path src-tauri/Cargo.toml
 ```
 
-`npm run test:m46` 覆盖渲染层与主进程原生播放器全双工联动。全仓 lint 如果扫描到未跟踪 `work/` 脚本，应使用正式源码范围的 scoped lint，不要把临时脚本加入提交。
+`npm run test:m48` 覆盖 Apple Design UI 细节美学、HIG 4pt 间距、字体排印与微交互回归。全仓 lint 如果扫描到未跟踪 `work/` 脚本，应使用正式源码范围的 scoped lint，不要把临时脚本加入提交。
 
 ## 下一步建议
 
-下一步进入 M47：Windows 现代化多语言安装程序构建体系与便携包封装（Windows Modern Installer Packaging & Setup Verification）。基于 electron-builder 配置标准 NSIS 安装向导（桌面快捷方式、开始菜单目录、文件扩展名关联、静默安装支持与干净卸载逻辑），配合发布产物生成与 SHA-256 校验核验。每个切片都要保留旧路径、加入确定性回归、升级 `MEMORY.md`，并单独提交和普通推送。
+下一步进入 M49：Windows 安装包构建打包与发布核验（Windows Release Installer Packaging & Integrity Verification）。执行 `npm run build:win` 生成现代化 NSIS 安装程序（`kunyin-desktop-1.1.0-setup.exe`），提取产物体积与 SHA-256 校验和，确保快捷方式、开始菜单及文件关联完备。每个切片都要保留旧路径、加入确定性回归、升级 `MEMORY.md`，并单独提交和普通推送。
 
 ## 提交纪律
 

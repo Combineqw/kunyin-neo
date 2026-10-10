@@ -16,21 +16,23 @@ withDefaults(defineProps<{ min?: boolean; outline?: boolean; disabled?: boolean 
 <style scoped>
 .btn {
   display: inline-block;
-  border: none;
   min-height: 34px;
   border: 1px solid var(--color-border);
-  border-radius: var(--form-radius);
+  border-radius: 12px;
   cursor: pointer;
-  padding: 8px 16px;
+  padding: 8px 18px;
   color: var(--color-button-font);
   outline: none;
   /* transform/filter 过渡由全局 .pressable 统一负责（含按下与弹回两态），
      这里只保留非形变属性的过渡，避免与 .pressable 争夺 transform。 */
   transition:
     background-color var(--anim-dur-fast) var(--anim-ease-standard),
-    box-shadow var(--anim-dur-fast) var(--anim-ease-standard);
+    box-shadow var(--anim-dur-fast) var(--anim-ease-standard),
+    border-color var(--anim-dur-fast) var(--anim-ease-standard);
   background-color: color-mix(in srgb, var(--color-main-background) 82%, var(--color-primary) 18%);
-  font-size: 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
 }
 .btn:disabled {
   opacity: 0.4;

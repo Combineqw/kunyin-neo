@@ -108,11 +108,12 @@ onUnmounted(() => window.removeEventListener('resize', updateIndicator))
 .active-indicator {
   position: absolute;
   z-index: 1;
-  left: 6px;
-  right: 6px;
-  border-radius: var(--radius-card);
+  left: 8px;
+  right: 8px;
+  border-radius: 14px;
   pointer-events: none;
   background-color: var(--color-primary-light-300-alpha-700);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-primary) 18%, transparent);
   transition:
     transform var(--anim-dur-base) var(--anim-ease-spring),
     opacity var(--anim-dur-fast) var(--anim-ease-smooth);
@@ -128,9 +129,9 @@ onUnmounted(() => window.removeEventListener('resize', updateIndicator))
 }
 .link {
   position: absolute;
-  left: 6px;
+  left: 8px;
   top: 0;
-  width: calc(100% - 12px);
+  width: calc(100% - 16px);
   height: 100%;
   display: flex;
   align-items: center;
@@ -138,8 +139,11 @@ onUnmounted(() => window.removeEventListener('resize', updateIndicator))
   color: var(--color-nav-font);
   cursor: pointer;
   outline: none;
-  border-radius: var(--radius-md);
-  transition: opacity var(--anim-dur-fast) var(--anim-ease-smooth);
+  border-radius: 14px;
+  transition:
+    color var(--anim-dur-fast) var(--anim-ease-smooth),
+    background-color var(--anim-dur-fast) var(--anim-ease-smooth),
+    opacity var(--anim-dur-fast) var(--anim-ease-smooth);
 }
 .link.active {
   color: var(--color-primary-font);
@@ -152,11 +156,11 @@ onUnmounted(() => window.removeEventListener('resize', updateIndicator))
   color: var(--color-nav-font);
 }
 .link:hover:not(.active) {
-  opacity: 0.8;
+  opacity: 0.95;
   background-color: var(--color-primary-light-400-alpha-700);
 }
 .link:active:not(.active) {
-  opacity: 0.6;
+  opacity: 0.75;
   background-color: var(--color-primary-light-300-alpha-600);
 }
 </style>

@@ -29,14 +29,18 @@ function open(): void {
 .cover {
   position: relative;
   aspect-ratio: 1 / 1;
-  border-radius: var(--radius-md);
+  border-radius: 14px;
   overflow: hidden;
   background: var(--color-primary-background);
+  border: 1px solid color-mix(in srgb, var(--color-font) 6%, transparent);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-  transition: box-shadow var(--anim-dur-fast) var(--anim-ease-smooth);
+  transition:
+    box-shadow var(--anim-dur-fast) var(--anim-ease-smooth),
+    transform var(--anim-dur-fast) var(--anim-ease-spring);
 }
 .card:hover .cover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
+  transform: translateY(-2px);
 }
 .cover img {
   width: 100%;
@@ -47,15 +51,20 @@ function open(): void {
   position: absolute;
   right: 6px;
   bottom: 6px;
-  padding: 2px 6px;
-  border-radius: var(--form-radius);
+  padding: 3px 8px;
+  border-radius: 999px;
   font-size: 11px;
+  font-weight: 500;
   color: #fff;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.52);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .name {
   margin-top: 8px;
   font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   line-height: 1.35;
   color: var(--color-font);
 }

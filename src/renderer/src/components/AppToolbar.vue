@@ -135,16 +135,15 @@ onUnmounted(() => unsubscribeFullscreen?.())
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 0 0 15px;
+  padding: 0 10px 0 16px;
 }
 .search-wrap {
   position: relative;
-  width: 35%;
-  min-width: 240px;
-  height: 30px;
+  width: 36%;
+  min-width: 250px;
+  height: 32px;
 }
-/* LX SearchInput：搜索盒 absolute 定位，展开提示时整盒向下撑高浮于内容之上；
-   低饱和主色底，聚焦/展开变浅 + 投影 */
+/* Apple HIG 胶囊搜索框与毛玻璃下拉菜单 */
 .search-box {
   position: absolute;
   top: 0;
@@ -154,13 +153,19 @@ onUnmounted(() => unsubscribeFullscreen?.())
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--color-font) 10%, transparent);
   color: var(--color-button-font);
-  background-color: var(--color-primary-light-300-alpha-700);
-  transition: opacity var(--anim-dur-fast) var(--anim-ease-smooth);
+  background-color: color-mix(in srgb, var(--color-main-background) 65%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition:
+    background-color var(--anim-dur-fast) var(--anim-ease-smooth),
+    box-shadow var(--anim-dur-fast) var(--anim-ease-smooth),
+    border-color var(--anim-dur-fast) var(--anim-ease-smooth);
 }
 .search-box:hover,
 .search-box.open {
-  background-color: var(--color-primary-light-600-alpha-100);
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+  background-color: color-mix(in srgb, var(--color-main-background) 88%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary) 35%, transparent);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
 }
 .search-box.open {
   border-radius: 16px;
@@ -170,75 +175,86 @@ onUnmounted(() => unsubscribeFullscreen?.())
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 34px;
-  padding: 0 10px;
+  height: 32px;
+  padding: 0 12px;
 }
 .search-input {
   flex: 1;
   min-width: 0;
-  font-size: 13.5px;
+  font-size: 13px;
+  letter-spacing: -0.01em;
   color: var(--color-font);
   background: none;
 }
 .search-input::placeholder {
-  color: var(--color-button-font);
+  color: var(--color-font-label);
 }
 .clear {
   flex: none;
   display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
   color: var(--color-font-label);
+  transition:
+    color var(--anim-dur-fast) var(--anim-ease-smooth),
+    background-color var(--anim-dur-fast) var(--anim-ease-smooth);
 }
 .clear:hover {
   color: var(--color-font);
+  background-color: color-mix(in srgb, var(--color-font) 8%, transparent);
 }
 
 /* 提示列表：在搜索盒内（同背景同圆角），行 hover 用主题深色半透明（LX .select） */
 .dropdown {
   max-height: 320px;
   overflow-y: auto;
-  padding: 0 0 4px;
+  padding: 4px 6px 6px;
   font-size: 13px;
 }
 .dd-item {
   cursor: pointer;
-  padding: 8px 10px;
+  padding: 8px 12px;
   line-height: 1.3;
   color: var(--color-font);
-  border-radius: 8px;
+  border-radius: 10px;
   transition: background-color var(--anim-dur-fast) var(--anim-ease-smooth);
 }
 .dd-item:hover {
-  background-color: var(--color-primary-dark-100-alpha-700);
+  background-color: var(--color-primary-light-300-alpha-600);
 }
 
-/* LX 窗口按钮：46x30，hover 主题色 */
+/* 窗口控制按钮：精致圆角矩形，hover 主题色 */
 .win-controls {
   flex: none;
   display: flex;
   align-items: center;
-  align-self: stretch;
+  gap: 4px;
 }
 .win-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 46px;
-  height: 30px;
-  margin: 0 3px;
-  border-radius: 999px;
+  width: 36px;
+  height: 28px;
+  border-radius: 8px;
   color: var(--color-font-label);
-  transition: opacity var(--anim-dur-fast) var(--anim-ease-smooth);
+  transition:
+    color var(--anim-dur-fast) var(--anim-ease-smooth),
+    background-color var(--anim-dur-fast) var(--anim-ease-smooth);
 }
 .win-btn:hover {
   color: #fff;
 }
 .win-btn.min:hover {
-  background-color: color-mix(in srgb, var(--color-btn-min) 72%, transparent);
+  background-color: color-mix(in srgb, var(--color-btn-min) 80%, transparent);
 }
 .win-btn.fullscreen:hover {
-  background-color: color-mix(in srgb, var(--color-btn-hide) 72%, transparent);
+  background-color: color-mix(in srgb, var(--color-btn-hide) 80%, transparent);
 }
 .win-btn.close:hover {
-  background-color: color-mix(in srgb, var(--color-btn-close) 72%, transparent);
+  background-color: color-mix(in srgb, var(--color-btn-close) 80%, transparent);
 }
 </style>

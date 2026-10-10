@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.48 — 2026-10-10】
+【kunyin-neo 项目记忆 v5.49 — 2026-10-10】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,19 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10；v5.48 M47 Windows 现代化安装程序体系与多格式文件关联记档：2026-10-10）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10；v5.48 M47 Windows 现代化安装程序体系与多格式文件关联记档：2026-10-10；v5.49 M48 Apple Design 细节美学与质感微调记档：2026-10-10）
+
+◆ M48 Apple Design 细节美学与质感微调 (Apple Design UI Refinements & HIG Detail Polish)（2026-10-10，事实与回执）
+- 用户明确指示：“还要记得用apple-design把ui调整一下下，大体不变”；在保持现有架构与桌面四区布局稳定不变的前提下，依照 Apple HIG 设计规范进行像素级质感精进：
+  · 字体排印体系：`base.css` 补齐 Apple SF Pro 系列微负字偶距（正文 `-0.01em`、标题 `-0.015em`、详情标题 `-0.02em`），注入 `-moz-osx-font-smoothing: grayscale` 与 `text-rendering: optimizeLegibility`；
+  · 玻璃材质与边缘高光：`.glass-surface` 注入 Apple 标志性内边缘高光描边（`box-shadow: inset 0 0.5px 0 0 var(--glass-highlight)`），暗色模式适配内高光与边框；保留 M3 核心 `--glass-thin-blur: 10px` 与 `--glass-thick-blur: 28px` 契约；
+  · 侧栏浮岛（`AppAside.vue`）：胶囊指示器与导航项外间距按 4pt 网格微调，增加 Apple spring 弹性曲线与微发光；
+  · 顶部工具栏（`AppToolbar.vue`）：胶囊搜索框注入 `backdrop-filter: blur(14px)` 毛玻璃、微边框及精致圆形清空按钮，窗口控件调整为柔和圆角微交互；
+  · 底部播放条（`PlayerBar.vue`）：播放键升级为 44px 触感圆形大按钮，带微投影与按压弹性形变；封面增加 squircle 10px 连续圆角与微边框；音量弹层升级为 24px 毛玻璃高饱和质感；
+  · 歌曲行与卡片（`SongRow.vue` / `PlaylistCard.vue` / `DetailHeader.vue`）：歌曲行内封面、品质标签升级为 Apple HIG 胶囊徽章样式；歌单卡片封面圆角升级为 14px 并注入悬停弹性浮起；歌单详情页播放全部升级为高质感胶囊按钮。
+- 自动化测试与质量门禁：
+  · 新增 `scripts/m48-apple-design-ui-refinements-tests.mjs`（`npm run test:m48`）：覆盖字体排印、玻璃内边缘高光、导航指示器、毛玻璃搜索框、44px 播放按键、歌曲品质徽章等断言；
+  · 回归验证：`npm run test:m48`、`npm run test:m47`、`npm run test:m46`、`npm run test:m45`、`npm run test:m44`、`npm test`（9 项全过，含动效约束与主题对比度检查）、`npm run typecheck`、`npm run build`、`git diff --check`（0 errors）全部通过。
 
 ◆ M47 Windows 现代化安装程序体系与多格式文件关联 (Windows Modern Installer Packaging & Setup Verification)（2026-10-10，事实与回执）
 - `electron-builder.yml` Windows 构建与 NSIS 安装向导重构：

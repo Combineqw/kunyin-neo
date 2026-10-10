@@ -62,8 +62,8 @@ watch(
   position: relative;
   display: flex;
   height: 100%;
-  gap: 10px;
-  padding: 10px;
+  gap: 12px;
+  padding: 12px;
   box-sizing: border-box;
   background-color: var(--color-app-background);
   isolation: isolate;
@@ -99,7 +99,7 @@ html.theme-dark[data-theme^='aurora'] .aurora-backdrop {
   flex: none;
   width: var(--width-aside);
   height: 100%;
-  border-radius: 18px;
+  border-radius: 20px;
   overflow: hidden;
 }
 .area-main {

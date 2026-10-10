@@ -84,11 +84,12 @@ const cachedCover = computed(() => coverUrl(props.cover))
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-card);
+  border-radius: 18px;
   overflow: hidden;
   color: var(--color-font-label);
   background: var(--color-primary-background);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  border: 1px solid color-mix(in srgb, var(--color-font) 8%, transparent);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14);
 }
 .dh-cover.round {
   border-radius: 50%;
@@ -106,8 +107,9 @@ const cachedCover = computed(() => coverUrl(props.cover))
   justify-content: center;
 }
 .dh-title {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--color-font);
 }
 .dh-subtitle {
@@ -130,17 +132,20 @@ const cachedCover = computed(() => coverUrl(props.cover))
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 9px 20px;
+  padding: 9px 22px;
   border-radius: 999px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: #fff;
   background: var(--color-primary);
-  box-shadow: 0 4px 12px var(--color-primary-alpha-300);
-  transition: background-color var(--anim-dur-fast) var(--anim-ease-smooth);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-primary) 36%, transparent);
+  transition:
+    background-color var(--anim-dur-fast) var(--anim-ease-smooth),
+    box-shadow var(--anim-dur-fast) var(--anim-ease-smooth);
 }
 .play-all:hover {
   background: var(--color-primary-dark-100);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-primary) 46%, transparent);
 }
 .download-all {
   display: flex;
@@ -162,12 +167,15 @@ const cachedCover = computed(() => coverUrl(props.cover))
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   color: var(--color-font-label);
   background: var(--color-primary-background);
-  transition: opacity var(--anim-dur-fast) var(--anim-ease-smooth);
+  border: 1px solid var(--color-border);
+  transition:
+    color var(--anim-dur-fast) var(--anim-ease-smooth),
+    background-color var(--anim-dur-fast) var(--anim-ease-smooth);
 }
 .fav:hover {
   color: var(--color-primary-font);

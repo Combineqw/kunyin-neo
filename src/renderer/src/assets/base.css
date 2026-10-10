@@ -110,8 +110,8 @@
   /* ---- 玻璃基础（Apple HIG 材质标准） ----
      三档只改变材质厚度；组件使用 .glass-surface 选择档位，不直接写透明度。
      背景变量先给出可用的纯色/半透明降级，支持 backdrop-filter 时再叠加模糊。 */
-  --glass-thin-background: color-mix(in srgb, var(--color-main-background) 62%, transparent);
-  --glass-regular-background: color-mix(in srgb, var(--color-main-background) 76%, transparent);
+  --glass-thin-background: color-mix(in srgb, var(--color-main-background) 65%, transparent);
+  --glass-regular-background: color-mix(in srgb, var(--color-main-background) 78%, transparent);
   --glass-thick-background: color-mix(in srgb, var(--color-main-background) 90%, transparent);
   --glass-thin-blur: 10px;
   --glass-regular-blur: 18px;
@@ -119,9 +119,9 @@
   --glass-thin-saturation: 1.8;
   --glass-regular-saturation: 1.8;
   --glass-thick-saturation: 1.8;
-  --glass-border: color-mix(in srgb, var(--color-font) 14%, transparent);
-  --glass-highlight: color-mix(in srgb, white 44%, transparent);
-  --glass-shadow: 0 14px 36px rgba(0, 0, 0, 0.14);
+  --glass-border: color-mix(in srgb, var(--color-font) 10%, transparent);
+  --glass-highlight: rgba(255, 255, 255, 0.4);
+  --glass-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
 }
 
 /* ================= 深色模式修正 =================
@@ -143,6 +143,9 @@ html.theme-dark {
      浮层改用"描边 + 更强投影"表达高度，见下方 ring 规则。 */
   --color-ring: var(--color-primary-alpha-500);
   --color-shadow-floating: rgba(0, 0, 0, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-highlight: rgba(255, 255, 255, 0.14);
+  --glass-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
 }
 
 /* Shell surfaces keep the theme's two background roles in dark mode. The
@@ -159,7 +162,7 @@ html.theme-dark .area-main {
 /* 玻璃基础类：保持语义变量与组件结构解耦，先能在不支持透明模糊的环境工作。 */
 .glass-surface {
   border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
+  box-shadow: inset 0 0.5px 0 0 var(--glass-highlight), var(--glass-shadow);
   background: var(--glass-regular-background);
 }
 .glass-thin {
@@ -328,12 +331,15 @@ body {
 }
 body {
   font-family: var(--app-font, var(--font-system));
-  line-height: 1.2;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
   color: var(--color-font);
   overflow: hidden;
   overscroll-behavior: contain;
   user-select: none;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 /* #app = LX #root：主题背景图 + 内容底色（侧栏 app-background 半透明时透出的底）。
    字体大小档位经 --app-zoom（=fontSize/16）整体缩放。Chromium 128+ 标准化了 zoom：
@@ -745,6 +751,7 @@ html[data-theme^='aurora'].theme-dark .aurora-divider::after {
   margin-bottom: 16px;
   font-size: 20px;
   font-weight: 700;
+  letter-spacing: -0.015em;
   color: var(--color-font);
 }
 .hint {

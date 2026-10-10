@@ -200,8 +200,8 @@ async function cyclePlayMode(): Promise<void> {
   height: var(--height-player);
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 6px 6px;
+  gap: 12px;
+  padding: 8px 12px 6px;
 }
 .progress {
   position: absolute;
@@ -209,15 +209,15 @@ async function cyclePlayMode(): Promise<void> {
   top: 0;
   left: 0;
   width: 100%;
-  height: 4px;
+  height: 3px;
   background-color: var(--color-primary-background);
+  transition: height var(--anim-dur-fast) var(--anim-ease-smooth);
 }
 .progress-fill {
   position: absolute;
   inset: 0;
   transform-origin: left center;
   background-color: var(--color-primary);
-  transition: transform var(--anim-dur-fast) linear;
   pointer-events: none;
 }
 .progress-input {
@@ -233,7 +233,7 @@ async function cyclePlayMode(): Promise<void> {
   cursor: default;
 }
 .progress:hover {
-  height: 6px;
+  height: 5px;
 }
 .progress:hover .progress-input {
   inset: -4px 0;
@@ -243,21 +243,25 @@ async function cyclePlayMode(): Promise<void> {
   opacity: 0.55;
 }
 
-/* 封面：高=栏内容高，正方形 */
+/* 封面：高=栏内容高，正方形，Apple Music 圆角微投影 */
 .cover {
   flex: none;
   height: 100%;
   aspect-ratio: 1 / 1;
-  border-radius: var(--radius-md);
+  border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  transition: box-shadow var(--anim-dur-fast) var(--anim-ease-smooth);
+  border: 1px solid color-mix(in srgb, var(--color-font) 8%, transparent);
+  transition:
+    box-shadow var(--anim-dur-fast) var(--anim-ease-smooth),
+    transform var(--anim-dur-fast) var(--anim-ease-spring);
 }
 .cover.clickable {
   cursor: pointer;
 }
 .cover.clickable:hover {
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  transform: scale(1.02);
 }
 .cover img {
   width: 100%;
@@ -280,12 +284,14 @@ async function cyclePlayMode(): Promise<void> {
 }
 .title {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--color-font);
 }
 .artist {
   font-size: 12px;
   color: var(--color-font-label);
+  margin-top: 1px;
 }
 .err {
   font-size: 12px;
@@ -344,13 +350,16 @@ async function cyclePlayMode(): Promise<void> {
 }
 .vol-pop {
   position: absolute;
-  bottom: calc(100% + 8px);
+  bottom: calc(100% + 10px);
   left: 50%;
   transform: translateX(-50%);
-  padding: 12px 8px;
-  border-radius: 14px;
-  background-color: var(--color-content-background);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  padding: 14px 10px;
+  border-radius: 16px;
+  background-color: var(--glass-thick-background);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
 }
 /* 隐形桥接区：填平按钮与弹层之间的空隙，移向滑杆途中不触发 mouseleave */
 .vol-pop::after {
@@ -370,13 +379,13 @@ async function cyclePlayMode(): Promise<void> {
   cursor: pointer;
 }
 
-/* 播放键组：最右侧，gap 18px，右 padding 15px */
+/* 播放键组：最右侧，gap 16px，右 padding 12px */
 .play-btns {
   flex: none;
   display: flex;
   align-items: center;
-  gap: 18px;
-  padding-right: 15px;
+  gap: 16px;
+  padding-right: 12px;
 }
 .ctrl {
   display: flex;
@@ -395,13 +404,23 @@ async function cyclePlayMode(): Promise<void> {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border-radius: 999px;
-  background-color: var(--color-button-background);
-  color: var(--color-primary-font);
+  background-color: var(--color-primary);
+  color: #fff;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-primary) 36%, transparent);
+  transition:
+    background-color var(--anim-dur-fast) var(--anim-ease-smooth),
+    box-shadow var(--anim-dur-fast) var(--anim-ease-smooth),
+    transform var(--anim-dur-fast) var(--anim-ease-spring);
 }
 .play:hover {
-  color: var(--color-primary-font-hover);
+  background-color: var(--color-primary-dark-100);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-primary) 46%, transparent);
+  transform: scale(1.04);
+}
+.play:active {
+  transform: scale(0.94);
 }
 </style>

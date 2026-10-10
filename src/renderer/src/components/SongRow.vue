@@ -266,18 +266,19 @@ function onSelect(key: string): void {
   height: 60px;
   font-size: 12.5px;
   color: var(--color-font);
-  /* transform/filter 过渡交给全局 .pressable；这里只留背景色，
-     原来的 transition:none 会连带掐掉按压回弹。 */
-  transition: background-color var(--anim-dur-fast) var(--anim-ease-smooth);
+  transition:
+    background-color var(--anim-dur-fast) var(--anim-ease-smooth),
+    border-color var(--anim-dur-fast) var(--anim-ease-smooth);
   margin: 3px 0;
-  padding: 0 6px;
-  border: 1px solid color-mix(in srgb, var(--color-font) 7%, transparent);
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--color-font) 5%, transparent);
   border-radius: 12px;
-  background: color-mix(in srgb, var(--color-main-background) 38%, transparent);
+  background: color-mix(in srgb, var(--color-main-background) 42%, transparent);
   contain: layout;
 }
 .song-row:hover {
   background-color: var(--color-primary-background-hover);
+  border-color: color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 .song-row.selected {
   background-color: var(--color-primary-light-100-alpha-600);
@@ -291,18 +292,20 @@ function onSelect(key: string): void {
   min-width: 0;
 }
 .cell.cover {
-  flex: 0 0 68px;
+  flex: 0 0 64px;
   display: flex;
   align-items: center;
 }
 .row-cover {
   position: relative;
   flex: none;
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   border-radius: 10px;
   overflow: hidden;
   background: var(--color-primary-background);
+  border: 1px solid color-mix(in srgb, var(--color-font) 6%, transparent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 .row-cover img {
   width: 100%;
@@ -336,25 +339,34 @@ function onSelect(key: string): void {
 }
 .quality-tag {
   flex: none;
-  font-size: 11px;
+  font-size: 10.5px;
   line-height: 1.2;
   font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
 }
 .quality-tag.primary {
   color: var(--color-badge-primary);
+  background: color-mix(in srgb, var(--color-badge-primary) 12%, transparent);
 }
 .quality-tag.secondary {
   color: var(--color-badge-secondary);
+  background: color-mix(in srgb, var(--color-badge-secondary) 12%, transparent);
 }
 .quality-tag.tertiary {
   color: var(--color-font-label);
+  background: color-mix(in srgb, var(--color-font-label) 10%, transparent);
 }
 .source-tag {
   flex: none;
-  font-size: 11px;
+  font-size: 10.5px;
   line-height: 1.2;
+  font-weight: 500;
+  padding: 1px 5px;
+  border-radius: 4px;
   color: var(--color-badge-tertiary);
-  opacity: 0.85;
+  background: color-mix(in srgb, var(--color-badge-tertiary) 12%, transparent);
 }
 .cell.singer {
   flex: 0 0 22%;
