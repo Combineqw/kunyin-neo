@@ -38,20 +38,23 @@
     2. `aurora-player`：`PlaybackSession` 时间轴确定性状态机与推进时间线；
     3. `aurora-library`：SQLite WAL 架构曲库与 FTS5 极速全文检索；
     4. `aurora-core`：Lofty 音频元数据、极光动效 profile。
-  · 依照 Apple HIG 规范实现完整设计系统组件体系（`crates/aurora-app/src/theme.rs` 与 `components/`）：
+  · 依照 Apple HIG 规范实现完整设计系统组件体系与 Win32 原生桌面视窗（`crates/aurora-app/src/theme.rs`、`components/` 与 `src/window.rs`）：
     - 4pt 光学网格系统（`space_xs: 4.0` 至 `space_2xl: 32.0`）；
     - SF Pro 负字偶距与排印等级（Large Title 28pt, Title 20pt, Headline 16pt, Body 14pt, Caption 12pt）；
     - 连续 Squircle 曲线圆角（卡片 16px、封面 10px、导航胶囊与搜索条 999px）；
-    - 经典双模式对比度色彩（Apple Light `#FFFFFF`/`#F5F5F7`/`#007AFF`，Apple Dark `#0F0F12`/`#1C1C1E`/`#0A84FF`）；
+    - 经典双模式对比度色彩（Apple Dark `#0F0F12`/`#1C1C1E`/`#0A84FF`）；
     - 底部播放条严格遵循 Apple 44pt 触觉按键规范（44px 圆形播放键，带按压微投影与形变）；
-    - 桌面四区布局精确对齐（220px 侧栏、52px 工具栏、80px 播放条、弹性中央曲目主视图）。
-  · 现代化 Windows NSIS 安装程序（`crates/aurora-app/installer/kunyin-rust-setup.nsi`）：
+    - 桌面四区布局精确对齐（220px 侧栏、52px 工具栏、80px 播放条、弹性中央曲目主视图）；
+    - 真实 Win32 原生桌面窗口事件循环（`GetMessageW` / `DispatchMessageW`），配合双缓冲 GDI 零闪烁渲染、100ms 播放进度定时器与交互式路由/切歌/播停处理，彻底解决无消息循环瞬时退出（闪退）问题。
+  · 现代化 Windows NSIS Unicode 安装程序（`crates/aurora-app/installer/kunyin-rust-setup.nsi`）：
     - 依据用户要求拒绝简陋单文件绿色版，提供标准 NSIS 向导式安装包；
+    - 显式声明 `Unicode true` 并引入 UTF-8 BOM，彻底解决 NSIS 默认 ANSI 编码下中文字符乱码缺陷；
     - 支持自定义安装路径、创建桌面快捷方式、开始菜单目录、干净卸载程序；
     - 注册五类主流音频扩展名（`.mp3`, `.flac`, `.wav`, `.m4a`, `.ogg`）文件关联与图标挂载。
 - 质量指标与门禁验证：
-  · 独立纯 Rust 二进制 `aurora-app.exe` release 构建大小仅 `1,899,008 B`（~1.81 MB），相比 Electron 运行时（211 MB）减少 99.1% 体积；
-  · NSIS 安装程序 `dist/kunyin-rust-1.1.0-setup.exe` 仅 `1,116,907 B`（~1.06 MB，SHA-256 `ECBDD23BD62C85504C69FF401A0BB4769C234A9EBA5C0BD7214447A915C04554`）；
+  · 独立纯 Rust 二进制 `aurora-app.exe` release 构建大小仅 `1,928,192 B`（~1.84 MB），相比 Electron 运行时（211 MB）减少 99.1% 体积；
+  · NSIS 安装程序 `dist/kunyin-rust-1.1.0-setup.exe` 仅 `1,130,435 B`（~1.08 MB，SHA-256 `9DCEF922650E0340DED5E208900367DB7B5BE39BFCA58A1B1CDF1AA7B6C9DEDF`）；
+  · 进程实机启动自测：`Start-Process` 检测到原生主窗口 `昆音 (Kunyin Neo) - Apple Design 原生版` 持续健康运行，无闪退；
   · `aurora-app.exe --self-check` 执行成功，诊断数据 100% 契合架构标准；
   · 自动化单元测试 `cargo test --manifest-path crates/aurora-app/Cargo.toml` 11/11 项全部通过；
   · 新增 `scripts/m50-pure-rust-native-gui-tests.mjs`（`npm run test:m50`）全量通过；

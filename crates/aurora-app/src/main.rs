@@ -44,4 +44,9 @@ fn main() {
     }
     println!("Theme initialized: {:?}", app.theme.mode);
     println!("Ready. Launching 100% pure Rust desktop window...");
+
+    if let Err(err) = aurora_app::window::win32::run_desktop_window(app) {
+        eprintln!("Failed to run native desktop window: {err}");
+        std::process::exit(1);
+    }
 }

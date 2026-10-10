@@ -1,7 +1,9 @@
-; ==============================================================================
+﻿; ==============================================================================
 ; KUNYIN Neo (Pure Rust Native) Windows NSIS Installer Script
 ; Zero WebView / Zero Electron / 100% Pure Rust Architecture
 ; ==============================================================================
+
+Unicode true
 
 !include "MUI2.nsh"
 !include "FileFunc.nsh"

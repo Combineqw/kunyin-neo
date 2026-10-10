@@ -10,6 +10,7 @@
 pub mod theme;
 pub mod state;
 pub mod components;
+pub mod window;
 
 pub use theme::{AppleTheme, ThemeMode, AppleColors, AppleMetrics};
 pub use state::{AppState, AppRoute, AppTrack, DspSettings};

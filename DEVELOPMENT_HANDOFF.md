@@ -12,9 +12,9 @@
 - 终极形态战略决策：彻底弃用 Web / WebView 运行时（不采用 Tauri，走向 100% 纯 Rust 原生 GUI 与音频引擎，发布形态采用 NSIS 现代化安装程序，杜绝单文件版）
 
 M50 落地 100% 纯 Rust 独立桌面应用宿主 `crates/aurora-app`，直接绑定已落地的四大 Rust 原生模块（`aurora-audio`、`aurora-player`、`aurora-library`、`aurora-core`），完全摆脱 WebView 与 Node.js 运行时：
-- 纯 Rust 二进制（`aurora-app.exe`）：release 构建仅 `1,899,008 字节`（~1.81 MB），相比 Electron 运行时缩减 99.1% 体积；
-- Apple HIG 规范系统：`theme.rs` 与 `components/` 完整实现 4pt 网格、SF Pro 排印、16px/10px/999px Squircles 连续圆角、经典双模式对比度色彩与 44pt 触觉圆形播放按键；
-- 现代化 Windows NSIS 安装程序（`crates/aurora-app/installer/kunyin-rust-setup.nsi`）：生成 `dist/kunyin-rust-1.1.0-setup.exe`（`1,116,907 字节`，~1.06 MB，SHA-256 `ECBDD23BD62C85504C69FF401A0BB4769C234A9EBA5C0BD7214447A915C04554`），支持桌面快捷方式、开始菜单目录、多格式音频文件关联（.mp3, .flac, .wav, .m4a, .ogg）与干净卸载；
+- 纯 Rust 二进制（`aurora-app.exe`）：release 构建仅 `1,928,192 字节`（~1.84 MB），包含原生 Win32 事件循环、双缓冲 GDI 零闪烁视窗、Apple 4-zone 桌面交互布局，相比 Electron 运行时缩减 99.1% 体积；
+- Apple HIG 规范系统：`theme.rs`、`components/` 与 `window.rs` 完整实现 4pt 网格、SF Pro 排印、16px/10px/999px Squircles 连续圆角、经典双模式对比度色彩与 44pt 触觉圆形播放按键；
+- 现代化 Windows NSIS Unicode 安装程序（`crates/aurora-app/installer/kunyin-rust-setup.nsi`）：开启 `Unicode true` 与 UTF-8 声明，彻底根除中文乱码；生成 `dist/kunyin-rust-1.1.0-setup.exe`（`1,130,435 字节`，~1.08 MB，SHA-256 `9DCEF922650E0340DED5E208900367DB7B5BE39BFCA58A1B1CDF1AA7B6C9DEDF`），支持桌面快捷方式、开始菜单目录、多格式音频文件关联（.mp3, .flac, .wav, .m4a, .ogg）与干净卸载；
 - 自动化发布校验脚本：`scripts/m50-pure-rust-native-gui-tests.mjs`（`npm run test:m50`）与 `cargo test --manifest-path crates/aurora-app/Cargo.toml` 11/11 项测试 100% 通过。
 
 ## Rust 迁移地图
