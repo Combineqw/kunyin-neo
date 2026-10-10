@@ -310,7 +310,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { playbackSnapshot, playbackLoad, playbackPlay, playbackPause, playbackSeek, playbackTick, playbackStop, audioBackendCapabilities, audioReplayGainLinear, audioReplayGainDb, themeMotionProfile, nativeAudioStartFile, nativeAudioPlay, nativeAudioPause, nativeAudioSetVolume, nativeAudioSeek, nativeAudioStop, nativeAudioSnapshot, audioDecryptQmc2Chunk, audioStreamCreate, audioStreamDecrypt, audioStreamClose, remoteStreamNegotiateFormat, remotePlaybackShadowCreate, remotePlaybackShadowUpdateResponse, remotePlaybackShadowReceiveChunk, remotePlaybackShadowSeek, remotePlaybackShadowSetPlayState, remotePlaybackShadowSnapshot, remotePlaybackShadowClose, downloadCreate, downloadWrite, downloadCommit, downloadAbort, audioDecryptQmc2File, scanDirectory, parseTrack, readAudioTags, writeAudioTags, scanLyrics, readSettings, writeSettings, settingsRoundtrip, nativeVersion, syncNormalizeBaseUrl, syncValidateSession, providerParseQqTrack, providerParseWyTrack } = nativeBinding
+const { playbackSnapshot, playbackLoad, playbackPlay, playbackPause, playbackSeek, playbackTick, playbackStop, audioBackendCapabilities, audioReplayGainLinear, audioReplayGainDb, themeMotionProfile, nativeAudioStartFile, nativeAudioPlay, nativeAudioPause, nativeAudioSetVolume, nativeAudioSeek, nativeAudioStop, nativeAudioSnapshot, audioDecryptQmc2Chunk, audioStreamCreate, audioStreamDecrypt, audioStreamClose, remoteStreamNegotiateFormat, remotePlaybackShadowCreate, remotePlaybackShadowUpdateResponse, remotePlaybackShadowReceiveChunk, remotePlaybackShadowSeek, remotePlaybackShadowSetPlayState, remotePlaybackShadowSnapshot, remotePlaybackShadowClose, remoteStreamPlanRange, remoteStreamGetBufferedRanges, remoteStreamIsOffsetBuffered, remoteStreamCalculateSeekRange, downloadCreate, downloadWrite, downloadCommit, downloadAbort, audioDecryptQmc2File, scanDirectory, parseTrack, readAudioTags, writeAudioTags, scanLyrics, readSettings, writeSettings, settingsRoundtrip, nativeVersion, syncNormalizeBaseUrl, syncValidateSession, providerParseQqTrack, providerParseWyTrack } = nativeBinding
 
 module.exports.playbackSnapshot = playbackSnapshot
 module.exports.playbackLoad = playbackLoad
@@ -342,6 +342,10 @@ module.exports.remotePlaybackShadowSeek = remotePlaybackShadowSeek
 module.exports.remotePlaybackShadowSetPlayState = remotePlaybackShadowSetPlayState
 module.exports.remotePlaybackShadowSnapshot = remotePlaybackShadowSnapshot
 module.exports.remotePlaybackShadowClose = remotePlaybackShadowClose
+module.exports.remoteStreamPlanRange = remoteStreamPlanRange
+module.exports.remoteStreamGetBufferedRanges = remoteStreamGetBufferedRanges
+module.exports.remoteStreamIsOffsetBuffered = remoteStreamIsOffsetBuffered
+module.exports.remoteStreamCalculateSeekRange = remoteStreamCalculateSeekRange
 module.exports.downloadCreate = downloadCreate
 module.exports.downloadWrite = downloadWrite
 module.exports.downloadCommit = downloadCommit

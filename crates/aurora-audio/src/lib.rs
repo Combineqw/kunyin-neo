@@ -32,8 +32,9 @@ pub use qmc2::{decrypt_qmc2_chunk, Qmc2Decryptor};
 mod remote;
 pub use remote::{
     negotiate_remote_format, normalize_upstream_url, AudioContainer, BufferWatermark,
-    EncryptionScheme, NegotiatedFormat, PlaybackState, RemotePlaybackShadowSession,
-    RemotePlaybackShadowSnapshot, RemoteSeekState, SeekStatus, WatermarkStatus,
+    BufferedRanges, ByteRange, EncryptionScheme, NegotiatedFormat, PlaybackState, PreloadPriority,
+    RangePlan, RemotePlaybackShadowSession, RemotePlaybackShadowSnapshot, RemoteSeekState,
+    SeekRangeCalculation, SeekStatus, StreamRangePlanner, WatermarkStatus,
 };
 
 /// ReplayGain DSP boundary shared by native output adapters.

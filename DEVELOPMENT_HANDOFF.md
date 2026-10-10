@@ -5,12 +5,12 @@
 ## 当前基线
 
 - 分支：`master`
-- M38 工作内容：Apple Design HIG 规范对齐与无极帧率调度（Stepless FPS & GPU Scheduling）
+- M39 工作内容：远程流分块预加载调度与 HTTP Range 规划（Remote Stream Chunk Preload & Range Planning）
 - 产品版本：`1.1.0`
 - 远端：`https://github.com/Combineqw/kunyin-neo.git`
 - 技术栈：Electron 39、Vue 3、TypeScript、Rust、N-API-RS、Tauri 2 验证壳
 
-M38 依照 `apple-design` 规范全面对齐全局 Apple HIG 设计系统（SF Pro 排版字体栈、4pt 网格间距与圆角 tokens、毛玻璃饱和度提升至 1.8、图片 squircle 圆角）。优化设置页卡片微对比度、消除浅色发黄与色差，统一 `BaseBtn`、`BaseSelect`、`DetailHeader`、`PlaylistCard`、`PlayerBar` 与 `AppAside` 交互材质与触觉反馈。同时落实长期产品规划中的极光背景无极帧率调度（`themeFps: number | null`，支持自适应刷新率、0 FPS 静态节能与 15~144 FPS 无极调节，并动态同步到 Rust 原生 `motionProfile`）。旧音频取流、解码与混音管线保持原样。
+M39 把非连续已缓冲区间聚合（`ByteRange`、`BufferedRanges`，自动合并重叠/相邻分块、缺口探测）、HTTP Range 确定性预加载调度（`StreamRangePlanner`、`RangePlan`，按向前缓冲深度判定 `Critical` / `High` / `Normal` / `Idle` 优先级并做 64 KiB 对齐）以及 Seek 时间戳对齐计算引入 `crates/aurora-audio`。由 `crates/aurora-native` 暴露 4 个 N-API 导出，并在 `src/main/native/bridge.ts` 与 `src/main/audio/protocol.ts` 建立 Range 规划影子观测。现有网络取流、QMC2 解密、Chromium `<audio>` 解码与 Web Audio 渲染完全保留。
 
 ## Rust 迁移地图
 
@@ -49,6 +49,7 @@ npm test
 npm run test:m36
 npm run test:m37
 npm run test:m38
+npm run test:m39
 npm run build
 npm run build:win
 ```
@@ -63,11 +64,11 @@ cargo test --manifest-path crates/aurora-native/Cargo.toml
 cargo check --manifest-path src-tauri/Cargo.toml
 ```
 
-`npm run test:m37` 需要先执行 `npm run native:build`。全仓 lint 如果扫描到未跟踪 `work/` 脚本，应使用正式源码范围的 scoped lint，不要把临时脚本加入提交。
+`npm run test:m39` 需要先执行 `npm run native:build`。全仓 lint 如果扫描到未跟踪 `work/` 脚本，应使用正式源码范围的 scoped lint，不要把临时脚本加入提交。
 
 ## 下一步建议
 
-下一块适合推进远程流分块预加载调度与 native HTTP range 适配，进一步把 shadow session 与原生解码/混音管线对接。每个切片都要保留旧路径、加入确定性回归、升级 `MEMORY.md`，并单独提交和普通推送。
+下一块适合推进原生流式下载分块写入缓存与本地环形预读缓冲区（Native Ring Buffer Cache），进一步把 Range 请求结果在 Rust 内存/临时文件中持久化，以便原生 Symphonia 解码管线直接对接而无需重复下载。每个切片都要保留旧路径、加入确定性回归、升级 `MEMORY.md`，并单独提交和普通推送。
 
 ## 提交纪律
 

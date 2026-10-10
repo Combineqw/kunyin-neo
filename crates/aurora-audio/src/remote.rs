@@ -402,6 +402,341 @@ impl RemoteSeekState {
     }
 }
 
+/// A half-open byte interval `[start, end)` representing a contiguous cached slice.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ByteRange {
+    pub start: u64,
+    pub end: u64,
+}
+
+impl ByteRange {
+    pub fn new(start: u64, end: u64) -> Self {
+        let (s, e) = if start <= end {
+            (start, end)
+        } else {
+            (end, start)
+        };
+        Self { start: s, end: e }
+    }
+
+    pub fn length(&self) -> u64 {
+        self.end.saturating_sub(self.start)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.start >= self.end
+    }
+
+    pub fn contains(&self, offset: u64) -> bool {
+        offset >= self.start && offset < self.end
+    }
+
+    pub fn overlaps_or_adjacent(&self, other: &Self) -> bool {
+        self.start <= other.end && other.start <= self.end
+    }
+
+    pub fn merge(&self, other: &Self) -> Self {
+        Self {
+            start: self.start.min(other.start),
+            end: self.end.max(other.end),
+        }
+    }
+}
+
+/// Sorted, non-overlapping collection of contiguous byte ranges.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BufferedRanges {
+    ranges: Vec<ByteRange>,
+}
+
+impl BufferedRanges {
+    pub fn new() -> Self {
+        Self { ranges: Vec::new() }
+    }
+
+    pub fn ranges(&self) -> &[ByteRange] {
+        &self.ranges
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.ranges.is_empty()
+    }
+
+    pub fn count(&self) -> usize {
+        self.ranges.len()
+    }
+
+    pub fn total_bytes(&self) -> u64 {
+        self.ranges.iter().map(|r| r.length()).sum()
+    }
+
+    pub fn contains_offset(&self, offset: u64) -> bool {
+        self.ranges.iter().any(|r| r.contains(offset))
+    }
+
+    /// Insert a received range [start, start + length) and coalesce overlapping or adjacent intervals.
+    pub fn insert(&mut self, start: u64, length: u64) {
+        if length == 0 {
+            return;
+        }
+        let incoming = ByteRange::new(start, start.saturating_add(length));
+        let mut new_ranges = Vec::with_capacity(self.ranges.len() + 1);
+        let mut merged = incoming;
+        let mut inserted = false;
+
+        for r in &self.ranges {
+            if merged.overlaps_or_adjacent(r) {
+                merged = merged.merge(r);
+            } else if r.start > merged.end {
+                if !inserted {
+                    new_ranges.push(merged);
+                    inserted = true;
+                }
+                new_ranges.push(*r);
+            } else {
+                new_ranges.push(*r);
+            }
+        }
+
+        if !inserted {
+            new_ranges.push(merged);
+        }
+
+        self.ranges = new_ranges;
+    }
+
+    /// Return continuous contiguous bytes buffered starting from `offset`.
+    pub fn contiguous_bytes_from(&self, offset: u64) -> u64 {
+        for r in &self.ranges {
+            if r.contains(offset) {
+                return r.end.saturating_sub(offset);
+            }
+        }
+        0
+    }
+
+    /// Find the next unbuffered gap starting from or after `from_offset`.
+    pub fn find_next_gap(
+        &self,
+        from_offset: u64,
+        max_gap_bytes: u64,
+        total_bytes: Option<u64>,
+    ) -> Option<ByteRange> {
+        let mut probe = from_offset;
+        for r in &self.ranges {
+            if r.end <= probe {
+                continue;
+            }
+            if r.start <= probe {
+                // Currently inside a buffered range; jump probe to its end
+                probe = r.end;
+            } else {
+                // Gap between probe and r.start
+                let gap_start = probe;
+                let desired_end = gap_start.saturating_add(max_gap_bytes);
+                let gap_end = desired_end.min(r.start);
+                let effective_end = if let Some(tot) = total_bytes {
+                    gap_end.min(tot)
+                } else {
+                    gap_end
+                };
+                if effective_end > gap_start {
+                    return Some(ByteRange::new(gap_start, effective_end));
+                }
+                return None;
+            }
+        }
+
+        // Beyond all buffered ranges
+        let gap_start = probe;
+        let desired_end = gap_start.saturating_add(max_gap_bytes);
+        let effective_end = if let Some(tot) = total_bytes {
+            if gap_start >= tot {
+                return None;
+            }
+            desired_end.min(tot)
+        } else {
+            desired_end
+        };
+
+        if effective_end > gap_start {
+            Some(ByteRange::new(gap_start, effective_end))
+        } else {
+            None
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.ranges.clear();
+    }
+}
+
+/// Preload urgency based on forward buffer depth.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum PreloadPriority {
+    /// Forward buffer is below critical threshold (< 64 KiB) or empty.
+    Critical,
+    /// Forward buffer is below low watermark; fetch promptly.
+    High,
+    /// Normal streaming window prefetching.
+    Normal,
+    /// Forward buffer is above high watermark; prefetch may pause.
+    Idle,
+}
+
+/// A planned HTTP Range request.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RangePlan {
+    pub range_start: u64,
+    pub range_end: u64,
+    pub priority: PreloadPriority,
+    pub is_cached: bool,
+    pub chunk_size: u64,
+    pub http_range_header: String,
+}
+
+/// Result of calculating a seek target byte range.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SeekRangeCalculation {
+    pub target_ms: u64,
+    pub estimated_byte: u64,
+    pub aligned_range_start: u64,
+    pub planned_range_end: u64,
+    pub http_range_header: String,
+}
+
+/// Planner for stream chunk preloading and HTTP Range boundaries.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StreamRangePlanner {
+    pub default_chunk_size: u64,
+    pub min_chunk_size: u64,
+    pub max_chunk_size: u64,
+    pub alignment_bytes: u64,
+}
+
+impl Default for StreamRangePlanner {
+    fn default() -> Self {
+        Self {
+            default_chunk_size: 512 * 1024,  // 512 KiB
+            min_chunk_size: 64 * 1024,       // 64 KiB
+            max_chunk_size: 2 * 1024 * 1024, // 2 MiB
+            alignment_bytes: 64 * 1024,      // 64 KiB
+        }
+    }
+}
+
+impl StreamRangePlanner {
+    pub fn new(default_chunk_size: u64, alignment_bytes: u64) -> Self {
+        let align = alignment_bytes.max(1024);
+        Self {
+            default_chunk_size: default_chunk_size.max(align),
+            alignment_bytes: align,
+            ..Default::default()
+        }
+    }
+
+    /// Plan the next HTTP Range request given the current playback offset and buffered ranges.
+    pub fn plan_next_range(
+        &self,
+        current_offset: u64,
+        buffered: &BufferedRanges,
+        total_bytes: Option<u64>,
+        low_watermark: u64,
+        high_watermark: u64,
+        requested_chunk_size: Option<u64>,
+    ) -> Option<RangePlan> {
+        let chunk_size = requested_chunk_size
+            .unwrap_or(self.default_chunk_size)
+            .clamp(self.min_chunk_size, self.max_chunk_size);
+
+        let contiguous_forward = buffered.contiguous_bytes_from(current_offset);
+        let priority = if contiguous_forward < self.min_chunk_size {
+            PreloadPriority::Critical
+        } else if contiguous_forward < low_watermark {
+            PreloadPriority::High
+        } else if contiguous_forward >= high_watermark {
+            PreloadPriority::Idle
+        } else {
+            PreloadPriority::Normal
+        };
+
+        let gap = buffered.find_next_gap(current_offset, chunk_size, total_bytes)?;
+        let is_cached = buffered.contains_offset(gap.start);
+
+        let aligned_start = (gap.start / self.alignment_bytes) * self.alignment_bytes;
+        let start = if aligned_start >= current_offset {
+            aligned_start
+        } else {
+            gap.start
+        };
+
+        let raw_end = start.saturating_add(chunk_size);
+        let end = if let Some(tot) = total_bytes {
+            raw_end.min(tot)
+        } else {
+            raw_end
+        };
+
+        if end <= start {
+            return None;
+        }
+
+        let http_range_header = format!("bytes={}-{}", start, end.saturating_sub(1));
+
+        Some(RangePlan {
+            range_start: start,
+            range_end: end,
+            priority,
+            is_cached,
+            chunk_size: end.saturating_sub(start),
+            http_range_header,
+        })
+    }
+
+    /// Calculate seek byte offset with alignment and duration scaling.
+    pub fn calculate_seek_range(
+        &self,
+        target_ms: u64,
+        duration_ms: u64,
+        total_bytes: Option<u64>,
+        requested_align: Option<u64>,
+    ) -> SeekRangeCalculation {
+        let align = requested_align.unwrap_or(self.alignment_bytes).max(1024);
+
+        let estimated_byte = if let (Some(tot), true) = (total_bytes, duration_ms > 0) {
+            let clamped_ms = target_ms.min(duration_ms);
+            (clamped_ms.saturating_mul(tot)) / duration_ms
+        } else {
+            0
+        };
+
+        let aligned_start = (estimated_byte / align) * align;
+        let raw_end = aligned_start.saturating_add(self.default_chunk_size);
+        let planned_end = if let Some(tot) = total_bytes {
+            raw_end.min(tot)
+        } else {
+            raw_end
+        };
+
+        let http_range_header =
+            format!("bytes={}-{}", aligned_start, planned_end.saturating_sub(1));
+
+        SeekRangeCalculation {
+            target_ms,
+            estimated_byte,
+            aligned_range_start: aligned_start,
+            planned_range_end: planned_end,
+            http_range_header,
+        }
+    }
+}
+
 /// Overall playback state of the shadow session.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -434,13 +769,16 @@ pub struct RemotePlaybackShadowSnapshot {
     pub position_ms: u64,
     pub duration_ms: u64,
     pub underflow_count: u32,
+    pub buffered_range_count: u32,
+    pub total_buffered_bytes: u64,
+    pub is_current_cached: bool,
 }
 
 /// Testable shadow playback session for remote stream migration.
 ///
 /// This maintains state alongside the existing Electron `kunyin://` handler.
-/// It verifies URL/MIME negotiation, buffer watermarking, and seek transitions
-/// without interrupting the proven Chromium HTMLAudio playback.
+/// It verifies URL/MIME negotiation, buffer watermarking, discontinuous range tracking,
+/// chunk preloading, and seek transitions without interrupting the proven Chromium HTMLAudio playback.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RemotePlaybackShadowSession {
     pub session_id: String,
@@ -448,6 +786,8 @@ pub struct RemotePlaybackShadowSession {
     pub state: PlaybackState,
     pub buffer: BufferWatermark,
     pub seek: RemoteSeekState,
+    pub buffered_ranges: BufferedRanges,
+    pub range_planner: StreamRangePlanner,
     pub position_ms: u64,
     pub duration_ms: u64,
 }
@@ -467,6 +807,8 @@ impl RemotePlaybackShadowSession {
             state: PlaybackState::Buffering,
             buffer: BufferWatermark::default(),
             seek: RemoteSeekState::default(),
+            buffered_ranges: BufferedRanges::new(),
+            range_planner: StreamRangePlanner::default(),
             position_ms: 0,
             duration_ms,
         }
@@ -490,6 +832,11 @@ impl RemotePlaybackShadowSession {
             position_ms: self.position_ms,
             duration_ms: self.duration_ms,
             underflow_count: self.buffer.underflow_count,
+            buffered_range_count: self.buffered_ranges.count() as u32,
+            total_buffered_bytes: self.buffered_ranges.total_bytes(),
+            is_current_cached: self
+                .buffered_ranges
+                .contains_offset(self.buffer.current_offset),
         }
     }
 
@@ -545,9 +892,10 @@ impl RemotePlaybackShadowSession {
         self.snapshot()
     }
 
-    /// Record a received stream chunk and update watermark and seek progress.
+    /// Record a received stream chunk and update watermark, range tracker, and seek progress.
     pub fn receive_chunk(&mut self, offset: u64, length: u64) -> RemotePlaybackShadowSnapshot {
         self.buffer.receive_chunk(offset, length);
+        self.buffered_ranges.insert(offset, length);
 
         if self.seek.status == SeekStatus::Seeking || self.seek.status == SeekStatus::Buffering {
             if self.buffer.status == WatermarkStatus::Ready
@@ -625,6 +973,42 @@ impl RemotePlaybackShadowSession {
             }
         }
         self.snapshot()
+    }
+
+    /// Plan the next HTTP Range request based on current offset and buffered chunks.
+    pub fn plan_next_chunk(&self, chunk_size: Option<u64>) -> Option<RangePlan> {
+        self.range_planner.plan_next_range(
+            self.buffer.current_offset,
+            &self.buffered_ranges,
+            self.buffer.total_bytes,
+            self.buffer.low_watermark_bytes,
+            self.buffer.high_watermark_bytes,
+            chunk_size,
+        )
+    }
+
+    /// Calculate aligned seek byte range for given time target.
+    pub fn calculate_seek_range(
+        &self,
+        target_ms: u64,
+        align_bytes: Option<u64>,
+    ) -> SeekRangeCalculation {
+        self.range_planner.calculate_seek_range(
+            target_ms,
+            self.duration_ms,
+            self.buffer.total_bytes,
+            align_bytes,
+        )
+    }
+
+    /// Query currently buffered intervals.
+    pub fn get_buffered_ranges(&self) -> Vec<ByteRange> {
+        self.buffered_ranges.ranges().to_vec()
+    }
+
+    /// Check if a specific byte offset is cached.
+    pub fn is_offset_cached(&self, offset: u64) -> bool {
+        self.buffered_ranges.contains_offset(offset)
     }
 }
 
@@ -763,5 +1147,134 @@ mod tests {
         session.receive_chunk(5_000_000, 300 * 1024);
         assert_eq!(session.seek.status, SeekStatus::Complete);
         assert_eq!(session.state, PlaybackState::Ready);
+        assert!(session.is_offset_cached(5_000_000));
+        assert_eq!(session.snapshot().buffered_range_count, 2);
+    }
+
+    #[test]
+    fn buffered_ranges_coalesce_and_find_gaps() {
+        let mut ranges = BufferedRanges::new();
+        assert!(ranges.is_empty());
+        assert_eq!(ranges.total_bytes(), 0);
+
+        // Insert first chunk [0, 100_000)
+        ranges.insert(0, 100_000);
+        assert_eq!(ranges.count(), 1);
+        assert_eq!(ranges.total_bytes(), 100_000);
+        assert!(ranges.contains_offset(50_000));
+        assert!(!ranges.contains_offset(100_000));
+        assert_eq!(ranges.contiguous_bytes_from(0), 100_000);
+
+        // Insert adjacent chunk [100_000, 200_000) -> merges into [0, 200_000)
+        ranges.insert(100_000, 100_000);
+        assert_eq!(ranges.count(), 1);
+        assert_eq!(ranges.ranges()[0], ByteRange::new(0, 200_000));
+
+        // Insert disjoint chunk [500_000, 600_000) -> 2 ranges
+        ranges.insert(500_000, 100_000);
+        assert_eq!(ranges.count(), 2);
+        assert_eq!(ranges.total_bytes(), 300_000);
+
+        // Find gap starting from 0: inside [0, 200_000), gap should start at 200_000
+        let gap1 = ranges.find_next_gap(0, 500_000, Some(1_000_000));
+        assert_eq!(gap1, Some(ByteRange::new(200_000, 500_000)));
+
+        // Find gap beyond all buffered ranges
+        let gap2 = ranges.find_next_gap(550_000, 200_000, Some(1_000_000));
+        assert_eq!(gap2, Some(ByteRange::new(600_000, 800_000)));
+
+        // Gap capped by total_bytes
+        let gap3 = ranges.find_next_gap(900_000, 300_000, Some(1_000_000));
+        assert_eq!(gap3, Some(ByteRange::new(900_000, 1_000_000)));
+
+        // Beyond total_bytes returns None
+        assert_eq!(
+            ranges.find_next_gap(1_000_000, 100_000, Some(1_000_000)),
+            None
+        );
+    }
+
+    #[test]
+    fn stream_range_planner_calculates_priorities_and_aligns_chunks() {
+        let planner = StreamRangePlanner::new(512 * 1024, 64 * 1024);
+        let mut ranges = BufferedRanges::new();
+
+        // 1. Initial state (empty buffer): forward = 0 < 64KB -> Critical
+        let plan1 = planner.plan_next_range(
+            0,
+            &ranges,
+            Some(10_000_000),
+            256 * 1024,
+            2 * 1024 * 1024,
+            None,
+        );
+        let p1 = plan1.expect("plan exists");
+        assert_eq!(p1.range_start, 0);
+        assert_eq!(p1.range_end, 512 * 1024);
+        assert_eq!(p1.priority, PreloadPriority::Critical);
+        assert_eq!(p1.http_range_header, format!("bytes=0-{}", 512 * 1024 - 1));
+
+        // 2. Buffer 128KB (above critical but below low watermark 256KB) -> High
+        ranges.insert(0, 128 * 1024);
+        let plan2 = planner.plan_next_range(
+            0,
+            &ranges,
+            Some(10_000_000),
+            256 * 1024,
+            2 * 1024 * 1024,
+            None,
+        );
+        let p2 = plan2.expect("plan exists");
+        assert_eq!(p2.range_start, 128 * 1024);
+        assert_eq!(p2.priority, PreloadPriority::High);
+
+        // 3. Buffer 1 MB (between low 256KB and high 2MB) -> Normal
+        ranges.insert(128 * 1024, 896 * 1024);
+        let plan3 = planner.plan_next_range(
+            0,
+            &ranges,
+            Some(10_000_000),
+            256 * 1024,
+            2 * 1024 * 1024,
+            None,
+        );
+        let p3 = plan3.expect("plan exists");
+        assert_eq!(p3.range_start, 1024 * 1024);
+        assert_eq!(p3.priority, PreloadPriority::Normal);
+
+        // 4. Buffer > 2MB -> Idle
+        ranges.insert(1024 * 1024, 2 * 1024 * 1024);
+        let plan4 = planner.plan_next_range(
+            0,
+            &ranges,
+            Some(10_000_000),
+            256 * 1024,
+            2 * 1024 * 1024,
+            None,
+        );
+        let p4 = plan4.expect("plan exists");
+        assert_eq!(p4.priority, PreloadPriority::Idle);
+    }
+
+    #[test]
+    fn seek_range_calculation_aligns_to_blocks() {
+        let planner = StreamRangePlanner::new(512 * 1024, 64 * 1024);
+        let calc = planner.calculate_seek_range(30_000, 60_000, Some(10_000_000), Some(64 * 1024));
+        assert_eq!(calc.target_ms, 30_000);
+        assert_eq!(calc.estimated_byte, 5_000_000);
+        // 5_000_000 / 65536 = 76.29 -> 76 * 65536 = 4_980_736
+        assert_eq!(calc.aligned_range_start, 76 * 64 * 1024);
+        assert_eq!(
+            calc.planned_range_end,
+            calc.aligned_range_start + 512 * 1024
+        );
+        assert_eq!(
+            calc.http_range_header,
+            format!(
+                "bytes={}-{}",
+                calc.aligned_range_start,
+                calc.planned_range_end - 1
+            )
+        );
     }
 }

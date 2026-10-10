@@ -382,3 +382,60 @@ export function nativeRemotePlaybackShadowClose(sessionId) {
     return false
   }
 }
+
+export function nativeRemoteStreamPlanRange(sessionId, currentOffset, chunkSize) {
+  try {
+    const call = loadBinding()?.remoteStreamPlanRange
+    if (typeof call !== 'function') return null
+    const raw = call(
+      sessionId,
+      currentOffset == null ? null : Math.max(0, Math.round(Number(currentOffset))),
+      chunkSize == null ? null : Math.max(0, Math.round(Number(chunkSize)))
+    )
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeRemoteStreamGetBufferedRanges(sessionId) {
+  try {
+    const call = loadBinding()?.remoteStreamGetBufferedRanges
+    if (typeof call !== 'function') return null
+    const raw = call(sessionId)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeRemoteStreamIsOffsetBuffered(sessionId, offset) {
+  try {
+    const call = loadBinding()?.remoteStreamIsOffsetBuffered
+    if (typeof call !== 'function') return false
+    return call(sessionId, Math.max(0, Math.round(Number(offset)))) === true
+  } catch {
+    return false
+  }
+}
+
+export function nativeRemoteStreamCalculateSeekRange(
+  sessionId,
+  targetMs,
+  durationMs = 0,
+  alignBytes
+) {
+  try {
+    const call = loadBinding()?.remoteStreamCalculateSeekRange
+    if (typeof call !== 'function') return null
+    const raw = call(
+      sessionId,
+      Math.max(0, Math.round(Number(targetMs))),
+      Math.max(0, Math.round(Number(durationMs))),
+      alignBytes == null ? null : Math.max(0, Math.round(Number(alignBytes)))
+    )
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}

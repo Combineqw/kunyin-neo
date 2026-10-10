@@ -89,6 +89,14 @@ export declare function remotePlaybackShadowSetPlayState(sessionId: string, play
 export declare function remotePlaybackShadowSnapshot(sessionId: string): string | null
 /** Close and remove a remote shadow playback session. */
 export declare function remotePlaybackShadowClose(sessionId: string): boolean
+/** Plan next chunk HTTP Range request for a remote shadow playback session. */
+export declare function remoteStreamPlanRange(sessionId: string, currentOffset?: number | undefined | null, chunkSize?: number | undefined | null): string | null
+/** Query list of currently buffered byte ranges for a remote shadow session. */
+export declare function remoteStreamGetBufferedRanges(sessionId: string): string | null
+/** Fast check whether a specific byte offset is already buffered. */
+export declare function remoteStreamIsOffsetBuffered(sessionId: string, offset: number): boolean
+/** Calculate block-aligned byte range for a target seek timestamp. */
+export declare function remoteStreamCalculateSeekRange(sessionId: string, targetMs: number, durationMs: number, alignBytes?: number | undefined | null): string | null
 /** Start a bounded temporary-file download transaction. */
 export declare function downloadCreate(tempPath: string, finalPath: string, maxBytes: number): number
 export declare function downloadWrite(id: number, chunk: Buffer): string

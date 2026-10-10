@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.39 — 2026-10-10】
+【kunyin-neo 项目记忆 v5.40 — 2026-10-10】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,25 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10）
+
+◆ M39 远程流分块预加载调度与 HTTP Range 规划（2026-10-10，事实与回执）
+- `aurora-audio` 远程模块扩展：
+  · 新增 `ByteRange` 与 `BufferedRanges`：维护按升序排序、自动聚合重叠与相邻区间的非连续字节缓冲集合，支持快速命中判定（`contains_offset`）、连续向前有效缓冲探测（`contiguous_bytes_from`）和未命中缺口探测（`find_next_gap`）。
+  · 新增 `StreamRangePlanner` 与 `RangePlan`：基于当前播放偏移与向前缓冲深度，实现确定性预加载调度，按优先级阶梯跃迁（`Critical` < 64KB、`High` < 低水位 256KB、`Normal` < 高水位 2MB、`Idle` ≥ 2MB）；支持分块对齐（默认 64 KiB 对齐，防碎片请求）与 HTTP `Range: bytes=start-end` 标准头生成。
+  · 新增 `calculate_seek_range`：根据目标时间戳 `target_ms`、时长与文件大小进行带块对齐的字节偏移预估。
+  · `RemotePlaybackShadowSession` 全面集成区间跟踪与 Range 调度，并在快照增加 `bufferedRangeCount`、`totalBufferedBytes` 与 `isCurrentCached` 字段。
+- `aurora-native` 新增 4 个 N-API 导出：
+  · `remote_stream_plan_range`：计算推荐的下一个 HTTP Range 分块与预加载优先级。
+  · `remote_stream_get_buffered_ranges`：查询已缓存的区间数组。
+  · `remote_stream_is_offset_buffered`：快速判定指定偏移是否已在缓存中。
+  · `remote_stream_calculate_seek_range`：计算带有块对齐保护的 seek 目标字节范围。
+- Electron 端接入与包装：
+  · `bridge.ts` 与 `bridge-runtime.js` 导出强类型接口与安全包装。
+  · `src/main/audio/protocol.ts` 在处理 Range 请求时建立影子 Range 规划观测；现有 Chromium `<audio>` 播放、网络请求与解密主链 100% 保持不变，支持透明回退。
+- 新增 `scripts/m39-remote-range-planner-tests.mjs`（`npm run test:m39`），覆盖原生导出存在性、水位优先级跃迁、非连续区间合并、Seek 块对齐与运行时包装。
+- 回归验证：`cargo test`（aurora-audio 21/21 全过）、`npm run native:build`、`npm run test:m39`、`npm run test:m38`、`npm run test:m37`、`npm run test:m36`、`npm test`（9 项全过）、`npm run typecheck`、`npm run build`、scoped ESLint、`git diff --check` 全部通过。
+- 本切片推进远程流分块预加载与 HTTP Range 规划，不改变既有 Chromium 解码与音频渲染管线，不构成所有者验收通过结论。
 
 ◆ M38 Apple Design HIG 规范对齐与无极帧率调度（2026-10-10，事实与回执）
 - 依据 `apple-design` 规范对齐全局设计系统：

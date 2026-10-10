@@ -74,6 +74,19 @@ type NativeBinding = {
   remotePlaybackShadowSetPlayState?(sessionId: string, playing: boolean): string | null
   remotePlaybackShadowSnapshot?(sessionId: string): string | null
   remotePlaybackShadowClose?(sessionId: string): boolean
+  remoteStreamPlanRange?(
+    sessionId: string,
+    currentOffset?: number | null,
+    chunkSize?: number | null
+  ): string | null
+  remoteStreamGetBufferedRanges?(sessionId: string): string | null
+  remoteStreamIsOffsetBuffered?(sessionId: string, offset: number): boolean
+  remoteStreamCalculateSeekRange?(
+    sessionId: string,
+    targetMs: number,
+    durationMs: number,
+    alignBytes?: number | null
+  ): string | null
   audioDecryptQmc2File?(path: string, ekey: string): boolean
   syncNormalizeBaseUrl?(url: string): string
   syncValidateSession?(sessionJson: string): string
@@ -117,6 +130,28 @@ export type NativeNegotiatedFormat = {
   sourceHint: string
 }
 
+export type NativeByteRange = {
+  start: number
+  end: number
+}
+
+export type NativeRangePlan = {
+  rangeStart: number
+  rangeEnd: number
+  priority: 'critical' | 'high' | 'normal' | 'idle'
+  isCached: boolean
+  chunkSize: number
+  httpRangeHeader: string
+}
+
+export type NativeSeekRangeCalculation = {
+  targetMs: number
+  estimatedByte: number
+  alignedRangeStart: number
+  plannedRangeEnd: number
+  httpRangeHeader: string
+}
+
 export type NativeRemotePlaybackShadowSnapshot = {
   sessionId: string
   format: NativeNegotiatedFormat
@@ -134,6 +169,9 @@ export type NativeRemotePlaybackShadowSnapshot = {
   positionMs: number
   durationMs: number
   underflowCount: number
+  bufferedRangeCount: number
+  totalBufferedBytes: number
+  isCurrentCached: boolean
 }
 
 export type NativeScanTrack = {
@@ -720,5 +758,70 @@ export function nativeRemotePlaybackShadowClose(sessionId: string): boolean {
     return typeof call === 'function' ? call(sessionId) === true : false
   } catch {
     return false
+  }
+}
+
+/** Optional native remote stream chunk Range planning. */
+export function nativeRemoteStreamPlanRange(
+  sessionId: string,
+  currentOffset?: number | null,
+  chunkSize?: number | null
+): NativeRangePlan | null {
+  try {
+    const call = loadBinding()?.remoteStreamPlanRange
+    if (typeof call !== 'function') return null
+    const raw = call(
+      sessionId,
+      currentOffset == null ? null : Math.max(0, Math.round(currentOffset)),
+      chunkSize == null ? null : Math.max(0, Math.round(chunkSize))
+    )
+    return raw ? (JSON.parse(raw) as NativeRangePlan) : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional query for list of buffered byte ranges in the shadow session. */
+export function nativeRemoteStreamGetBufferedRanges(sessionId: string): NativeByteRange[] | null {
+  try {
+    const call = loadBinding()?.remoteStreamGetBufferedRanges
+    if (typeof call !== 'function') return null
+    const raw = call(sessionId)
+    return raw ? (JSON.parse(raw) as NativeByteRange[]) : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional fast check whether a specific offset is already buffered. */
+export function nativeRemoteStreamIsOffsetBuffered(sessionId: string, offset: number): boolean {
+  try {
+    const call = loadBinding()?.remoteStreamIsOffsetBuffered
+    if (typeof call !== 'function') return false
+    return call(sessionId, Math.max(0, Math.round(offset))) === true
+  } catch {
+    return false
+  }
+}
+
+/** Optional calculation of aligned byte range for a target seek position. */
+export function nativeRemoteStreamCalculateSeekRange(
+  sessionId: string,
+  targetMs: number,
+  durationMs = 0,
+  alignBytes?: number | null
+): NativeSeekRangeCalculation | null {
+  try {
+    const call = loadBinding()?.remoteStreamCalculateSeekRange
+    if (typeof call !== 'function') return null
+    const raw = call(
+      sessionId,
+      Math.max(0, Math.round(targetMs)),
+      Math.max(0, Math.round(durationMs)),
+      alignBytes == null ? null : Math.max(0, Math.round(alignBytes))
+    )
+    return raw ? (JSON.parse(raw) as NativeSeekRangeCalculation) : null
+  } catch {
+    return null
   }
 }

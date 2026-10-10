@@ -25,7 +25,8 @@ import {
   nativeRemotePlaybackShadowCreate,
   nativeRemotePlaybackShadowReceiveChunk,
   nativeRemotePlaybackShadowUpdateResponse,
-  nativeRemoteStreamNegotiateFormat
+  nativeRemoteStreamNegotiateFormat,
+  nativeRemoteStreamPlanRange
 } from '../native/bridge-runtime.js'
 
 /**
@@ -345,6 +346,9 @@ export function installAudioProtocol(): void {
     if (range) {
       upstreamStart = parseRangeStart(range)
       headers['Range'] = range
+    }
+    if (spec.url) {
+      nativeRemoteStreamPlanRange(token, upstreamStart)
     }
 
     let upstream: Response

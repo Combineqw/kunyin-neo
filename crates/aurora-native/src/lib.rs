@@ -528,6 +528,87 @@ pub fn remote_playback_shadow_close(session_id: String) -> bool {
         .unwrap_or(false)
 }
 
+/// Plan next chunk HTTP Range request for a remote shadow playback session.
+#[napi]
+pub fn remote_stream_plan_range(
+    session_id: String,
+    current_offset: Option<i64>,
+    chunk_size: Option<i64>,
+) -> napi::Result<Option<String>> {
+    let mut sessions = remote_shadow_sessions()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("remote shadow session lock poisoned"))?;
+    let Some(session) = sessions.get_mut(&session_id) else {
+        return Ok(None);
+    };
+    if let Some(offset) = current_offset.filter(|o| *o >= 0) {
+        session.buffer.current_offset = offset as u64;
+    }
+    let plan = session.plan_next_chunk(chunk_size.filter(|s| *s > 0).map(|s| s as u64));
+    match plan {
+        Some(p) => serde_json::to_string(&p)
+            .map(Some)
+            .map_err(|err| napi::Error::from_reason(err.to_string())),
+        None => Ok(None),
+    }
+}
+
+/// Query list of currently buffered byte ranges for a remote shadow session.
+#[napi]
+pub fn remote_stream_get_buffered_ranges(session_id: String) -> napi::Result<Option<String>> {
+    let sessions = remote_shadow_sessions()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("remote shadow session lock poisoned"))?;
+    let Some(session) = sessions.get(&session_id) else {
+        return Ok(None);
+    };
+    let ranges = session.get_buffered_ranges();
+    serde_json::to_string(&ranges)
+        .map(Some)
+        .map_err(|err| napi::Error::from_reason(err.to_string()))
+}
+
+/// Fast check whether a specific byte offset is already buffered.
+#[napi]
+pub fn remote_stream_is_offset_buffered(session_id: String, offset: i64) -> napi::Result<bool> {
+    if offset < 0 {
+        return Ok(false);
+    }
+    let sessions = remote_shadow_sessions()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("remote shadow session lock poisoned"))?;
+    let Some(session) = sessions.get(&session_id) else {
+        return Ok(false);
+    };
+    Ok(session.is_offset_cached(offset as u64))
+}
+
+/// Calculate block-aligned byte range for a target seek timestamp.
+#[napi]
+pub fn remote_stream_calculate_seek_range(
+    session_id: String,
+    target_ms: i64,
+    duration_ms: i64,
+    align_bytes: Option<i64>,
+) -> napi::Result<Option<String>> {
+    let mut sessions = remote_shadow_sessions()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("remote shadow session lock poisoned"))?;
+    let Some(session) = sessions.get_mut(&session_id) else {
+        return Ok(None);
+    };
+    if duration_ms > 0 {
+        session.duration_ms = duration_ms as u64;
+    }
+    let calc = session.calculate_seek_range(
+        target_ms.max(0) as u64,
+        align_bytes.filter(|a| *a > 0).map(|a| a as u64),
+    );
+    serde_json::to_string(&calc)
+        .map(Some)
+        .map_err(|err| napi::Error::from_reason(err.to_string()))
+}
+
 /// Start a bounded temporary-file download transaction.
 #[napi]
 pub fn download_create(temp_path: String, final_path: String, max_bytes: i64) -> napi::Result<i64> {
