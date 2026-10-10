@@ -16,6 +16,9 @@ test-assets/
 crates/aurora-native/target/
 crates/aurora-core/target/
 crates/aurora-library/target/
+crates/aurora-audio/target/
+crates/aurora-app/target/
+target/
 src-tauri/target/
 src-tauri/gen/schemas/
 # napi 产物（由 npm run native:build 生成）

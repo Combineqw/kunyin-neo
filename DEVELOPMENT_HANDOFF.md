@@ -5,17 +5,17 @@
 ## 当前基线
 
 - 分支：`master`
-- M49 工作内容：Windows 安装包构建打包与发布核验（Windows Release Installer Packaging & Integrity Verification）
+- M50 工作内容：100% 纯 Rust 原生 GUI 与独立宿主架构（Pure Rust Native GUI Architecture & Native Audio Session Takeover）
 - 产品版本：`1.1.0`
 - 远端：`https://github.com/Combineqw/kunyin-neo.git`
-- 技术栈：Electron 39、Vue 3、TypeScript、Rust、N-API-RS、纯 Rust 原生化架构规划
-- 终极形态战略决策：彻底弃用 Web / WebView 运行时（不采用 Tauri，走向 100% 纯 Rust 原生 GUI 与音频引擎，发布形态采用 NSIS/MSI 现代化安装程序）
+- 技术栈：100% 纯 Rust 独立桌面应用（`crates/aurora-app`）、Symphonia 音频解码、WASAPI 独占/共享输出、10 段 Biquad IIR 均衡器、SQLite WAL + FTS5、Lofty 音频标签、Apple HIG 规范系统
+- 终极形态战略决策：彻底弃用 Web / WebView 运行时（不采用 Tauri，走向 100% 纯 Rust 原生 GUI 与音频引擎，发布形态采用 NSIS 现代化安装程序，杜绝单文件版）
 
-M49 完成 Windows 现代化安装程序构建打包与产物完整性核验。执行 `npm run build:win`，生成现代化 NSIS 向导式安装包（`dist/kunyin-desktop-1.1.0-setup.exe`）：
-- 安装器大小：`99,602,204 字节`（~95.0 MB），SHA-256 `4C8117C7F839C3FDF9F783A679A7C2D9DE2354D0FD91D7F4D3B9668A46A5271D`；
-- 解包主程序（`dist/win-unpacked/kunyin-desktop.exe`）：`211,232,768 字节`，SHA-256 `B35DE52365815A2C6F6B0A55BB09BC806F05E11C924A6B76F488AD2E95BA7716`；
-- Rust 原生模块（`dist/win-unpacked/resources/assets/aurora-native.win32-x64-msvc.node`）：`5,122,560 字节`，SHA-256 `0761FC1EC20AE5E0D07563FD9467FC6E38717317DC6AC8E314E02C769D83F6C2`；
-- 自动化发布校验脚本：`scripts/m49-release-installer-verification-tests.mjs`（`npm run test:m49`）自动化断言安装器大小、SHA-256 校验和、blockmap、主程序与原生优化模块的完整性。
+M50 落地 100% 纯 Rust 独立桌面应用宿主 `crates/aurora-app`，直接绑定已落地的四大 Rust 原生模块（`aurora-audio`、`aurora-player`、`aurora-library`、`aurora-core`），完全摆脱 WebView 与 Node.js 运行时：
+- 纯 Rust 二进制（`aurora-app.exe`）：release 构建仅 `1,899,008 字节`（~1.81 MB），相比 Electron 运行时缩减 99.1% 体积；
+- Apple HIG 规范系统：`theme.rs` 与 `components/` 完整实现 4pt 网格、SF Pro 排印、16px/10px/999px Squircles 连续圆角、经典双模式对比度色彩与 44pt 触觉圆形播放按键；
+- 现代化 Windows NSIS 安装程序（`crates/aurora-app/installer/kunyin-rust-setup.nsi`）：生成 `dist/kunyin-rust-1.1.0-setup.exe`（`1,116,907 字节`，~1.06 MB，SHA-256 `ECBDD23BD62C85504C69FF401A0BB4769C234A9EBA5C0BD7214447A915C04554`），支持桌面快捷方式、开始菜单目录、多格式音频文件关联（.mp3, .flac, .wav, .m4a, .ogg）与干净卸载；
+- 自动化发布校验脚本：`scripts/m50-pure-rust-native-gui-tests.mjs`（`npm run test:m50`）与 `cargo test --manifest-path crates/aurora-app/Cargo.toml` 11/11 项测试 100% 通过。
 
 ## Rust 迁移地图
 

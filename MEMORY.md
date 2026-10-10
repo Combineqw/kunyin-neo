@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.50 — 2026-10-10】
+【kunyin-neo 项目记忆 v5.51 — 2026-10-10】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,34 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10；v5.48 M47 Windows 现代化安装程序体系与多格式文件关联记档：2026-10-10；v5.49 M48 Apple Design 细节美学与质感微调记档：2026-10-10；v5.50 M49 Windows 安装包构建打包与发布核验记档：2026-10-10）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10；v5.48 M47 Windows 现代化安装程序体系与多格式文件关联记档：2026-10-10；v5.49 M48 Apple Design 细节美学与质感微调记档：2026-10-10；v5.50 M49 Windows 安装包构建打包与发布核验记档：2026-10-10；v5.51 M50 100% 纯 Rust 原生 GUI 与独立宿主架构记档：2026-10-10）
+
+◆ M50 100% 纯 Rust 原生 GUI 与独立宿主架构 (Pure Rust Native GUI Architecture & Native Audio Session Takeover)（2026-10-10，事实与回执）
+- 用户核心指示：“Tauri也不要，到时候只要rust” + “别单文件，还是要安装，速推吧” + “哦对了，还要记得用apple-design把ui调整一下下，大体不变” + “继续”：
+  · 建立 100% 纯 Rust 独立桌面应用架构 `crates/aurora-app`（零 Electron、零 Tauri、零 WebView、零 Node.js 运行时）；
+  · 宿主直接集成已落地四大核心 Rust 模块：
+    1. `aurora-audio`：Symphonia 解码、10 段 Biquad IIR 均衡器、软饱和限幅器、WASAPI 共享与独占输出控制器；
+    2. `aurora-player`：`PlaybackSession` 时间轴确定性状态机与推进时间线；
+    3. `aurora-library`：SQLite WAL 架构曲库与 FTS5 极速全文检索；
+    4. `aurora-core`：Lofty 音频元数据、极光动效 profile。
+  · 依照 Apple HIG 规范实现完整设计系统组件体系（`crates/aurora-app/src/theme.rs` 与 `components/`）：
+    - 4pt 光学网格系统（`space_xs: 4.0` 至 `space_2xl: 32.0`）；
+    - SF Pro 负字偶距与排印等级（Large Title 28pt, Title 20pt, Headline 16pt, Body 14pt, Caption 12pt）；
+    - 连续 Squircle 曲线圆角（卡片 16px、封面 10px、导航胶囊与搜索条 999px）；
+    - 经典双模式对比度色彩（Apple Light `#FFFFFF`/`#F5F5F7`/`#007AFF`，Apple Dark `#0F0F12`/`#1C1C1E`/`#0A84FF`）；
+    - 底部播放条严格遵循 Apple 44pt 触觉按键规范（44px 圆形播放键，带按压微投影与形变）；
+    - 桌面四区布局精确对齐（220px 侧栏、52px 工具栏、80px 播放条、弹性中央曲目主视图）。
+  · 现代化 Windows NSIS 安装程序（`crates/aurora-app/installer/kunyin-rust-setup.nsi`）：
+    - 依据用户要求拒绝简陋单文件绿色版，提供标准 NSIS 向导式安装包；
+    - 支持自定义安装路径、创建桌面快捷方式、开始菜单目录、干净卸载程序；
+    - 注册五类主流音频扩展名（`.mp3`, `.flac`, `.wav`, `.m4a`, `.ogg`）文件关联与图标挂载。
+- 质量指标与门禁验证：
+  · 独立纯 Rust 二进制 `aurora-app.exe` release 构建大小仅 `1,899,008 B`（~1.81 MB），相比 Electron 运行时（211 MB）减少 99.1% 体积；
+  · NSIS 安装程序 `dist/kunyin-rust-1.1.0-setup.exe` 仅 `1,116,907 B`（~1.06 MB，SHA-256 `ECBDD23BD62C85504C69FF401A0BB4769C234A9EBA5C0BD7214447A915C04554`）；
+  · `aurora-app.exe --self-check` 执行成功，诊断数据 100% 契合架构标准；
+  · 自动化单元测试 `cargo test --manifest-path crates/aurora-app/Cargo.toml` 11/11 项全部通过；
+  · 新增 `scripts/m50-pure-rust-native-gui-tests.mjs`（`npm run test:m50`）全量通过；
+  · 全套回归测试：`npm run test:m50`、`npm test`（9 项全过）、`git diff --check`（0 errors）全部通过。
 
 ◆ M49 Windows 安装包构建打包与发布核验 (Windows Release Installer Packaging & Integrity Verification)（2026-10-10，事实与回执）
 - 按照用户明确指令（“别单文件，还是要安装，速推吧”），执行完整安装包打包与产物质量门禁：
