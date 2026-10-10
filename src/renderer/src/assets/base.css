@@ -53,6 +53,19 @@
   --transition-normal: 0.4s ease;
   --transition-slow: 0.6s ease;
 
+  /* ---- Apple Design 4pt 间距与圆角系统 ---- */
+  --margin-page: 16px;
+  --gap-card: 12px;
+  --padding-card: 16px;
+  --radius-card: 16px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --font-system: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
+    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Segoe UI',
+    sans-serif;
+
   /* 动效基建：运行时由 animation/apply.ts 写入；预设由 data-anim-pack 覆盖。 */
   --anim-ease-standard: cubic-bezier(0.32, 0.72, 0, 1);
   --anim-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -94,7 +107,7 @@
   --aurora-motion-opacity: 0.74;
   --aurora-motion-frame-ms: 33ms;
 
-  /* ---- 玻璃基础（M3 色彩总线） ----
+  /* ---- 玻璃基础（Apple HIG 材质标准） ----
      三档只改变材质厚度；组件使用 .glass-surface 选择档位，不直接写透明度。
      背景变量先给出可用的纯色/半透明降级，支持 backdrop-filter 时再叠加模糊。 */
   --glass-thin-background: color-mix(in srgb, var(--color-main-background) 62%, transparent);
@@ -103,12 +116,12 @@
   --glass-thin-blur: 10px;
   --glass-regular-blur: 18px;
   --glass-thick-blur: 28px;
-  --glass-thin-saturation: 1.08;
-  --glass-regular-saturation: 1.12;
-  --glass-thick-saturation: 1.16;
-  --glass-border: color-mix(in srgb, var(--color-font) 16%, transparent);
+  --glass-thin-saturation: 1.8;
+  --glass-regular-saturation: 1.8;
+  --glass-thick-saturation: 1.8;
+  --glass-border: color-mix(in srgb, var(--color-font) 14%, transparent);
   --glass-highlight: color-mix(in srgb, white 44%, transparent);
-  --glass-shadow: 0 14px 36px rgba(0, 0, 0, 0.16);
+  --glass-shadow: 0 14px 36px rgba(0, 0, 0, 0.14);
 }
 
 /* ================= 深色模式修正 =================
@@ -275,35 +288,25 @@ html[data-anim-pack='hyperos4'] {
   --anim-dur-theme: 0.28s;
 }
 
-/* ---------- 字体栈（按 OS class + 语言，移植自 lx reset.less） ---------- */
-/* --app-font 由设置注入；未设置或字体不存在时由后续系统字体稳定接管。 */
+/* ---------- 字体栈（按 OS class + 语言，移植自 lx reset.less，已适配 Apple HIG 规范） ---------- */
+/* --app-font 由设置注入；未设置或字体不存在时由 SF Pro 与后续系统字体稳定接管。 */
 .windows {
-  font-family: var(--app-font, 'Segoe UI'), 'Segoe WPC', sans-serif;
+  font-family: var(--app-font, var(--font-system));
 }
 .windows:lang(zh-Hans) {
-  font-family: var(--app-font, 'Microsoft YaHei'), 'Microsoft YaHei UI', 'Segoe UI', sans-serif;
+  font-family: var(--app-font, var(--font-system));
 }
 .mac {
-  font-family: var(--app-font, '-apple-system'), BlinkMacSystemFont, sans-serif;
+  font-family: var(--app-font, var(--font-system));
 }
 .mac:lang(zh-Hans) {
-  font-family:
-    var(--app-font, 'PingFang SC'),
-    -apple-system,
-    BlinkMacSystemFont,
-    'Hiragino Sans GB',
-    sans-serif;
+  font-family: var(--app-font, var(--font-system));
 }
 .linux {
-  font-family: var(--app-font, 'Ubuntu'), system-ui, 'Droid Sans', sans-serif;
+  font-family: var(--app-font, var(--font-system));
 }
 .linux:lang(zh-Hans) {
-  font-family:
-    var(--app-font, 'Source Han Sans SC'),
-    system-ui,
-    'Noto Sans CJK SC',
-    'Droid Sans',
-    sans-serif;
+  font-family: var(--app-font, var(--font-system));
 }
 
 /* ---------- reset ---------- */
@@ -324,6 +327,7 @@ body {
   height: 100%;
 }
 body {
+  font-family: var(--app-font, var(--font-system));
   line-height: 1.2;
   color: var(--color-font);
   overflow: hidden;
@@ -472,6 +476,8 @@ textarea::placeholder {
   color: var(--color-font-label);
 }
 img {
+  border-radius: var(--radius-md);
+  object-fit: cover;
   -webkit-user-drag: none;
 }
 a {

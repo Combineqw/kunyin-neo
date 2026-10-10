@@ -31,7 +31,10 @@ function updateIndicator(): void {
   indicatorHeight.value = activeItem.offsetHeight
 }
 
-watch(() => route.fullPath, () => void nextTick(updateIndicator))
+watch(
+  () => route.fullPath,
+  () => void nextTick(updateIndicator)
+)
 onMounted(() => {
   updateIndicator()
   window.addEventListener('resize', updateIndicator)
@@ -45,7 +48,10 @@ onUnmounted(() => window.removeEventListener('resize', updateIndicator))
       <ul ref="listRef" class="list" role="toolbar">
         <span
           class="active-indicator"
-          :style="{ transform: `translate3d(0, ${indicatorY}px, 0)`, height: `${indicatorHeight}px` }"
+          :style="{
+            transform: `translate3d(0, ${indicatorY}px, 0)`,
+            height: `${indicatorHeight}px`
+          }"
           aria-hidden="true"
         />
         <li v-for="item in navItems" :key="item.name" class="nav-item" role="presentation">
@@ -104,7 +110,7 @@ onUnmounted(() => window.removeEventListener('resize', updateIndicator))
   z-index: 1;
   left: 6px;
   right: 6px;
-  border-radius: 16px;
+  border-radius: var(--radius-card);
   pointer-events: none;
   background-color: var(--color-primary-light-300-alpha-700);
   transition:
@@ -132,7 +138,7 @@ onUnmounted(() => window.removeEventListener('resize', updateIndicator))
   color: var(--color-nav-font);
   cursor: pointer;
   outline: none;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   transition: opacity var(--anim-dur-fast) var(--anim-ease-smooth);
 }
 .link.active {

@@ -29,14 +29,14 @@ function open(): void {
 .cover {
   position: relative;
   aspect-ratio: 1 / 1;
-  border-radius: var(--radius-border);
+  border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--color-primary-background);
-  box-shadow: 0 0 2px rgba(0, 0, 0, 0.12);
-  transition: opacity var(--anim-dur-fast) var(--anim-ease-smooth);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  transition: box-shadow var(--anim-dur-fast) var(--anim-ease-smooth);
 }
 .card:hover .cover {
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
 }
 .cover img {
   width: 100%;

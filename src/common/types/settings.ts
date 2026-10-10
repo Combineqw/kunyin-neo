@@ -97,6 +97,8 @@ export interface AppSettings {
     animationPackId: import('./animation').AnimationPackId
     /** 自定义动效包配置，切换回 custom 时生效 */
     customAnimationPack: AnimationPack
+    /** 极光背景目标渲染帧率：null=跟随显示器刷新率，0=静态节能，正数=指定 FPS 上限 */
+    themeFps: number | null
   }
 
   /** 列表显示（对应 lx-music-desktop 基础设置的列表项） */
@@ -367,7 +369,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
     startInFullscreen: false,
     closeToTray: false,
     animationPackId: 'ios',
-    customAnimationPack: { ...DEFAULT_CUSTOM_ANIMATION_PACK }
+    customAnimationPack: { ...DEFAULT_CUSTOM_ANIMATION_PACK },
+    themeFps: null
   },
   list: {
     showOperationButtons: true,

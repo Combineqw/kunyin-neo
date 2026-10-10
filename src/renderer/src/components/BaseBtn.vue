@@ -19,9 +19,9 @@ withDefaults(defineProps<{ min?: boolean; outline?: boolean; disabled?: boolean 
   border: none;
   min-height: 34px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--form-radius);
   cursor: pointer;
-  padding: 8px 15px;
+  padding: 8px 16px;
   color: var(--color-button-font);
   outline: none;
   /* transform/filter 过渡由全局 .pressable 统一负责（含按下与弹回两态），
@@ -51,7 +51,8 @@ withDefaults(defineProps<{ min?: boolean; outline?: boolean; disabled?: boolean 
 }
 .min {
   min-height: 30px;
-  padding: 4px 10px;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
 }
 </style>

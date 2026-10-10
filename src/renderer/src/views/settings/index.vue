@@ -207,17 +207,16 @@ function toggleTab(id: TocId): void {
   margin-top: 0;
 }
 .setting :deep(dd) {
-  margin: 10px 0;
-  padding: 18px 20px;
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
+  margin: var(--gap-card) 0;
+  padding: var(--padding-card) 20px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
   /* The settings page already sits inside area-main's glass surface. A second
      76% layer composites to an almost opaque warm card and causes the visible
      cyan-to-cream mismatch. Keep a light translucent card wash so borders,
      blur and shadows still read as glass without stacking the full surface. */
-  background: color-mix(in srgb, var(--color-main-background) 20%, transparent);
-  border-color: var(--glass-border);
-  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.06);
+  background: color-mix(in srgb, var(--color-main-background) 22%, transparent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
   backdrop-filter: blur(var(--glass-regular-blur)) saturate(var(--glass-regular-saturation));
   -webkit-backdrop-filter: blur(var(--glass-regular-blur)) saturate(var(--glass-regular-saturation));
 }
@@ -257,7 +256,7 @@ function toggleTab(id: TocId): void {
   height: 36px;
   padding: 0 12px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--form-radius);
   outline: none;
   color: var(--color-font);
   background: var(--color-main-background);

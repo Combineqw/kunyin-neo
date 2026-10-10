@@ -197,11 +197,11 @@ function setAppFont(font: string): void {
 .glass-preview {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--gap-card);
   margin-top: 14px;
-  padding: 9px;
+  padding: 10px;
   border: 1px solid var(--glass-border);
-  border-radius: 10px;
+  border-radius: var(--radius-card);
   background: var(--color-primary-background);
 }
 .glass-sample {
@@ -210,9 +210,9 @@ function setAppFont(font: string): void {
   justify-content: center;
   gap: 4px;
   min-height: 52px;
-  padding: 9px 11px;
+  padding: 10px 14px;
   border: 1px solid var(--glass-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   color: var(--color-font);
   box-shadow: none;
 }

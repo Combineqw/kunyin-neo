@@ -25,7 +25,7 @@ function onChange(e: Event): void {
   height: 36px;
   padding: 0 34px 0 12px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--form-radius);
   background-color: color-mix(in srgb, var(--color-main-background) 88%, var(--color-primary) 12%);
   color: var(--color-font);
   font-size: 12px;

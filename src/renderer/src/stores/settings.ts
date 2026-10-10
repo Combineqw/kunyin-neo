@@ -5,7 +5,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { DEFAULT_SETTINGS, WINDOW_SIZE_LIST, type AppSettings, type DeepPartial } from '@common'
-import { applyTheme, setComfortLevel, setCustomThemes } from '../theme/apply'
+import { applyTheme, setComfortLevel, setCustomThemes, setThemeFps } from '../theme/apply'
 import { applyAppFont } from '../composables/useFonts'
 import { applyAnimationPack } from '../animation/apply'
 
@@ -23,6 +23,7 @@ function applyAppearance(s: AppSettings): void {
   setCustomThemes(s.appearance.customThemes)
   // 必须在 applyTheme 之前：亮度档位参与色表计算
   setComfortLevel(s.appearance.comfortLevel ?? 'standard')
+  setThemeFps(s.behavior.themeFps ?? null)
   applyTheme(s.appearance.themeId, s.appearance.lightThemeId, s.appearance.darkThemeId)
   applyAppFont(s.appearance.appFont)
   applyFontZoom(s.appearance.fontSize)

@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.38 — 2026-10-10】
+【kunyin-neo 项目记忆 v5.39 — 2026-10-10】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,24 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10）
+
+◆ M38 Apple Design HIG 规范对齐与无极帧率调度（2026-10-10，事实与回执）
+- 依据 `apple-design` 规范对齐全局设计系统：
+  · 排版：注入 Apple HIG SF Pro 字体栈（`-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'PingFang SC', 'Helvetica Neue', 'Segoe UI', Arial, sans-serif`），保持 `--app-font` 设置覆盖能力。
+  · 间距与圆角：建立 4pt 间距与圆角系统 tokens（`--margin-page: 16px`、`--gap-card: 12px`、`--padding-card: 16px`、`--radius-card: 16px`、`--radius-sm: 8px`、`--radius-md: 12px`、`--radius-lg: 16px`、`--radius-xl: 20px`）。
+  · 玻璃材质：毛玻璃饱和度提升至 Apple HIG 标准 1.8（180% 鲜活度提升），保留 M3 要求的 10px / 28px 模糊基准；全局 `img` 统一 Apple squircle 圆角。
+- 组件与页面材质调优：
+  · 设置页卡片：统一采用 `--radius-card`、`--padding-card` 与 `--gap-card`，微调卡片半透明度与边框高光，消除浅色下的发黄/色差漂移；深色模式增加微对比度描边。
+  · 按钮与表单：`BaseBtn`、`BaseSelect` 与设置输入框统一对齐 10px / 8px 圆角；`DetailHeader` 封面改用 16px squircle，收藏键增加 `.pressable` 触觉反馈。
+  · 卡片与外壳：`PlaylistCard`、`PlayerBar` 封面与 `AppAside` 侧栏导航项圆角与投影规范化。
+- 极光背景无极帧率调度（Stepless FPS & GPU Scheduling）：
+  · `AppSettings.behavior` 扩展 `themeFps: number | null`（默认 `null` 自适应跟随刷新率，`0` 静态节能，`15~144` 连续帧率调节）。
+  · 设置页「动效实验室」新增帧率调度卡片：提供自适应刷新率、静态节能 (0 FPS) 与自定义上限无极滑块，并给出状态反馈。
+  · 调度联动：`apply.ts` 导出 `setThemeFps`，设置变更即时传递给原生 Rust `motionProfile`；`AmllBackground.vue` 建立动态响应并在失焦与 GPU 降级时自动节能。
+- 新增 `scripts/m38-apple-design-tests.mjs`（`npm run test:m38`），验证设计系统 tokens、组件圆角与帧率调度契约。
+- 回归验证：`npm run test:m38`、`npm test`（9 项全过）、`npm run test:m36`、`npm run test:m37`、`npm run typecheck`、`npm run build`、`npm run native:build`、Rust 单测（18/18 与 21/21）、ESLint、`git diff --check` 全部通过。
+- 本切片对齐 UI 规范与渲染层调度，不改变音频 DSP 或远程取流边界，不构成所有者验收通过结论。
 
 ◆ M37 远程播放链 shadow session（2026-10-10，事实与回执）
 - `aurora-audio` 新增 `remote` 模块，覆盖远程音频 URL/MIME 格式协商（`negotiate_remote_format`、QQ CDN HTTP->HTTPS 规整、扩展名/上游 Header 优先级）、缓冲水位状态机（`BufferWatermark`，低水位 256 KiB、高水位 2 MiB、underrun 探测）与 seek 状态机（`RemoteSeekState`，分段 generation、目标 byte 预估、Range 对齐）。

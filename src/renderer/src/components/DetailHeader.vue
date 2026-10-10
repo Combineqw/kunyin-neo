@@ -48,7 +48,7 @@ const cachedCover = computed(() => coverUrl(props.cover))
           <AppIcon name="download" :size="16" />
           <span>下载全部</span>
         </button>
-        <button class="fav" title="收藏"><AppIcon name="heart" :size="18" /></button>
+        <button class="fav pressable" title="收藏"><AppIcon name="heart" :size="18" /></button>
       </div>
     </div>
   </div>
@@ -84,7 +84,7 @@ const cachedCover = computed(() => coverUrl(props.cover))
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: var(--radius-card);
   overflow: hidden;
   color: var(--color-font-label);
   background: var(--color-primary-background);

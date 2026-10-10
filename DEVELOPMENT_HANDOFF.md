@@ -5,12 +5,12 @@
 ## 当前基线
 
 - 分支：`master`
-- M37 工作内容：远程播放链格式协商、缓冲水位与 shadow playback session
+- M38 工作内容：Apple Design HIG 规范对齐与无极帧率调度（Stepless FPS & GPU Scheduling）
 - 产品版本：`1.1.0`
 - 远端：`https://github.com/Combineqw/kunyin-neo.git`
 - 技术栈：Electron 39、Vue 3、TypeScript、Rust、N-API-RS、Tauri 2 验证壳
 
-M37 把远程流格式协商（MIME、容器、QMC2 加密识别、QQ CDN HTTP->HTTPS 规整）、缓冲水位状态机（低水位 256 KiB、高水位 2 MiB、欠载监控）和 seek 状态机放入 `crates/aurora-audio`，由 `crates/aurora-native` 暴露 8 个 N-API 导出，并在 `src/main/native/bridge.ts` 与 `src/main/audio/protocol.ts` 建立影子观测路径。Electron 主链与 Chromium `<audio>` 仍负责实际网络流响应、解密解码与 Web Audio 混音，旧 TypeScript 路径完全保留。
+M38 依照 `apple-design` 规范全面对齐全局 Apple HIG 设计系统（SF Pro 排版字体栈、4pt 网格间距与圆角 tokens、毛玻璃饱和度提升至 1.8、图片 squircle 圆角）。优化设置页卡片微对比度、消除浅色发黄与色差，统一 `BaseBtn`、`BaseSelect`、`DetailHeader`、`PlaylistCard`、`PlayerBar` 与 `AppAside` 交互材质与触觉反馈。同时落实长期产品规划中的极光背景无极帧率调度（`themeFps: number | null`，支持自适应刷新率、0 FPS 静态节能与 15~144 FPS 无极调节，并动态同步到 Rust 原生 `motionProfile`）。旧音频取流、解码与混音管线保持原样。
 
 ## Rust 迁移地图
 
@@ -48,6 +48,7 @@ npm run typecheck
 npm test
 npm run test:m36
 npm run test:m37
+npm run test:m38
 npm run build
 npm run build:win
 ```

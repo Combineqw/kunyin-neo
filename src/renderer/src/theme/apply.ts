@@ -41,9 +41,18 @@ let comfortLevel: ComfortLevel = 'standard'
 let hasAppliedTheme = false
 let themeTransitionTimer: ReturnType<typeof setTimeout> | undefined
 
+let currentThemeFps: number | null = null
+
+export function setThemeFps(fps: number | null): void {
+  currentThemeFps = fps
+  if (hasAppliedTheme && currentId) {
+    applyNativeMotionProfile(resolve(currentId).id)
+  }
+}
+
 function applyNativeMotionProfile(themeId: string): void {
   void window.api.theme
-    .motionProfile(themeId, reducedMotionQuery.matches)
+    .motionProfile(themeId, reducedMotionQuery.matches, currentThemeFps)
     .then((profile) => {
       if (!profile || document.documentElement.dataset.theme !== themeId) return
       const root = document.documentElement

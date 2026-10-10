@@ -45,7 +45,10 @@ function load(): AppSettings {
     // lyrics overlay when the user had enabled it before desktopMode existed.
     const rawLyrics = (parsed.lyrics ?? {}) as Record<string, unknown>
     const legacyPlayer = (parsed.player ?? {}) as Record<string, unknown>
-    if (!Object.prototype.hasOwnProperty.call(rawLyrics, 'desktopMode') && legacyPlayer.miniPlayerEnabled === true) {
+    if (
+      !Object.prototype.hasOwnProperty.call(rawLyrics, 'desktopMode') &&
+      legacyPlayer.miniPlayerEnabled === true
+    ) {
       merged.lyrics.desktopEnabled = true
       merged.lyrics.desktopMode = 'combined'
       merged.player.miniPlayerEnabled = false
@@ -74,19 +77,34 @@ function load(): AppSettings {
       0,
       100
     )
-    merged.player.srsBass = clampSetting(merged.player.srsBass, DEFAULT_SETTINGS.player.srsBass, 0, 100)
-    merged.player.srsVoice = clampSetting(merged.player.srsVoice, DEFAULT_SETTINGS.player.srsVoice, 0, 100)
-    merged.player.srsTreble = clampSetting(merged.player.srsTreble, DEFAULT_SETTINGS.player.srsTreble, 0, 100)
-    merged.player.srsSpace = clampSetting(merged.player.srsSpace, DEFAULT_SETTINGS.player.srsSpace, 0, 100)
+    merged.player.srsBass = clampSetting(
+      merged.player.srsBass,
+      DEFAULT_SETTINGS.player.srsBass,
+      0,
+      100
+    )
+    merged.player.srsVoice = clampSetting(
+      merged.player.srsVoice,
+      DEFAULT_SETTINGS.player.srsVoice,
+      0,
+      100
+    )
+    merged.player.srsTreble = clampSetting(
+      merged.player.srsTreble,
+      DEFAULT_SETTINGS.player.srsTreble,
+      0,
+      100
+    )
+    merged.player.srsSpace = clampSetting(
+      merged.player.srsSpace,
+      DEFAULT_SETTINGS.player.srsSpace,
+      0,
+      100
+    )
     merged.player.srsLimiter = merged.player.srsLimiter !== false
     merged.player.irsEnabled = merged.player.irsEnabled === true
     const rawPlayer = (parsed.player ?? {}) as Record<string, unknown>
-    merged.player.volume = clampSetting(
-      merged.player.volume,
-      DEFAULT_SETTINGS.player.volume,
-      0,
-      1
-    )
+    merged.player.volume = clampSetting(merged.player.volume, DEFAULT_SETTINGS.player.volume, 0, 1)
     const hasWetPercent = typeof rawPlayer.irsWetPercent === 'number'
     const legacyDry = clampSetting(
       merged.player.irsDryPercent,
@@ -117,11 +135,17 @@ function load(): AppSettings {
       12
     )
     const profiles = Array.isArray(merged.player.irsProfiles) ? merged.player.irsProfiles : []
-    merged.player.irsProfiles = profiles.filter((profile) => profile.id !== 'builtin-srs-normal-headphone')
-    merged.player.irsProfileId = typeof merged.player.irsProfileId === 'string' ? merged.player.irsProfileId : ''
+    merged.player.irsProfiles = profiles.filter(
+      (profile) => profile.id !== 'builtin-srs-normal-headphone'
+    )
+    merged.player.irsProfileId =
+      typeof merged.player.irsProfileId === 'string' ? merged.player.irsProfileId : ''
     if (!merged.player.irsProfiles.some((profile) => profile.id === merged.player.irsProfileId)) {
       merged.player.irsProfileId = ''
       merged.player.irsEnabled = false
+    }
+    if (merged.behavior.themeFps !== null) {
+      merged.behavior.themeFps = clampSetting(merged.behavior.themeFps, 60, 0, 144)
     }
     merged.version = DEFAULT_SETTINGS.version
     return merged

@@ -248,15 +248,16 @@ async function cyclePlayMode(): Promise<void> {
   flex: none;
   height: 100%;
   aspect-ratio: 1 / 1;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   overflow: hidden;
-  box-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transition: box-shadow var(--anim-dur-fast) var(--anim-ease-smooth);
 }
 .cover.clickable {
   cursor: pointer;
 }
 .cover.clickable:hover {
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
 }
 .cover img {
   width: 100%;

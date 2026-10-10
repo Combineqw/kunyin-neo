@@ -9,8 +9,10 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { MeshGradientRenderer } from '../bg-render'
 import { loadResourceFromUrl } from '../utils/resource'
+import { useSettingsStore } from '../stores/settings'
 
 const props = defineProps<{ cover?: string }>()
+const settingsStore = useSettingsStore()
 
 const canvas = ref<HTMLCanvasElement | null>(null)
 let renderer: MeshGradientRenderer | null = null
@@ -69,8 +71,9 @@ function applyMotionProfile(): void {
   const token = ++profileToken
   const reducedMotion = reducedMotionQuery?.matches ?? false
   const gpuUnavailable = gpuHealthy === 'degraded' || gpuHealthy === 'failed'
+  const requestedFps = settingsStore.settings.behavior.themeFps ?? null
   void window.api.theme
-    .motionProfile(currentThemeId(), reducedMotion, null, displayRefreshHz)
+    .motionProfile(currentThemeId(), reducedMotion, requestedFps, displayRefreshHz)
     .then((profile) => {
       if (token !== profileToken || renderer !== r) return
       // Native profile unavailable: keep the renderer's own scheduler default;
@@ -132,7 +135,10 @@ onMounted(() => {
     applyMotionProfile()
   }
   gpuStatusUnsubscribe = window.api.app.onGpuStatus(applyGpuStatus)
-  void window.api.app.gpuStatus().then(applyGpuStatus).catch(() => undefined)
+  void window.api.app
+    .gpuStatus()
+    .then(applyGpuStatus)
+    .catch(() => undefined)
   reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
   reducedMotionQuery.addEventListener('change', applyMotionProfile)
   themeObserver = new MutationObserver((records) => {
@@ -156,6 +162,11 @@ onMounted(() => {
 watch(
   () => props.cover,
   (c) => void applyCover(c)
+)
+
+watch(
+  () => settingsStore.settings.behavior.themeFps,
+  () => applyMotionProfile()
 )
 
 onBeforeUnmount(() => {
