@@ -10,7 +10,8 @@ use std::sync::{Arc, Mutex, OnceLock};
 
 use aurora_audio::{
     negotiate_remote_format, probe_capabilities, resolve_replay_gain_db, NativePlaybackEngine,
-    Qmc2Decryptor, RemotePlaybackShadowSession, ReplayGainDsp, StreamCache,
+    Qmc2Decryptor, RemotePlaybackShadowSession, ReplayGainDsp, StreamCache, StreamDecodeOutput,
+    StreamDecoder,
 };
 use aurora_core::{
     download::DownloadSession, lyrics, metadata, provider, scan, settings_io, sync, theme,
@@ -27,15 +28,21 @@ static QMC2_STREAMS: OnceLock<Mutex<HashMap<u64, Arc<Qmc2Decryptor>>>> = OnceLoc
 static NEXT_QMC2_STREAM_ID: OnceLock<Mutex<u64>> = OnceLock::new();
 static REMOTE_SHADOW_SESSIONS: OnceLock<Mutex<HashMap<String, RemotePlaybackShadowSession>>> =
     OnceLock::new();
-static STREAM_CACHES: OnceLock<Mutex<HashMap<String, StreamCache>>> = OnceLock::new();
+static STREAM_CACHES: OnceLock<Mutex<HashMap<String, Arc<Mutex<StreamCache>>>>> = OnceLock::new();
+static STREAM_DECODERS: OnceLock<Mutex<HashMap<String, StreamDecoder>>> = OnceLock::new();
 static DOWNLOADS: OnceLock<Mutex<HashMap<u64, DownloadSession>>> = OnceLock::new();
 static NEXT_DOWNLOAD_ID: OnceLock<Mutex<u64>> = OnceLock::new();
 const MAX_QMC2_STREAMS: usize = 64;
 const MAX_REMOTE_SHADOW_SESSIONS: usize = 64;
 const MAX_STREAM_CACHES: usize = 32;
+const MAX_STREAM_DECODERS: usize = 16;
 
-fn stream_caches() -> &'static Mutex<HashMap<String, StreamCache>> {
+fn stream_caches() -> &'static Mutex<HashMap<String, Arc<Mutex<StreamCache>>>> {
     STREAM_CACHES.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn stream_decoders() -> &'static Mutex<HashMap<String, StreamDecoder>> {
+    STREAM_DECODERS.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
 fn downloads() -> &'static Mutex<HashMap<u64, DownloadSession>> {
@@ -638,8 +645,11 @@ pub fn stream_cache_create(
         .unwrap_or(8 * 1024 * 1024); // default 8 MiB
     let dir = temp_dir.map(std::path::PathBuf::from);
 
-    let cache = StreamCache::new(&cache_id, max_mem, dir);
-    let stats = cache.stats();
+    let cache = Arc::new(Mutex::new(StreamCache::new(&cache_id, max_mem, dir)));
+    let stats = cache
+        .lock()
+        .map_err(|_| napi::Error::from_reason("stream cache lock poisoned"))?
+        .stats();
     caches.insert(cache_id, cache);
 
     serde_json::to_string(&stats).map_err(|err| napi::Error::from_reason(err.to_string()))
@@ -651,14 +661,17 @@ pub fn stream_cache_write_chunk(cache_id: String, offset: i64, chunk: Buffer) ->
     if offset < 0 {
         return Err(napi::Error::from_reason("offset cannot be negative"));
     }
-    let mut caches = stream_caches()
+    let caches = stream_caches()
         .lock()
         .map_err(|_| napi::Error::from_reason("stream cache lock poisoned"))?;
     let cache = caches
-        .get_mut(&cache_id)
+        .get(&cache_id)
         .ok_or_else(|| napi::Error::from_reason("stream cache not found"))?;
 
-    let bytes_written = cache
+    let mut guard = cache
+        .lock()
+        .map_err(|_| napi::Error::from_reason("stream cache lock poisoned"))?;
+    let bytes_written = guard
         .write_chunk(offset as u64, &chunk)
         .map_err(|err| napi::Error::from_reason(err.to_string()))?;
     Ok(bytes_written as i64)
@@ -674,14 +687,17 @@ pub fn stream_cache_read(
     if offset < 0 || max_len <= 0 {
         return Ok(None);
     }
-    let mut caches = stream_caches()
+    let caches = stream_caches()
         .lock()
         .map_err(|_| napi::Error::from_reason("stream cache lock poisoned"))?;
     let cache = caches
-        .get_mut(&cache_id)
+        .get(&cache_id)
         .ok_or_else(|| napi::Error::from_reason("stream cache not found"))?;
 
-    let maybe_data = cache
+    let mut guard = cache
+        .lock()
+        .map_err(|_| napi::Error::from_reason("stream cache lock poisoned"))?;
+    let maybe_data = guard
         .read_at(offset as u64, max_len as usize)
         .map_err(|err| napi::Error::from_reason(err.to_string()))?;
 
@@ -697,9 +713,32 @@ pub fn stream_cache_stats(cache_id: String) -> napi::Result<Option<String>> {
     let Some(cache) = caches.get(&cache_id) else {
         return Ok(None);
     };
-    serde_json::to_string(&cache.stats())
+    let guard = cache
+        .lock()
+        .map_err(|_| napi::Error::from_reason("stream cache lock poisoned"))?;
+    serde_json::to_string(&guard.stats())
         .map(Some)
         .map_err(|err| napi::Error::from_reason(err.to_string()))
+}
+
+/// Set known total stream length (from Content-Length or on stream end).
+#[napi]
+pub fn stream_cache_set_total_length(cache_id: String, total_length: i64) -> napi::Result<bool> {
+    if total_length < 0 {
+        return Err(napi::Error::from_reason("total length cannot be negative"));
+    }
+    let caches = stream_caches()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("stream cache lock poisoned"))?;
+    let cache = caches
+        .get(&cache_id)
+        .ok_or_else(|| napi::Error::from_reason("stream cache not found"))?;
+
+    let mut guard = cache
+        .lock()
+        .map_err(|_| napi::Error::from_reason("stream cache lock poisoned"))?;
+    guard.set_total_length(total_length as u64);
+    Ok(true)
 }
 
 /// Close and destroy a stream cache, freeing RAM and cleaning temp files.
@@ -708,6 +747,149 @@ pub fn stream_cache_close(cache_id: String) -> bool {
     stream_caches()
         .lock()
         .map(|mut caches| caches.remove(&cache_id).is_some())
+        .unwrap_or(false)
+}
+
+/// Create a stream decoder associated with an existing stream cache.
+#[napi]
+pub fn stream_decoder_create(
+    decoder_id: String,
+    cache_id: String,
+    container_hint: Option<String>,
+    mime_hint: Option<String>,
+) -> napi::Result<String> {
+    let cache = {
+        let caches = stream_caches()
+            .lock()
+            .map_err(|_| napi::Error::from_reason("stream cache lock poisoned"))?;
+        caches
+            .get(&cache_id)
+            .cloned()
+            .ok_or_else(|| napi::Error::from_reason("associated stream cache not found"))?
+    };
+
+    let mut decoders = stream_decoders()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("stream decoder lock poisoned"))?;
+
+    if decoders.len() >= MAX_STREAM_DECODERS && !decoders.contains_key(&decoder_id) {
+        if let Some(oldest) = decoders.keys().next().cloned() {
+            decoders.remove(&oldest);
+        }
+    }
+
+    let decoder = StreamDecoder::new(&decoder_id, cache, container_hint, mime_hint);
+    let snapshot = decoder.snapshot();
+    decoders.insert(decoder_id, decoder);
+
+    serde_json::to_string(&snapshot).map_err(|err| napi::Error::from_reason(err.to_string()))
+}
+
+/// Attempt to probe metadata of the audio stream.
+#[napi]
+pub fn stream_decoder_probe(decoder_id: String) -> napi::Result<Option<String>> {
+    let mut decoders = stream_decoders()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("stream decoder lock poisoned"))?;
+    let decoder = decoders
+        .get_mut(&decoder_id)
+        .ok_or_else(|| napi::Error::from_reason("stream decoder not found"))?;
+
+    let info = decoder
+        .try_probe()
+        .map_err(|err| napi::Error::from_reason(err.to_string()))?;
+
+    match info {
+        Some(info) => serde_json::to_string(&info)
+            .map(Some)
+            .map_err(|err| napi::Error::from_reason(err.to_string())),
+        None => Ok(None),
+    }
+}
+
+/// Step decoding by at most one packet or chunk.
+#[napi]
+pub fn stream_decoder_step(decoder_id: String) -> napi::Result<String> {
+    let mut decoders = stream_decoders()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("stream decoder lock poisoned"))?;
+    let decoder = decoders
+        .get_mut(&decoder_id)
+        .ok_or_else(|| napi::Error::from_reason("stream decoder not found"))?;
+
+    let output = decoder
+        .decode_next_chunk()
+        .map_err(|err| napi::Error::from_reason(err.to_string()))?;
+
+    let snap = decoder.snapshot();
+    let res = match output {
+        StreamDecodeOutput::Chunk(chunk) => serde_json::json!({
+            "status": "chunk",
+            "frames": chunk.frames,
+            "endOfStream": false,
+            "underflow": false,
+            "positionMs": snap.position_ms,
+        }),
+        StreamDecodeOutput::NeedMoreData => serde_json::json!({
+            "status": "needMoreData",
+            "frames": 0,
+            "endOfStream": false,
+            "underflow": true,
+            "positionMs": snap.position_ms,
+        }),
+        StreamDecodeOutput::EndOfStream => serde_json::json!({
+            "status": "endOfStream",
+            "frames": 0,
+            "endOfStream": true,
+            "underflow": false,
+            "positionMs": snap.position_ms,
+        }),
+    };
+
+    Ok(res.to_string())
+}
+
+/// Seek stream decoder to target time in milliseconds.
+#[napi]
+pub fn stream_decoder_seek(decoder_id: String, target_ms: i64) -> napi::Result<String> {
+    if target_ms < 0 {
+        return Err(napi::Error::from_reason("target_ms cannot be negative"));
+    }
+    let mut decoders = stream_decoders()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("stream decoder lock poisoned"))?;
+    let decoder = decoders
+        .get_mut(&decoder_id)
+        .ok_or_else(|| napi::Error::from_reason("stream decoder not found"))?;
+
+    decoder
+        .seek_ms(target_ms as u64)
+        .map_err(|err| napi::Error::from_reason(err.to_string()))?;
+
+    serde_json::to_string(&decoder.snapshot())
+        .map_err(|err| napi::Error::from_reason(err.to_string()))
+}
+
+/// Retrieve snapshot of stream decoder.
+#[napi]
+pub fn stream_decoder_snapshot(decoder_id: String) -> napi::Result<Option<String>> {
+    let decoders = stream_decoders()
+        .lock()
+        .map_err(|_| napi::Error::from_reason("stream decoder lock poisoned"))?;
+    let Some(decoder) = decoders.get(&decoder_id) else {
+        return Ok(None);
+    };
+    serde_json::to_string(&decoder.snapshot())
+        .map(Some)
+        .map_err(|err| napi::Error::from_reason(err.to_string()))
+}
+
+/// Close and destroy a stream decoder.
+#[napi]
+pub fn stream_decoder_close(decoder_id: String) -> bool {
+    stream_decoders()
+        .lock()
+        .map(|mut decoders| decoders.remove(&decoder_id).is_some())
         .unwrap_or(false)
 }
 

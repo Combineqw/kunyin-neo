@@ -105,8 +105,22 @@ export declare function streamCacheWriteChunk(cacheId: string, offset: number, c
 export declare function streamCacheRead(cacheId: string, offset: number, maxLen: number): Buffer | null
 /** Query stats snapshot of a stream cache. */
 export declare function streamCacheStats(cacheId: string): string | null
+/** Set known total stream length (from Content-Length or on stream end). */
+export declare function streamCacheSetTotalLength(cacheId: string, totalLength: number): boolean
 /** Close and destroy a stream cache, freeing RAM and cleaning temp files. */
 export declare function streamCacheClose(cacheId: string): boolean
+/** Create a stream decoder associated with an existing stream cache. */
+export declare function streamDecoderCreate(decoderId: string, cacheId: string, containerHint?: string | undefined | null, mimeHint?: string | undefined | null): string
+/** Attempt to probe metadata of the audio stream. */
+export declare function streamDecoderProbe(decoderId: string): string | null
+/** Step decoding by at most one packet or chunk. */
+export declare function streamDecoderStep(decoderId: string): string
+/** Seek stream decoder to target time in milliseconds. */
+export declare function streamDecoderSeek(decoderId: string, targetMs: number): string
+/** Retrieve snapshot of stream decoder. */
+export declare function streamDecoderSnapshot(decoderId: string): string | null
+/** Close and destroy a stream decoder. */
+export declare function streamDecoderClose(decoderId: string): boolean
 /** Start a bounded temporary-file download transaction. */
 export declare function downloadCreate(tempPath: string, finalPath: string, maxBytes: number): number
 export declare function downloadWrite(id: number, chunk: Buffer): string

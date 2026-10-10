@@ -40,6 +40,12 @@ pub use remote::{
 mod cache;
 pub use cache::{CacheStats, StreamCache};
 
+mod stream_decoder;
+pub use stream_decoder::{
+    SharedStreamSource, StreamDecodeError, StreamDecodeOutput, StreamDecodeState, StreamDecoder,
+    StreamDecoderSnapshot,
+};
+
 /// ReplayGain DSP boundary shared by native output adapters.
 ///
 /// The renderer currently owns the Web Audio node, so this type deliberately
@@ -638,7 +644,8 @@ where
 /// The decoder always emits interleaved f32 samples. Keeping this DTO separate
 /// from `PcmRingBuffer` lets a device adapter consume chunks without coupling
 /// file IO or codec work to its real-time callback.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DecodedPcmChunk {
     pub format: PcmFormat,
     pub frames: usize,
@@ -646,7 +653,8 @@ pub struct DecodedPcmChunk {
     pub end_of_stream: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AudioStreamInfo {
     pub format: PcmFormat,
     pub codec: String,

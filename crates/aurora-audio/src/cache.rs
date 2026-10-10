@@ -242,6 +242,11 @@ impl StreamCache {
     pub fn current_cursor(&self) -> u64 {
         self.read_cursor
     }
+
+    /// Return known total stream length.
+    pub fn total_length(&self) -> Option<u64> {
+        self.total_length
+    }
 }
 
 impl Read for StreamCache {
@@ -321,6 +326,16 @@ impl Seek for StreamCache {
         }
 
         Ok(self.read_cursor)
+    }
+}
+
+impl symphonia::core::io::MediaSource for StreamCache {
+    fn is_seekable(&self) -> bool {
+        true
+    }
+
+    fn byte_len(&self) -> Option<u64> {
+        self.total_length
     }
 }
 

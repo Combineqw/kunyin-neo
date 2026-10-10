@@ -492,10 +492,85 @@ export function nativeStreamCacheStats(cacheId) {
   }
 }
 
+export function nativeStreamCacheSetTotalLength(cacheId, totalLength) {
+  try {
+    const call = loadBinding()?.streamCacheSetTotalLength
+    return typeof call === 'function'
+      ? call(cacheId, Math.max(0, Math.round(Number(totalLength)))) === true
+      : false
+  } catch {
+    return false
+  }
+}
+
 export function nativeStreamCacheClose(cacheId) {
   try {
     const call = loadBinding()?.streamCacheClose
     return typeof call === 'function' ? call(cacheId) === true : false
+  } catch {
+    return false
+  }
+}
+
+export function nativeStreamDecoderCreate(decoderId, cacheId, containerHint, mimeHint) {
+  try {
+    const call = loadBinding()?.streamDecoderCreate
+    if (typeof call !== 'function') return null
+    const raw = call(decoderId, cacheId, containerHint ?? null, mimeHint ?? null)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeStreamDecoderProbe(decoderId) {
+  try {
+    const call = loadBinding()?.streamDecoderProbe
+    if (typeof call !== 'function') return null
+    const raw = call(decoderId)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeStreamDecoderStep(decoderId) {
+  try {
+    const call = loadBinding()?.streamDecoderStep
+    if (typeof call !== 'function') return null
+    const raw = call(decoderId)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeStreamDecoderSeek(decoderId, targetMs) {
+  try {
+    const call = loadBinding()?.streamDecoderSeek
+    if (typeof call !== 'function') return null
+    const raw = call(decoderId, Math.max(0, Math.round(Number(targetMs))))
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeStreamDecoderSnapshot(decoderId) {
+  try {
+    const call = loadBinding()?.streamDecoderSnapshot
+    if (typeof call !== 'function') return null
+    const raw = call(decoderId)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeStreamDecoderClose(decoderId) {
+  try {
+    const call = loadBinding()?.streamDecoderClose
+    return typeof call === 'function' ? call(decoderId) === true : false
   } catch {
     return false
   }

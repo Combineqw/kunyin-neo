@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.41 — 2026-10-10】
+【kunyin-neo 项目记忆 v5.42 — 2026-10-10】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,31 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10）
+
+◆ M41 原生流式解码管线 (Symphonia Stream Decoder)（2026-10-10，事实与回执）
+- `aurora-audio` 新增 `stream_decoder` 模块：
+  · 实现 `SharedStreamSource`：将 `Arc<Mutex<StreamCache>>` 包装为线程安全的媒体输入源，实现 `std::io::Read`、`std::io::Seek` 以及 `symphonia::core::io::MediaSource`（提供 `is_seekable: true` 与 `byte_len: total_length`）。
+  · `StreamCache` 原生实现 `MediaSource`，新增 `total_length` 访问器。
+  · 实现 `StreamDecoder`：基于 Symphonia 的流式多格式解码器（支持 MP3, FLAC, AAC, WAV, OGG 等），对接流分块缓存，支持按需驱动 `try_probe()`、单步包解码 `decode_next_chunk()`、有界队列灌入 `pump_to_queue()`（对接 `SharedPcmQueue`）、精确时间戳 Seek `seek_ms()`、以及解码快照 `snapshot()`。
+  · 状态机精确管理：`AwaitingHeader` -> `Ready` -> `Decoding` -> `Underflow` (网络分块欠载，等待网络灌入而非报错崩溃) -> `EndOfStream` -> `Failed`。
+  · 结构体 `AudioStreamInfo` 与 `DecodedPcmChunk` 增加 `Serialize` / `Deserialize` 派生。
+- `aurora-native` 扩展 N-API：
+  · `STREAM_CACHES` 升级为 `Arc<Mutex<StreamCache>>`，实现写入分块与流式解码并发共享同一缓存。
+  · 新增 7 个 N-API 导出：
+    `stream_cache_set_total_length`：设置媒体总流长。
+    `stream_decoder_create`：基于指定缓存创建流解码器会话。
+    `stream_decoder_probe`：探测流格式与编解码元数据。
+    `stream_decoder_step`：单步解码包（返回状态、解出帧数、EOF、欠载等）。
+    `stream_decoder_seek`：精确 Seek 到指定毫秒。
+    `stream_decoder_snapshot`：获取流解码器快照与统计。
+    `stream_decoder_close`：关闭并销毁解码器会话。
+- 主进程与桥接层：
+  · `bridge.ts` 与 `bridge-runtime.js` 导出强类型的 `nativeStreamDecoderCreate`、`nativeStreamDecoderProbe`、`nativeStreamDecoderStep`、`nativeStreamDecoderSeek`、`nativeStreamDecoderSnapshot`、`nativeStreamDecoderClose`、`nativeStreamCacheSetTotalLength`。
+  · 现有网络取流、Chromium `<audio>` 解码与 Web Audio 混音 100% 保持不变，支持双链路透明回退。
+- 新增 `scripts/m41-stream-decoder-tests.mjs`（`npm run test:m41`），覆盖 N-API 导出、合成 WAV 音频分块探测、欠载与恢复流式解码、EOF 检测、Seek 重置与运行时包装。
+- 回归验证：`cargo test`（aurora-audio 27/27 全过）、`npm run native:build`、`npm run test:m41`、`npm run test:m40`、`npm run test:m39`、`npm run test:m38`、`npm run test:m37`、`npm run test:m36`、`npm test`（9 项全过）、`npm run typecheck`、`npm run build`、scoped ESLint 0 errors、`git diff --check` 全部通过。
+- 本切片推进原生流式解码地基，不改变既有 Chromium 解码与 Web Audio 混音主链，不构成所有者验收通过结论。
 
 ◆ M40 原生流分块环形缓存与文件缓冲（2026-10-10，事实与回执）
 - `aurora-audio` 新增 `cache` 模块：

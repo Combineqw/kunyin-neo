@@ -5,12 +5,13 @@
 ## 当前基线
 
 - 分支：`master`
-- M40 工作内容：原生流分块环形缓存与文件缓冲（Native Stream Ring Cache & Spill Storage）
+- M41 工作内容：原生流式解码管线（Native Stream Decoder via Symphonia）
 - 产品版本：`1.1.0`
 - 远端：`https://github.com/Combineqw/kunyin-neo.git`
-- 技术栈：Electron 39、Vue 3、TypeScript、Rust、N-API-RS、Tauri 2 验证壳
+- 技术栈：Electron 39、Vue 3、TypeScript、Rust、N-API-RS、纯 Rust 原生化架构规划
+- 终极形态战略决策：彻底弃用 Web / WebView 运行时（不采用 Tauri，走向 100% 纯 Rust 原生 GUI 与音频引擎）
 
-M40 在 `crates/aurora-audio` 实现双层有界流缓存器 `StreamCache`（RAM 窗口 + 自动溢出临时文件），并原生实现 `std::io::Read` 与 `std::io::Seek`，将非连续 HTTP Range 网络分块抽象为标准可任意 Seek 的媒体流输入端。由 `crates/aurora-native` 暴露 5 个 N-API 导出，并在 `src/main/native/bridge.ts` 与 `src/main/audio/protocol.ts` 建立分块注入通道。现有网络取流、QMC2 解密、Chromium `<audio>` 解码与 Web Audio 渲染完全保留。
+M41 在 `crates/aurora-audio` 实现流式解码模块 `stream_decoder`，基于 Symphonia 驱动多格式音频解码并对接 `StreamCache`。支持自适应 Header 探测、流式包解码、欠载保护（Underflow 自动等待后续网络分块而非中断报错）、有界 `SharedPcmQueue` 缓冲泵入与精准 Seek 重置。`crates/aurora-native` 升级缓存共享架构并暴露 7 个 N-API 接口，由 `bridge.ts` 与 `bridge-runtime.js` 完成类型化导出。现有网络取流、QMC2 解密、Chromium `<audio>` 解码与 Web Audio 渲染完全保留。
 
 ## Rust 迁移地图
 
@@ -51,6 +52,7 @@ npm run test:m37
 npm run test:m38
 npm run test:m39
 npm run test:m40
+npm run test:m41
 npm run build
 npm run build:win
 ```
@@ -65,11 +67,11 @@ cargo test --manifest-path crates/aurora-native/Cargo.toml
 cargo check --manifest-path src-tauri/Cargo.toml
 ```
 
-`npm run test:m40` 需要先执行 `npm run native:build`。全仓 lint 如果扫描到未跟踪 `work/` 脚本，应使用正式源码范围的 scoped lint，不要把临时脚本加入提交。
+`npm run test:m41` 需要先执行 `npm run native:build`。全仓 lint 如果扫描到未跟踪 `work/` 脚本，应使用正式源码范围的 scoped lint，不要把临时脚本加入提交。
 
 ## 下一步建议
 
-下一块进入 M41：对接 `StreamCache` 与原生 Symphonia 流式解码管线（Native Stream Decoder），将有界 PCM 环形缓冲区与网络流解封装打通。每个切片都要保留旧路径、加入确定性回归、升级 `MEMORY.md`，并单独提交和普通推送。
+下一块进入 M42：原生 DSP 音效引擎（Native Audio DSP Engine），实现 10 段 Biquad IIR 均衡器（Peak/Shelf，算法精度对齐 Web Audio 传函系数）、ReplayGain 原生增益应用与平滑淡入淡出（防爆音），将算法与管线彻底收拢在 Rust 音频核心中。每个切片都要保留旧路径、加入确定性回归、升级 `MEMORY.md`，并单独提交和普通推送。
 
 ## 提交纪律
 

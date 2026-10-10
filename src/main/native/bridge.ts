@@ -95,7 +95,19 @@ type NativeBinding = {
   streamCacheWriteChunk?(cacheId: string, offset: number, chunk: Uint8Array): number
   streamCacheRead?(cacheId: string, offset: number, maxLen: number): Uint8Array | null
   streamCacheStats?(cacheId: string): string | null
+  streamCacheSetTotalLength?(cacheId: string, totalLength: number): boolean
   streamCacheClose?(cacheId: string): boolean
+  streamDecoderCreate?(
+    decoderId: string,
+    cacheId: string,
+    containerHint?: string | null,
+    mimeHint?: string | null
+  ): string
+  streamDecoderProbe?(decoderId: string): string | null
+  streamDecoderStep?(decoderId: string): string
+  streamDecoderSeek?(decoderId: string, targetMs: number): string
+  streamDecoderSnapshot?(decoderId: string): string | null
+  streamDecoderClose?(decoderId: string): boolean
   audioDecryptQmc2File?(path: string, ekey: string): boolean
   syncNormalizeBaseUrl?(url: string): string
   syncValidateSession?(sessionJson: string): string
@@ -112,6 +124,29 @@ export type NativeCacheStats = {
   contiguousForwardBytes: number
   bufferedRangeCount: number
   isSpilledToFile: boolean
+}
+
+export interface NativeStreamDecoderSnapshot {
+  streamId: string
+  state: 'awaitingHeader' | 'ready' | 'decoding' | 'underflow' | 'endOfStream' | 'failed'
+  format: {
+    sampleRate: number
+    channels: number
+  } | null
+  codec: string | null
+  durationMs: number | null
+  decodedFrames: number
+  positionMs: number
+  bufferedForwardBytes: number
+  totalCachedBytes: number
+}
+
+export interface NativeStreamDecodeStepResult {
+  status: 'chunk' | 'needMoreData' | 'endOfStream'
+  frames: number
+  endOfStream: boolean
+  underflow: boolean
+  positionMs: number
 }
 
 export type NativeAudioBackendCapabilities = {
@@ -910,11 +945,105 @@ export function nativeStreamCacheStats(cacheId: string): NativeCacheStats | null
   }
 }
 
+/** Optional total length declaration for native stream cache. */
+export function nativeStreamCacheSetTotalLength(cacheId: string, totalLength: number): boolean {
+  try {
+    const call = loadBinding()?.streamCacheSetTotalLength
+    return typeof call === 'function'
+      ? call(cacheId, Math.max(0, Math.round(totalLength))) === true
+      : false
+  } catch {
+    return false
+  }
+}
+
 /** Optional close and cleanup of native stream cache. */
 export function nativeStreamCacheClose(cacheId: string): boolean {
   try {
     const call = loadBinding()?.streamCacheClose
     return typeof call === 'function' ? call(cacheId) === true : false
+  } catch {
+    return false
+  }
+}
+
+/** Optional creation of native stream decoder bound to a stream cache. */
+export function nativeStreamDecoderCreate(
+  decoderId: string,
+  cacheId: string,
+  containerHint?: string | null,
+  mimeHint?: string | null
+): NativeStreamDecoderSnapshot | null {
+  try {
+    const call = loadBinding()?.streamDecoderCreate
+    if (typeof call !== 'function') return null
+    const raw = call(decoderId, cacheId, containerHint ?? null, mimeHint ?? null)
+    return raw ? (JSON.parse(raw) as NativeStreamDecoderSnapshot) : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional format probe for stream decoder. */
+export function nativeStreamDecoderProbe(decoderId: string): {
+  format: { sampleRate: number; channels: number }
+  codec: string
+  durationFrames?: number
+} | null {
+  try {
+    const call = loadBinding()?.streamDecoderProbe
+    if (typeof call !== 'function') return null
+    const raw = call(decoderId)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional single-step packet decoding. */
+export function nativeStreamDecoderStep(decoderId: string): NativeStreamDecodeStepResult | null {
+  try {
+    const call = loadBinding()?.streamDecoderStep
+    if (typeof call !== 'function') return null
+    const raw = call(decoderId)
+    return raw ? (JSON.parse(raw) as NativeStreamDecodeStepResult) : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional seek of native stream decoder to target timestamp in milliseconds. */
+export function nativeStreamDecoderSeek(
+  decoderId: string,
+  targetMs: number
+): NativeStreamDecoderSnapshot | null {
+  try {
+    const call = loadBinding()?.streamDecoderSeek
+    if (typeof call !== 'function') return null
+    const raw = call(decoderId, Math.max(0, Math.round(targetMs)))
+    return raw ? (JSON.parse(raw) as NativeStreamDecoderSnapshot) : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional snapshot query for native stream decoder. */
+export function nativeStreamDecoderSnapshot(decoderId: string): NativeStreamDecoderSnapshot | null {
+  try {
+    const call = loadBinding()?.streamDecoderSnapshot
+    if (typeof call !== 'function') return null
+    const raw = call(decoderId)
+    return raw ? (JSON.parse(raw) as NativeStreamDecoderSnapshot) : null
+  } catch {
+    return null
+  }
+}
+
+/** Optional close and destroy of native stream decoder. */
+export function nativeStreamDecoderClose(decoderId: string): boolean {
+  try {
+    const call = loadBinding()?.streamDecoderClose
+    return typeof call === 'function' ? call(decoderId) === true : false
   } catch {
     return false
   }

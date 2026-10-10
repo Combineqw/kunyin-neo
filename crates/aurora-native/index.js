@@ -310,7 +310,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { playbackSnapshot, playbackLoad, playbackPlay, playbackPause, playbackSeek, playbackTick, playbackStop, audioBackendCapabilities, audioReplayGainLinear, audioReplayGainDb, themeMotionProfile, nativeAudioStartFile, nativeAudioPlay, nativeAudioPause, nativeAudioSetVolume, nativeAudioSeek, nativeAudioStop, nativeAudioSnapshot, audioDecryptQmc2Chunk, audioStreamCreate, audioStreamDecrypt, audioStreamClose, remoteStreamNegotiateFormat, remotePlaybackShadowCreate, remotePlaybackShadowUpdateResponse, remotePlaybackShadowReceiveChunk, remotePlaybackShadowSeek, remotePlaybackShadowSetPlayState, remotePlaybackShadowSnapshot, remotePlaybackShadowClose, remoteStreamPlanRange, remoteStreamGetBufferedRanges, remoteStreamIsOffsetBuffered, remoteStreamCalculateSeekRange, streamCacheCreate, streamCacheWriteChunk, streamCacheRead, streamCacheStats, streamCacheClose, downloadCreate, downloadWrite, downloadCommit, downloadAbort, audioDecryptQmc2File, scanDirectory, parseTrack, readAudioTags, writeAudioTags, scanLyrics, readSettings, writeSettings, settingsRoundtrip, nativeVersion, syncNormalizeBaseUrl, syncValidateSession, providerParseQqTrack, providerParseWyTrack } = nativeBinding
+const { playbackSnapshot, playbackLoad, playbackPlay, playbackPause, playbackSeek, playbackTick, playbackStop, audioBackendCapabilities, audioReplayGainLinear, audioReplayGainDb, themeMotionProfile, nativeAudioStartFile, nativeAudioPlay, nativeAudioPause, nativeAudioSetVolume, nativeAudioSeek, nativeAudioStop, nativeAudioSnapshot, audioDecryptQmc2Chunk, audioStreamCreate, audioStreamDecrypt, audioStreamClose, remoteStreamNegotiateFormat, remotePlaybackShadowCreate, remotePlaybackShadowUpdateResponse, remotePlaybackShadowReceiveChunk, remotePlaybackShadowSeek, remotePlaybackShadowSetPlayState, remotePlaybackShadowSnapshot, remotePlaybackShadowClose, remoteStreamPlanRange, remoteStreamGetBufferedRanges, remoteStreamIsOffsetBuffered, remoteStreamCalculateSeekRange, streamCacheCreate, streamCacheWriteChunk, streamCacheRead, streamCacheStats, streamCacheSetTotalLength, streamCacheClose, streamDecoderCreate, streamDecoderProbe, streamDecoderStep, streamDecoderSeek, streamDecoderSnapshot, streamDecoderClose, downloadCreate, downloadWrite, downloadCommit, downloadAbort, audioDecryptQmc2File, scanDirectory, parseTrack, readAudioTags, writeAudioTags, scanLyrics, readSettings, writeSettings, settingsRoundtrip, nativeVersion, syncNormalizeBaseUrl, syncValidateSession, providerParseQqTrack, providerParseWyTrack } = nativeBinding
 
 module.exports.playbackSnapshot = playbackSnapshot
 module.exports.playbackLoad = playbackLoad
@@ -350,7 +350,14 @@ module.exports.streamCacheCreate = streamCacheCreate
 module.exports.streamCacheWriteChunk = streamCacheWriteChunk
 module.exports.streamCacheRead = streamCacheRead
 module.exports.streamCacheStats = streamCacheStats
+module.exports.streamCacheSetTotalLength = streamCacheSetTotalLength
 module.exports.streamCacheClose = streamCacheClose
+module.exports.streamDecoderCreate = streamDecoderCreate
+module.exports.streamDecoderProbe = streamDecoderProbe
+module.exports.streamDecoderStep = streamDecoderStep
+module.exports.streamDecoderSeek = streamDecoderSeek
+module.exports.streamDecoderSnapshot = streamDecoderSnapshot
+module.exports.streamDecoderClose = streamDecoderClose
 module.exports.downloadCreate = downloadCreate
 module.exports.downloadWrite = downloadWrite
 module.exports.downloadCommit = downloadCommit
