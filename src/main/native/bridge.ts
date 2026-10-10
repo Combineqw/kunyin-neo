@@ -146,6 +146,28 @@ type NativeBinding = {
   syncValidateSession?(sessionJson: string): string
   providerParseQqTrack?(itemJson: string): string
   providerParseWyTrack?(itemJson: string): string
+  lyricsParseLrc?(content: string): string
+  lyricsFindActiveLine?(linesJson: string, timeMs: number): string | null
+  desktopLyricComputeAppearance?(
+    bgOpacity: number,
+    textOpacity: number,
+    fontWeight: number,
+    shadowOpacity: number,
+    strokeWidth: number
+  ): string
+  miniPlayerComputeAppearance?(opacityPercent: number): string
+  networkBuildHeaders?(
+    provider: string,
+    targetUrl: string,
+    rangeStart?: number | null,
+    rangeEnd?: number | null
+  ): string
+  networkPlanStreamRange?(
+    startByte: number,
+    totalBytes: number,
+    chunkSize: number
+  ): string
+  networkValidateProxy?(enable: boolean, host: string, port: number): string
 }
 
 export type NativeAudioDeviceInfo = {
@@ -1353,5 +1375,215 @@ export function nativeAudioSinkSwitchDevice(
       : false
   } catch {
     return false
+  }
+}
+
+export interface NativeLyricMatch {
+  index: number
+  start: number
+  end: number
+  text: string
+  progress: number
+  prev_text?: string | null
+  next_text?: string | null
+}
+
+export interface NativeDesktopLyricAppearance {
+  bg_opacity: number
+  text_opacity: number
+  font_weight: number
+  background_rgba: string
+  text_opacity_str: string
+  shadow_rgba: string
+  stroke_width_px: number
+}
+
+export interface NativeMiniPlayerAppearance {
+  opacity: number
+  bg_rgba: string
+  hover_rgba: string
+  border_rgba: string
+}
+
+export interface NativeNetworkHeaders {
+  provider: string
+  target_url: string
+  headers: Record<string, string>
+}
+
+export interface NativeNetworkStreamRange {
+  start: number
+  end: number
+  length: number
+  range_header: string
+  is_final: boolean
+}
+
+/** Parse LRC text through shared Rust line-level parser with TypeScript fallback. */
+export function nativeLyricsParse(content: string): NativeLyricLine[] {
+  try {
+    const raw = loadBinding()?.lyricsParseLrc?.(content)
+    if (raw) return JSON.parse(raw) as NativeLyricLine[]
+  } catch {
+    // fallback
+  }
+  return []
+}
+
+/** Find active line and internal progress in lyrics timeline through Rust binary search. */
+export function nativeLyricsFindActiveLine(
+  lines: NativeLyricLine[],
+  timeMs: number
+): NativeLyricMatch | null {
+  try {
+    const raw = loadBinding()?.lyricsFindActiveLine?.(JSON.stringify(lines), timeMs)
+    if (raw) return JSON.parse(raw) as NativeLyricMatch
+  } catch {
+    // fallback
+  }
+  if (!lines.length) return null
+  const time = Math.max(0, timeMs)
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    if (time >= line.start && (line.end === 0 || time < line.end || i === lines.length - 1)) {
+      const progress =
+        line.end > line.start
+          ? Math.max(0, Math.min(1, (time - line.start) / (line.end - line.start)))
+          : 1
+      return {
+        index: i,
+        start: line.start,
+        end: line.end,
+        text: line.text,
+        progress,
+        prev_text: i > 0 ? lines[i - 1].text : null,
+        next_text: i + 1 < lines.length ? lines[i + 1].text : null
+      }
+    }
+  }
+  return null
+}
+
+/** Compute normalized appearance tokens and CSS variables for desktop lyrics. */
+export function nativeDesktopLyricComputeAppearance(
+  bgOpacity: number,
+  textOpacity: number,
+  fontWeight: number = 600,
+  shadowOpacity: number = 0.72,
+  strokeWidth: number = 0
+): NativeDesktopLyricAppearance {
+  try {
+    const raw = loadBinding()?.desktopLyricComputeAppearance?.(
+      bgOpacity,
+      textOpacity,
+      fontWeight,
+      shadowOpacity,
+      strokeWidth
+    )
+    if (raw) return JSON.parse(raw) as NativeDesktopLyricAppearance
+  } catch {
+    // fallback
+  }
+  const bg = Math.max(0, Math.min(1, bgOpacity))
+  const text = Math.max(0.06, Math.min(1, textOpacity / 100))
+  return {
+    bg_opacity: bg,
+    text_opacity: text,
+    font_weight: Math.max(100, Math.min(900, fontWeight)),
+    background_rgba: `rgba(9, 12, 11, ${bg.toFixed(2)})`,
+    text_opacity_str: text.toFixed(2),
+    shadow_rgba: `rgba(0, 0, 0, ${shadowOpacity.toFixed(2)})`,
+    stroke_width_px: strokeWidth
+  }
+}
+
+/** Compute normalized appearance tokens and background RGBA for mini player. */
+export function nativeMiniPlayerComputeAppearance(
+  opacityPercent: number
+): NativeMiniPlayerAppearance {
+  try {
+    const raw = loadBinding()?.miniPlayerComputeAppearance?.(opacityPercent)
+    if (raw) return JSON.parse(raw) as NativeMiniPlayerAppearance
+  } catch {
+    // fallback
+  }
+  const op = Math.max(0.1, Math.min(1, opacityPercent / 100))
+  return {
+    opacity: op,
+    bg_rgba: `rgba(31, 33, 31, ${op.toFixed(2)})`,
+    hover_rgba: `rgba(35, 37, 34, ${Math.min(1, op + 0.18).toFixed(2)})`,
+    border_rgba: 'rgba(255, 255, 255, 0.20)'
+  }
+}
+
+/** Generate platform-specific headers for online stream and lyric requests. */
+export function nativeNetworkBuildHeaders(
+  provider: string,
+  targetUrl: string,
+  rangeStart?: number | null,
+  rangeEnd?: number | null
+): NativeNetworkHeaders {
+  try {
+    const raw = loadBinding()?.networkBuildHeaders?.(provider, targetUrl, rangeStart, rangeEnd)
+    if (raw) return JSON.parse(raw) as NativeNetworkHeaders
+  } catch {
+    // fallback
+  }
+  const headers: Record<string, string> = {
+    Accept: '*/*',
+    'Connection': 'keep-alive',
+    'User-Agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
+  }
+  if (provider === 'qq') {
+    headers['Referer'] = 'https://y.qq.com/'
+  } else if (provider === 'wy') {
+    headers['Referer'] = 'https://music.163.com/'
+  }
+  if (rangeStart != null) {
+    headers['Range'] = rangeEnd != null ? `bytes=${rangeStart}-${rangeEnd}` : `bytes=${rangeStart}-`
+  }
+  return {
+    provider,
+    target_url: targetUrl,
+    headers
+  }
+}
+
+/** Plan chunk ranges for remote stream caching and range requests. */
+export function nativeNetworkPlanStreamRange(
+  startByte: number,
+  totalBytes: number,
+  chunkSize: number = 256 * 1024
+): NativeNetworkStreamRange {
+  try {
+    const raw = loadBinding()?.networkPlanStreamRange?.(startByte, totalBytes, chunkSize)
+    if (raw) return JSON.parse(raw) as NativeNetworkStreamRange
+  } catch {
+    // fallback
+  }
+  const step = Math.max(64 * 1024, chunkSize)
+  const end = totalBytes > 0 ? Math.min(startByte + step - 1, totalBytes - 1) : startByte + step - 1
+  return {
+    start: startByte,
+    end,
+    length: end - startByte + 1,
+    range_header: `bytes=${startByte}-${end}`,
+    is_final: totalBytes > 0 ? end + 1 >= totalBytes : false
+  }
+}
+
+/** Validate and normalize proxy URI string through Rust network module. */
+export function nativeNetworkValidateProxy(
+  enable: boolean,
+  host: string,
+  port: number
+): string | null {
+  try {
+    const raw = loadBinding()?.networkValidateProxy?.(enable, host, port)
+    return raw || null
+  } catch {
+    if (!enable || !host) return null
+    return `http://${host}:${port}`
   }
 }

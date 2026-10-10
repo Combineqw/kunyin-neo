@@ -21,7 +21,8 @@ export default defineConfig(
       'src/renderer/public/**',
       // vendored 歌词引擎（music-lyric-kit / -player 上游源码，见 tools/vendor-lyric.mjs）：
       // 保持与上游逐字节可对照，不套本项目的 prettier/lint 规约，否则每次升级都是满屏格式 diff
-      'src/renderer/src/lyric/**'
+      'src/renderer/src/lyric/**',
+      'work/**'
     ]
   },
   tseslint.configs.recommended,

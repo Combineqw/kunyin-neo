@@ -208,3 +208,17 @@ export declare function syncValidateSession(sessionJson: string): string
 export declare function providerParseQqTrack(itemJson: string): string
 /** Parse one Netease Cloud Music provider item through the shared Rust mapping. */
 export declare function providerParseWyTrack(itemJson: string): string
+/** Parse LRC content into lines array JSON. */
+export declare function lyricsParseLrc(content: string): string
+/** Find active lyric line and calculate internal progress and surrounding lines. */
+export declare function lyricsFindActiveLine(linesJson: string, timeMs: number): string | null
+/** Calculate desktop lyric window appearance parameters. */
+export declare function desktopLyricComputeAppearance(bgOpacity: number, textOpacity: number, fontWeight: number, shadowOpacity: number, strokeWidth: number): string
+/** Calculate mini player window appearance parameters. */
+export declare function miniPlayerComputeAppearance(opacityPercent: number): string
+/** Generate optimized network headers for online music streams and lyrics. */
+export declare function networkBuildHeaders(provider: string, targetUrl: string, rangeStart?: number | undefined | null, rangeEnd?: number | undefined | null): string
+/** Plan network stream chunk ranges. */
+export declare function networkPlanStreamRange(startByte: number, totalBytes: number, chunkSize: number): string
+/** Validate and normalize network proxy setting. */
+export declare function networkValidateProxy(enable: boolean, host: string, port: number): string

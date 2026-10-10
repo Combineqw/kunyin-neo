@@ -58,7 +58,9 @@ export class NativePlayerOrchestrator {
   private exclusiveMode: boolean = false
   private forceVirtual: boolean = false
 
-  public constructor() {}
+  public constructor() {
+    // 实例化音频编排器
+  }
 
   /**
    * 加载音轨（支持本地文件路径直接读取或现有 StreamCache 挂载）

@@ -89,8 +89,8 @@ export function registerPlayerHandlers(): void {
   handle(IpcChannels.NATIVE_PLAYER_VOLUME, (volume: number, muted?: boolean) =>
     nativePlayerOrchestrator.setVolume(volume, muted)
   )
-  handle(IpcChannels.NATIVE_PLAYER_CONFIGURE_DSP, (config: any) =>
-    nativePlayerOrchestrator.configureDsp(config)
+  handle(IpcChannels.NATIVE_PLAYER_CONFIGURE_DSP, (config: unknown) =>
+    nativePlayerOrchestrator.configureDsp(config as Parameters<typeof nativePlayerOrchestrator.configureDsp>[0])
   )
   handle(IpcChannels.NATIVE_PLAYER_GET_DEVICES, () => nativePlayerOrchestrator.getDevices())
   handle(IpcChannels.NATIVE_PLAYER_SWITCH_DEVICE, (deviceName?: string, exclusive?: boolean) =>

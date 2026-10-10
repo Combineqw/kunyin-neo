@@ -414,6 +414,12 @@ function setMiniPlayerEnabled(enabled: boolean): void {
   })
 }
 
+function setMiniPlayerOpacity(event: Event): void {
+  const value = Number((event.target as HTMLInputElement).value)
+  const clamped = Math.max(10, Math.min(100, Number.isFinite(value) ? value : 72))
+  void store.update({ player: { miniPlayerOpacity: clamped } })
+}
+
 function setReplayGainEnabled(enabled: boolean): void {
   void store.update({ player: { replayGainEnabled: enabled } })
 }
@@ -445,6 +451,25 @@ function setReplayGainMax(event: Event): void {
       @update:model-value="setMiniPlayerEnabled($event as boolean)"
     />
     <p class="setting-note">开启后会在桌面右下角显示可拖动的悬浮播放控制条，悬停时展开。</p>
+    <div class="mini-player-opacity-wrap">
+      <label class="opacity-slider-label">
+        <span class="opacity-title">
+          背景不透明度
+          <b class="apple-badge">{{ settings.player.miniPlayerOpacity ?? 72 }}%</b>
+        </span>
+        <input
+          id="setting_mini_player_opacity"
+          type="range"
+          min="10"
+          max="100"
+          step="1"
+          :value="settings.player.miniPlayerOpacity ?? 72"
+          class="apple-range-input"
+          @input="setMiniPlayerOpacity"
+        />
+      </label>
+      <small class="opacity-hint">调节悬浮迷你播放器毛玻璃底板透明度，支持实时无级预览（10% 清透极简，100% 沉浸深色）。</small>
+    </div>
   </dd>
 
   <dd>
@@ -980,5 +1005,50 @@ function setReplayGainMax(event: Event): void {
   .replay-gain-controls {
     grid-template-columns: 1fr;
   }
+}
+.mini-player-opacity-wrap {
+  margin-top: 14px;
+  max-width: 460px;
+  padding: 12px 16px;
+  background: var(--color-primary-alpha-900, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--color-primary-alpha-800, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+}
+.opacity-slider-label {
+  display: grid;
+  gap: 8px;
+}
+.opacity-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--color-font);
+  font-weight: 500;
+}
+.apple-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  font-weight: 600;
+  background: var(--color-primary-alpha-700, rgba(232, 192, 131, 0.16));
+  color: var(--color-primary, #e8c083);
+}
+.apple-range-input {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  accent-color: var(--color-primary, #e8c083);
+  cursor: pointer;
+}
+.opacity-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--color-font-label);
 }
 </style>

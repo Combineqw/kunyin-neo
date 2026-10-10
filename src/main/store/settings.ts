@@ -103,6 +103,12 @@ function load(): AppSettings {
     )
     merged.player.srsLimiter = merged.player.srsLimiter !== false
     merged.player.irsEnabled = merged.player.irsEnabled === true
+    merged.player.miniPlayerOpacity = clampSetting(
+      merged.player.miniPlayerOpacity,
+      DEFAULT_SETTINGS.player.miniPlayerOpacity,
+      10,
+      100
+    )
     const rawPlayer = (parsed.player ?? {}) as Record<string, unknown>
     merged.player.volume = clampSetting(merged.player.volume, DEFAULT_SETTINGS.player.volume, 0, 1)
     const hasWetPercent = typeof rawPlayer.irsWetPercent === 'number'
@@ -183,6 +189,12 @@ export function getSettings(): AppSettings {
 export function updateSettings(patch: DeepPartial<AppSettings>): AppSettings {
   cache = deepMerge(getSettings(), patch) as AppSettings
   cache.player.volume = clampSetting(cache.player.volume, DEFAULT_SETTINGS.player.volume, 0, 1)
+  cache.player.miniPlayerOpacity = clampSetting(
+    cache.player.miniPlayerOpacity,
+    DEFAULT_SETTINGS.player.miniPlayerOpacity,
+    10,
+    100
+  )
   persist(cache)
   return cache
 }

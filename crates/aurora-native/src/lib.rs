@@ -15,8 +15,8 @@ use aurora_audio::{
     StreamDecoder,
 };
 use aurora_core::{
-    download::DownloadSession, lyrics, metadata, provider, scan, settings_io, sync, theme,
-    AuroraError,
+    download::DownloadSession, lyrics, metadata, network, provider, scan, settings_io, sync,
+    theme, AuroraError,
 };
 use aurora_player::PlaybackSession;
 use napi::bindgen_prelude::Buffer;
@@ -1449,4 +1449,88 @@ pub fn provider_parse_qq_track(item_json: String) -> napi::Result<String> {
 #[napi]
 pub fn provider_parse_wy_track(item_json: String) -> napi::Result<String> {
     provider::parse_wy_track_json(&item_json).map_err(to_napi_error)
+}
+
+/// Parse LRC content into lines array JSON.
+#[napi]
+pub fn lyrics_parse_lrc(content: String) -> napi::Result<String> {
+    let lines = lyrics::parse_lrc(&content);
+    serde_json::to_string(&lines).map_err(|e| napi::Error::from_reason(e.to_string()))
+}
+
+/// Find active lyric line and calculate internal progress and surrounding lines.
+#[napi]
+pub fn lyrics_find_active_line(lines_json: String, time_ms: i64) -> napi::Result<Option<String>> {
+    let lines: Vec<lyrics::LyricLine> = serde_json::from_str(&lines_json)
+        .map_err(|e| napi::Error::from_reason(format!("invalid lines json: {e}")))?;
+    let time = time_ms.max(0) as u64;
+    let result = lyrics::find_active_line(&lines, time);
+    match result {
+        Some(m) => serde_json::to_string(&m)
+            .map(Some)
+            .map_err(|e| napi::Error::from_reason(e.to_string())),
+        None => Ok(None),
+    }
+}
+
+/// Calculate desktop lyric window appearance parameters.
+#[napi]
+pub fn desktop_lyric_compute_appearance(
+    bg_opacity: f64,
+    text_opacity: f64,
+    font_weight: u32,
+    shadow_opacity: f64,
+    stroke_width: u32,
+) -> napi::Result<String> {
+    let appearance = lyrics::compute_desktop_lyric_appearance(
+        bg_opacity,
+        text_opacity,
+        font_weight,
+        shadow_opacity,
+        stroke_width,
+    );
+    serde_json::to_string(&appearance).map_err(|e| napi::Error::from_reason(e.to_string()))
+}
+
+/// Calculate mini player window appearance parameters.
+#[napi]
+pub fn mini_player_compute_appearance(opacity_percent: f64) -> napi::Result<String> {
+    let appearance = lyrics::compute_mini_player_appearance(opacity_percent);
+    serde_json::to_string(&appearance).map_err(|e| napi::Error::from_reason(e.to_string()))
+}
+
+/// Generate optimized network headers for online music streams and lyrics.
+#[napi]
+pub fn network_build_headers(
+    provider: String,
+    target_url: String,
+    range_start: Option<i64>,
+    range_end: Option<i64>,
+) -> napi::Result<String> {
+    let start = range_start.map(|s| s.max(0) as u64);
+    let end = range_end.map(|e| e.max(0) as u64);
+    let headers = network::build_network_headers(&provider, &target_url, start, end);
+    serde_json::to_string(&headers).map_err(|e| napi::Error::from_reason(e.to_string()))
+}
+
+/// Plan network stream chunk ranges.
+#[napi]
+pub fn network_plan_stream_range(
+    start_byte: i64,
+    total_bytes: i64,
+    chunk_size: i64,
+) -> napi::Result<String> {
+    let plan = network::plan_stream_range(
+        start_byte.max(0) as u64,
+        total_bytes,
+        chunk_size.max(64 * 1024) as u64,
+    );
+    serde_json::to_string(&plan).map_err(|e| napi::Error::from_reason(e.to_string()))
+}
+
+/// Validate and normalize network proxy setting.
+#[napi]
+pub fn network_validate_proxy(enable: bool, host: String, port: i32) -> napi::Result<String> {
+    let res = network::validate_and_normalize_proxy(enable, &host, port).map_err(to_napi_error)?;
+    Ok(res.unwrap_or_default())
 }

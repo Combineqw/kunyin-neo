@@ -53,12 +53,12 @@ const rootClasses = computed(() => {
 
 const rootStyle = computed<Record<string, string>>(() => {
   const s = lyricSettings.value
-  const bgOpacity = Math.max(0, Math.min(0.8, s?.desktopBgOpacity ?? 0.28))
+  const bgOpacity = Math.max(0, Math.min(1, s?.desktopBgOpacity ?? 0.28))
   const shadowOpacity = Math.max(0, Math.min(1, s?.desktopShadowOpacity ?? 0.72))
   const gradientWidth = Math.max(0, Math.min(100, s?.desktopGradientWidth ?? 72))
   const gradientOpacity = Math.max(0, Math.min(1, s?.desktopGradientOpacity ?? 0.52))
   return {
-    background: locked.value ? 'transparent' : `rgba(9, 12, 11, ${bgOpacity})`,
+    background: locked.value && bgOpacity === 0 ? 'transparent' : `rgba(9, 12, 11, ${bgOpacity})`,
     '--dl-text-opacity': String(Math.max(0.06, Math.min(1, (s?.desktopOpacity ?? 100) / 100))),
     '--dl-font-weight': String(Math.max(100, Math.min(900, s?.desktopFontWeight ?? 600))),
     '--dl-stroke-color': s?.desktopStrokeColor || '#151515',

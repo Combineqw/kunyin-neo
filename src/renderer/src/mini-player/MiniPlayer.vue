@@ -20,12 +20,22 @@ const state = ref<MiniPlayerState>({
   playing: false
 })
 const expanded = ref(true)
+const miniPlayerOpacity = ref(72)
 let stateUnsub: (() => void) | null = null
+let settingsUnsub: (() => void) | null = null
 
 const cover = computed(() => coverUrl(state.value.cover))
 const progress = computed(() => {
   if (state.value.duration <= 0) return 0
   return Math.min(100, Math.max(0, (state.value.currentTime / state.value.duration) * 100))
+})
+
+const miniPlayerStyle = computed<Record<string, string>>(() => {
+  const op = Math.max(0.1, Math.min(1, miniPlayerOpacity.value / 100))
+  return {
+    '--mp-bg-opacity': String(op),
+    background: `rgba(31, 33, 31, ${op})`
+  }
 })
 
 function formatTime(value: number): string {
@@ -48,17 +58,29 @@ async function toggleFavorite(): Promise<void> {
   state.value = { ...state.value, liked }
 }
 
-onMounted(() => {
+onMounted(async () => {
   stateUnsub = window.api.miniPlayer.onState((next) => {
     state.value = next
   })
   // 窗口初始按展开尺寸创建；这里显式同步 renderer 状态，避免首次 hover 状态不一致。
   window.api.miniPlayer.setExpanded(true)
+
+  const initialSettings = await window.api.settings.get()
+  if (initialSettings?.player?.miniPlayerOpacity != null) {
+    miniPlayerOpacity.value = initialSettings.player.miniPlayerOpacity
+  }
+  settingsUnsub = window.api.settings.onChange((next) => {
+    if (next?.player?.miniPlayerOpacity != null) {
+      miniPlayerOpacity.value = next.player.miniPlayerOpacity
+    }
+  })
 })
 
 onUnmounted(() => {
   stateUnsub?.()
   stateUnsub = null
+  settingsUnsub?.()
+  settingsUnsub = null
 })
 </script>
 
@@ -66,6 +88,7 @@ onUnmounted(() => {
   <main
     class="mini-player"
     :class="{ expanded, empty: !state.hasTrack }"
+    :style="miniPlayerStyle"
     @mouseenter="setExpanded(true)"
     @mouseleave="setExpanded(false)"
   >
@@ -146,16 +169,17 @@ onUnmounted(() => {
   color: #f8f7f1;
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 18px;
-  background: rgba(31, 33, 31, 0.72);
+  background: rgba(31, 33, 31, var(--mp-bg-opacity, 0.72));
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.32);
   backdrop-filter: blur(24px) saturate(1.35);
   -webkit-backdrop-filter: blur(24px) saturate(1.35);
-  transition: opacity var(--anim-dur-fast) var(--anim-ease-smooth);
+  transition: opacity var(--anim-dur-fast) var(--anim-ease-smooth),
+    background var(--anim-dur-fast) var(--anim-ease-smooth);
 }
 
 .mini-player:hover {
   border-color: rgba(232, 192, 131, 0.58);
-  background: rgba(35, 37, 34, 0.97);
+  background: rgba(35, 37, 34, calc(min(1, var(--mp-bg-opacity, 0.72) + 0.18)));
 }
 
 .drag-region {

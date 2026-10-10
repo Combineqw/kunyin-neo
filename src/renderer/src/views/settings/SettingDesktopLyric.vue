@@ -32,7 +32,7 @@ onMounted(async () => {
 
 const previewStyle = computed<Record<string, string>>(() => {
   const s = settings.value.lyrics
-  const background = `rgba(9, 12, 11, ${Math.max(0, Math.min(0.8, s.desktopBgOpacity))})`
+  const background = `rgba(9, 12, 11, ${Math.max(0, Math.min(1, s.desktopBgOpacity))})`
   return {
     background: s.desktopGradientBar
       ? `linear-gradient(90deg, transparent, ${background}  ${Math.max(0, (100 - s.desktopGradientWidth) / 2)}%, ${background} ${Math.min(100, 100 - (100 - s.desktopGradientWidth) / 2)}%, transparent)`
@@ -394,8 +394,9 @@ function resetAll(): void {
           type="range"
           min="6"
           max="100"
-          step="2"
+          step="1"
           :value="settings.lyrics.desktopOpacity"
+          @input="setNumber('desktopOpacity', $event, 6, 100)"
           @change="setNumber('desktopOpacity', $event, 6, 100)"
         />
       </label>
@@ -406,10 +407,11 @@ function resetAll(): void {
         <input
           type="range"
           min="0"
-          max="80"
-          step="2"
-          :value="settings.lyrics.desktopBgOpacity * 100"
-          @change="setNumber('desktopBgOpacity', $event, 0, 0.8, 100)"
+          max="100"
+          step="1"
+          :value="Math.round(settings.lyrics.desktopBgOpacity * 100)"
+          @input="setNumber('desktopBgOpacity', $event, 0, 1, 100)"
+          @change="setNumber('desktopBgOpacity', $event, 0, 1, 100)"
         />
       </label>
       <label class="range-item">

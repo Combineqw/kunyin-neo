@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.51 — 2026-10-10】
+【kunyin-neo 项目记忆 v5.52 — 2026-10-10】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,35 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10；v5.48 M47 Windows 现代化安装程序体系与多格式文件关联记档：2026-10-10；v5.49 M48 Apple Design 细节美学与质感微调记档：2026-10-10；v5.50 M49 Windows 安装包构建打包与发布核验记档：2026-10-10；v5.51 M50 100% 纯 Rust 原生 GUI 与独立宿主架构记档：2026-10-10）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10；v5.48 M47 Windows 现代化安装程序体系与多格式文件关联记档：2026-10-10；v5.49 M48 Apple Design 细节美学与质感微调记档：2026-10-10；v5.50 M49 Windows 安装包构建打包与发布核验记档：2026-10-10；v5.51 M50 100% 纯 Rust 原生 GUI 与独立宿主架构记档：2026-10-10；v5.52 M51 在线网络与桌面歌词 Rust 下沉及透明度调节记档：2026-10-10）
+
+◆ M51 在线网络与桌面歌词 Rust 下沉及透明度调节 (Online Network & Desktop Lyric Downsink to Rust and Apple-Design Transparency Sliders)（2026-10-10，事实与回执）
+- 用户核心指示：“继续逐步把在线网络和桌面歌词逐个里程碑下沉到 Rust，加个迷你播放器背景透明度和桌面歌词透明度调节”：
+  · 迷你播放器背景透明度无级调节：
+    - 在设置模型与持久化中新增 `settings.player.miniPlayerOpacity`（默认 72%，允许 10%~100% 范围，支持 0 冗余向下兼容）；
+    - `MiniPlayer.vue` 订阅主进程 `settings.onChange` 广播，通过 CSS 变量 `--mp-bg-opacity` 动态绑定毛玻璃底板与 hover 增强态；
+    - 在 `SettingPlay.vue` 播放设置的“迷你播放器”卡片内增加 Apple HIG 规范无级滑动条（`@input="setMiniPlayerOpacity"`，带 SF Pro 等宽数值徽章 `{{ opacity }}%`、触觉圆角滑道与清晰提示文字）。
+  · 桌面歌词透明度与背景透明度调节升级：
+    - `SettingDesktopLyric.vue` 全面升级为 `@input` 即时无级响应（避免旧版 `@change` 仅在松手时更新），拖拽即时同步悬浮视窗；
+    - 放宽 `settings.lyrics.desktopBgOpacity` 范围至 0%~100%（原为 80% 上限），支持完全透明到纯黑沉浸深色底板；
+    - `DesktopLyrics.vue` 锁定穿透模式下支持优雅保留用户设定的毛玻璃背景（仅 `desktopBgOpacity === 0` 时全透明），即时预览卡片实时联动。
+  · 桌面歌词核心与在线网络调度下沉至 Rust：
+    - 桌面歌词模块（`crates/aurora-core/src/lyrics.rs`）：
+      1. 高精度二分查找算法 `find_active_line`：毫秒级时间戳匹配当前行、计算当前行推进进度 `progress`（0.0..1.0），提取 `prev_text` 与 `next_text` 视窗上下文；
+      2. 桌面歌词外观合成器 `compute_desktop_lyric_appearance`：规范化背景透明度、字重、描边、文字阴影并产出 rgba 颜色；
+      3. 迷你播放器外观合成器 `compute_mini_player_appearance`：计算动态背景透明度、hover 增益与边框。
+    - 在线网络调度模块（`crates/aurora-core/src/network.rs`）：
+      1. 六大在线音源（QQ、网易云、酷狗、酷我、咪咕、Bilibili）跨源伪装头与防盗链 Referer 生成器 `build_network_headers`；
+      2. 分段请求规划器 `plan_stream_range`：计算 HTTP Range 分片字节边界与 `is_final` 终止标识；
+      3. 网络代理校验与规范化器 `validate_and_normalize_proxy`：验证 IP/主机名与端口边界（1..65535），消除协议前缀冗余。
+    - Node-API 桥接适配器 `crates/aurora-native`：
+      - 全量导出 `lyrics_parse_lrc`、`lyrics_find_active_line`、`desktop_lyric_compute_appearance`、`mini_player_compute_appearance`、`network_build_headers`、`network_plan_stream_range`、`network_validate_proxy` 并桥接至 `src/main/native/bridge.ts`。
+- 质量指标与门禁验证：
+  · `crates/aurora-core` 24/24 项单元测试（`cargo test`）100% 通过；
+  · `crates/aurora-native` release 构建成功并输出更新后的 `.node` 原生动态库；
+  · 新增 `scripts/m51-transparency-settings-tests.mjs`（`npm run test:m51-transparency`）涵盖 6 大测试集，全量通过；
+  · 门禁验证全通：`npm run lint:gate` 0 报错，`npm run typecheck`（Node + Web）0 报错，`npm test` 全量测试套件 100% 通过；
+  · 保持全网六大在线音源聚合检索与桌面歌词所有已有功能零破坏、零退化。
 
 ◆ M50 100% 纯 Rust 原生 GUI 与独立宿主架构 (Pure Rust Native GUI Architecture & Native Audio Session Takeover)（2026-10-10，事实与回执）
 - 用户核心指示：“Tauri也不要，到时候只要rust” + “别单文件，还是要安装，速推吧” + “哦对了，还要记得用apple-design把ui调整一下下，大体不变” + “继续”：

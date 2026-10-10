@@ -171,6 +171,8 @@ export interface AppSettings {
     replayGainMaxDb: number
     /** 独立迷你播放器悬浮窗开关 */
     miniPlayerEnabled: boolean
+    /** 迷你播放器背景不透明度 10..100（百分比，默认 72） */
+    miniPlayerOpacity: number
     /** 迷你播放器窗口左上角位置（null 表示默认右下角） */
     miniPlayerX: number | null
     miniPlayerY: number | null
@@ -414,6 +416,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     replayGainPreampDb: 0,
     replayGainMaxDb: 6,
     miniPlayerEnabled: false,
+    miniPlayerOpacity: 72,
     miniPlayerX: null,
     miniPlayerY: null,
     dailyRecommendationEnabled: true,

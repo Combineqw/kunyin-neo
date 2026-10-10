@@ -4,6 +4,7 @@ pub mod download;
 pub mod error;
 pub mod lyrics;
 pub mod metadata;
+pub mod network;
 pub mod provider;
 pub mod scan;
 pub mod settings_io;
@@ -16,7 +17,7 @@ pub use error::AuroraError;
 mod tests {
     use serde_json::json;
 
-    use crate::{lyrics, settings_io};
+    use crate::{lyrics, network, settings_io};
 
     #[test]
     fn lrc_parser_keeps_line_timing_contract() {
@@ -27,6 +28,43 @@ mod tests {
         assert_eq!(lines[0].end, 2_500);
         assert_eq!(lines[0].text, "First");
         assert_eq!(lines[1].end, 0);
+    }
+
+    #[test]
+    fn timeline_find_active_line_works() {
+        let lines = lyrics::parse_lrc("[00:01.00]Line 1\n[00:03.00]Line 2\n[00:06.00]Line 3");
+        let active = lyrics::find_active_line(&lines, 2000).expect("find active");
+        assert_eq!(active.index, 0);
+        assert_eq!(active.text, "Line 1");
+        assert_eq!(active.next_text.as_deref(), Some("Line 2"));
+        assert!((active.progress - 0.5).abs() < 0.01);
+
+        let active2 = lyrics::find_active_line(&lines, 4500).expect("find active line 2");
+        assert_eq!(active2.index, 1);
+        assert_eq!(active2.text, "Line 2");
+        assert_eq!(active2.prev_text.as_deref(), Some("Line 1"));
+        assert_eq!(active2.next_text.as_deref(), Some("Line 3"));
+    }
+
+    #[test]
+    fn desktop_and_mini_player_appearance_calculators_work() {
+        let dl = lyrics::compute_desktop_lyric_appearance(0.45, 80.0, 600, 0.7, 2);
+        assert_eq!(dl.background_rgba, "rgba(9, 12, 11, 0.45)");
+        assert_eq!(dl.text_opacity_str, "0.80");
+
+        let mp = lyrics::compute_mini_player_appearance(75.0);
+        assert_eq!(mp.bg_rgba, "rgba(31, 33, 31, 0.75)");
+        assert_eq!(mp.hover_rgba, "rgba(35, 37, 34, 0.93)");
+    }
+
+    #[test]
+    fn network_headers_and_proxy_validation_work() {
+        let h = network::build_network_headers("qq", "https://y.qq.com/song", Some(0), Some(1024));
+        assert_eq!(h.headers.get("Referer").map(|s| s.as_str()), Some("https://y.qq.com/"));
+        assert_eq!(h.headers.get("Range").map(|s| s.as_str()), Some("bytes=0-1024"));
+
+        let proxy = network::validate_and_normalize_proxy(true, "127.0.0.1", 7890).expect("proxy ok");
+        assert_eq!(proxy, Some("http://127.0.0.1:7890".to_string()));
     }
 
     #[test]

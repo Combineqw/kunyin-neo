@@ -501,13 +501,13 @@ export interface NativePlayerLoadOptions {
   containerHint?: string
   mimeHint?: string
   forceVirtual?: boolean
-  dspConfig?: any
+  dspConfig?: unknown
 }
 
 export interface NativePlayerLoadResult {
   ok: boolean
   sinkId?: string
-  snapshot?: any
+  snapshot?: unknown
   error?: string
 }
 
@@ -758,10 +758,10 @@ export interface WindowApi {
     stop(): Promise<boolean>
     seek(positionMs: number): Promise<boolean>
     setVolume(volume: number, muted?: boolean): Promise<boolean>
-    configureDsp(config: any): Promise<boolean>
+    configureDsp(config: unknown): Promise<boolean>
     getDevices(): Promise<NativePlayerDeviceInfo[]>
     switchDevice(deviceName?: string, exclusive?: boolean): Promise<boolean>
-    snapshot(): Promise<any | null>
+    snapshot(): Promise<unknown | null>
   }
 
   /** 桌面歌词悬浮窗 */

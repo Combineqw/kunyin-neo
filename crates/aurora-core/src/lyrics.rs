@@ -17,12 +17,12 @@
 
 use std::path::Path;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::error::{AuroraError, Result};
 
 /// 单行歌词。字段与 PROJECT_STATUS 映射表一致。
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct LyricLine {
     /// 行开始，毫秒
     pub start: u64,
@@ -333,4 +333,135 @@ pub fn scan_lyrics(root: &Path) -> Result<Vec<LyricFile>> {
 /// 序列化为 JSON，供 Node 侧解析。
 pub fn scan_lyrics_json(root: &Path) -> Result<String> {
     Ok(serde_json::to_string(&scan_lyrics(root)?)?)
+}
+
+/// 匹配成功的歌词行及前后文窗口与进度。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct LyricLineMatch {
+    pub index: usize,
+    pub start: u64,
+    pub end: u64,
+    pub text: String,
+    pub progress: f64,
+    pub prev_text: Option<String>,
+    pub next_text: Option<String>,
+}
+
+/// 在歌词行数组中按当前播放毫秒二分查找高亮行，并计算行内进度与前后行。
+pub fn find_active_line(lines: &[LyricLine], time_ms: u64) -> Option<LyricLineMatch> {
+    if lines.is_empty() {
+        return None;
+    }
+
+    // 若当前播放时间早于首行，返回首行但进度为 0
+    if time_ms < lines[0].start {
+        return Some(LyricLineMatch {
+            index: 0,
+            start: lines[0].start,
+            end: lines[0].end,
+            text: lines[0].text.clone(),
+            progress: 0.0,
+            prev_text: None,
+            next_text: lines.get(1).map(|l| l.text.clone()),
+        });
+    }
+
+    // 二分查找满足 start <= time_ms 的最大下标
+    let mut low = 0;
+    let mut high = lines.len() - 1;
+    let mut best = 0;
+
+    while low <= high {
+        let mid = low + (high - low) / 2;
+        if lines[mid].start <= time_ms {
+            best = mid;
+            low = mid + 1;
+        } else {
+            if mid == 0 {
+                break;
+            }
+            high = mid - 1;
+        }
+    }
+
+    let line = &lines[best];
+    let progress = if line.end > line.start {
+        ((time_ms.saturating_sub(line.start)) as f64 / (line.end - line.start) as f64)
+            .clamp(0.0, 1.0)
+    } else {
+        1.0
+    };
+
+    Some(LyricLineMatch {
+        index: best,
+        start: line.start,
+        end: line.end,
+        text: line.text.clone(),
+        progress,
+        prev_text: if best > 0 {
+            lines.get(best - 1).map(|l| l.text.clone())
+        } else {
+            None
+        },
+        next_text: lines.get(best + 1).map(|l| l.text.clone()),
+    })
+}
+
+/// 桌面歌词窗口外观合成参数（对齐 Apple Design 毛玻璃规范）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DesktopLyricAppearance {
+    pub bg_opacity: f64,
+    pub text_opacity: f64,
+    pub font_weight: u32,
+    pub background_rgba: String,
+    pub text_opacity_str: String,
+    pub shadow_rgba: String,
+    pub stroke_width_px: u32,
+}
+
+/// 计算桌面歌词合成外观与 CSS 变量。
+pub fn compute_desktop_lyric_appearance(
+    bg_opacity: f64,
+    text_opacity: f64,
+    font_weight: u32,
+    shadow_opacity: f64,
+    stroke_width: u32,
+) -> DesktopLyricAppearance {
+    let bg_clamped = bg_opacity.clamp(0.0, 1.0);
+    let text_clamped = (text_opacity / 100.0).clamp(0.06, 1.0);
+    let fw_clamped = font_weight.clamp(100, 900);
+    let shadow_clamped = shadow_opacity.clamp(0.0, 1.0);
+    let stroke_clamped = stroke_width.clamp(0, 12);
+
+    DesktopLyricAppearance {
+        bg_opacity: bg_clamped,
+        text_opacity: text_clamped,
+        font_weight: fw_clamped,
+        background_rgba: format!("rgba(9, 12, 11, {:.2})", bg_clamped),
+        text_opacity_str: format!("{:.2}", text_clamped),
+        shadow_rgba: format!("rgba(0, 0, 0, {:.2})", shadow_clamped),
+        stroke_width_px: stroke_clamped,
+    }
+}
+
+/// 迷你播放器窗口外观合成参数。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct MiniPlayerAppearance {
+    pub opacity: f64,
+    pub bg_rgba: String,
+    pub hover_rgba: String,
+    pub border_rgba: String,
+}
+
+/// 计算迷你播放器合成外观与 CSS 变量。
+pub fn compute_mini_player_appearance(opacity_percent: f64) -> MiniPlayerAppearance {
+    let op = (opacity_percent / 100.0).clamp(0.10, 1.0);
+    let hover_op = (op + 0.18).min(1.0);
+
+    MiniPlayerAppearance {
+        opacity: op,
+        bg_rgba: format!("rgba(31, 33, 31, {:.2})", op),
+        hover_rgba: format!("rgba(35, 37, 34, {:.2})", hover_op),
+        border_rgba: "rgba(255, 255, 255, 0.20)".to_string(),
+    }
 }
