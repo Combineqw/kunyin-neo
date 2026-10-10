@@ -18,6 +18,16 @@ type NativeBinding = {
   playbackTick?(elapsedMs: number): string
   playbackStop?(): string
   audioBackendCapabilities?(): string
+  audioReplayGainLinear?(db: number): number
+  audioReplayGainDb?(
+    trackDb: number | null,
+    albumDb: number | null,
+    trackPeak: number | null,
+    albumPeak: number | null,
+    albumMode: boolean,
+    preampDb: number,
+    maxDb: number
+  ): number
   themeMotionProfile?(
     themeId: string,
     reducedMotion: boolean,
@@ -274,6 +284,46 @@ export function nativeAudioBackendCapabilities(): NativeAudioBackendCapabilities
     if (typeof call !== 'function') return null
     const raw = call()
     return raw ? (JSON.parse(raw) as NativeAudioBackendCapabilities) : null
+  } catch {
+    return null
+  }
+}
+
+/** Rust-owned ReplayGain dB boundary; renderer keeps its local fallback. */
+export function nativeAudioReplayGainLinear(db: number): number | null {
+  try {
+    const call = loadBinding()?.audioReplayGainLinear
+    if (typeof call !== 'function') return null
+    const value = call(Number.isFinite(db) ? db : 0)
+    return Number.isFinite(value) && value > 0 ? value : null
+  } catch {
+    return null
+  }
+}
+
+/** Rust ReplayGain resolver for parameter-level shadow comparison. */
+export function nativeAudioReplayGainDb(
+  trackDb: number | null,
+  albumDb: number | null,
+  trackPeak: number | null,
+  albumPeak: number | null,
+  albumMode: boolean,
+  preampDb: number,
+  maxDb: number
+): number | null {
+  try {
+    const call = loadBinding()?.audioReplayGainDb
+    if (typeof call !== 'function') return null
+    const value = call(
+      Number.isFinite(trackDb) ? trackDb : null,
+      Number.isFinite(albumDb) ? albumDb : null,
+      Number.isFinite(trackPeak) ? trackPeak : null,
+      Number.isFinite(albumPeak) ? albumPeak : null,
+      albumMode === true,
+      Number.isFinite(preampDb) ? preampDb : 0,
+      Number.isFinite(maxDb) ? maxDb : 6
+    )
+    return Number.isFinite(value) ? value : null
   } catch {
     return null
   }

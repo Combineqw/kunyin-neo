@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.36 — 2026-10-02】
+【kunyin-neo 项目记忆 v5.37 — 2026-10-07】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -29,6 +29,12 @@
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
   v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02）
+
+◆ M36 Rust ReplayGain DSP 边界（2026-10-07，事实与回执）
+- `aurora-audio` 新增无分配的 `ReplayGainDsp` dB 钳制与线性增益转换，并新增与现有 TypeScript 解析口径一致的 track/album 选择、peak 正增益保护、前置增益和上限解析函数。
+- `aurora-native` 新增 `audioReplayGainLinear` 与 `audioReplayGainDb` N-API 导出；Electron native bridge 增加可选包装。该调用只用于参数级影子比对，渲染层仍保留 Web Audio GainNode 回退，不引入逐帧 IPC。
+- 新增 `test:m36` smoke test，验证原生导出、极端值钳制和既有 ReplayGain 语义一致性。`cargo fmt --check`、`cargo test`（aurora-audio 12/12、aurora-native 编译）、`npm run native:build`、`npm run test:m36`、`npm run typecheck`、`npm test`、`npm run build`、正式文件 scoped ESLint 与 `git diff --check` 均通过。全仓 lint 仍会扫描未跟踪 `work/` 临时脚本，未纳入提交。
+- 本切片建立 DSP 参数边界，不代表生产远程流、EQ/SRS/IRS、设备输出或完整播放链已全量 Rust 化；不构成所有者验收通过结论。
 
 ◆ M35 桌面歌词合并播放器（2026-10-02，事实与回执）
 - 新增 `lyrics.desktopMode`：`lyrics` 保持原桌面歌词，`combined` 在同一个桌面歌词窗口内显示封面、歌名、歌手、时间、收藏和上一首/播放/下一首控制；不再为 combined 创建第二个迷你播放器 BrowserWindow。

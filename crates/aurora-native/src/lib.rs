@@ -8,7 +8,9 @@ use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
 
-use aurora_audio::{probe_capabilities, NativePlaybackEngine, Qmc2Decryptor};
+use aurora_audio::{
+    probe_capabilities, resolve_replay_gain_db, NativePlaybackEngine, Qmc2Decryptor, ReplayGainDsp,
+};
 use aurora_core::{
     download::DownloadSession, lyrics, metadata, provider, scan, settings_io, sync, theme,
     AuroraError,
@@ -133,6 +135,34 @@ pub fn playback_stop() -> napi::Result<String> {
 pub fn audio_backend_capabilities() -> napi::Result<String> {
     serde_json::to_string(&probe_capabilities())
         .map_err(|error| napi::Error::from_reason(error.to_string()))
+}
+
+/// Convert a ReplayGain dB value through the Rust DSP boundary.
+///
+/// This is intentionally a parameter-level call rather than a per-buffer IPC
+/// path. The renderer keeps its existing GainNode until native mixing is
+/// attached, while native output adapters can share the exact clamp rules.
+#[napi]
+pub fn audio_replay_gain_linear(db: f64) -> f64 {
+    ReplayGainDsp::db_to_linear(db)
+}
+
+/// Resolve one track/album ReplayGain value with peak protection in Rust.
+/// The renderer can compare this result with its existing pure TypeScript
+/// resolver before a future native mixer consumes the value directly.
+#[napi]
+pub fn audio_replay_gain_db(
+    track_db: Option<f64>,
+    album_db: Option<f64>,
+    track_peak: Option<f64>,
+    album_peak: Option<f64>,
+    album_mode: bool,
+    preamp_db: f64,
+    max_db: f64,
+) -> f64 {
+    resolve_replay_gain_db(
+        track_db, album_db, track_peak, album_peak, album_mode, preamp_db, max_db,
+    )
 }
 
 /// Return the deterministic Rust-owned theme motion profile. The renderer

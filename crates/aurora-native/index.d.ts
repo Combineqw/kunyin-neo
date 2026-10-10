@@ -17,6 +17,28 @@ export declare function playbackStop(): string
  */
 export declare function audioBackendCapabilities(): string
 /**
+ * Convert a ReplayGain dB value through the Rust DSP boundary.
+ *
+ * This is intentionally a parameter-level call rather than a per-buffer IPC
+ * path. The renderer keeps its existing GainNode until native mixing is
+ * attached, while native output adapters can share the exact clamp rules.
+ */
+export declare function audioReplayGainLinear(db: number): number
+/**
+ * Resolve one track/album ReplayGain value with peak protection in Rust.
+ * The renderer can compare this result with its existing pure TypeScript
+ * resolver before a future native mixer consumes the value directly.
+ */
+export declare function audioReplayGainDb(
+  trackDb: number | undefined | null,
+  albumDb: number | undefined | null,
+  trackPeak: number | undefined | null,
+  albumPeak: number | undefined | null,
+  albumMode: boolean,
+  preampDb: number,
+  maxDb: number
+): number
+/**
  * Return the deterministic Rust-owned theme motion profile. The renderer
  * consumes the JSON only to apply CSS variables and final compositing.
  *

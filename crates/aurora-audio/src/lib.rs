@@ -29,6 +29,28 @@ use symphonia::core::meta::MetadataOptions;
 mod qmc2;
 pub use qmc2::{decrypt_qmc2_chunk, Qmc2Decryptor};
 
+/// ReplayGain DSP boundary shared by native output adapters.
+///
+/// The renderer currently owns the Web Audio node, so this type deliberately
+/// stays a pure, allocation-free parameter boundary.  A future native mixer
+/// can reuse the same clamp and conversion rules without duplicating them.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ReplayGainDsp;
+
+impl ReplayGainDsp {
+    pub const MIN_DB: f64 = -18.0;
+    pub const MAX_DB: f64 = 12.0;
+
+    pub fn clamp_db(db: f64) -> f64 {
+        let value = if db.is_finite() { db } else { 0.0 };
+        value.clamp(Self::MIN_DB, Self::MAX_DB)
+    }
+
+    pub fn db_to_linear(db: f64) -> f64 {
+        10.0_f64.powf(Self::clamp_db(db) / 20.0)
+    }
+}
+
 #[cfg(windows)]
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
@@ -88,6 +110,68 @@ pub fn probe_capabilities() -> AudioBackendCapabilities {
             production_ready: false,
             fallback: "chromium-html-audio".to_string(),
         }
+    }
+}
+
+/// Resolve one ReplayGain value at the native audio boundary.
+///
+/// This mirrors the renderer contract while keeping malformed metadata away
+/// from the output gain node. Gains are normalized to -60..20 dB, peaks to
+/// 0..16, positive gain is capped by the selected peak, and the final result
+/// is bounded to -18..max_db (where max_db is itself bounded to 0..12).
+pub fn resolve_replay_gain_db(
+    track_db: Option<f64>,
+    album_db: Option<f64>,
+    track_peak: Option<f64>,
+    album_peak: Option<f64>,
+    album_mode: bool,
+    preamp_db: f64,
+    max_db: f64,
+) -> f64 {
+    fn bounded(value: Option<f64>, min: f64, max: f64) -> Option<f64> {
+        value
+            .filter(|value| value.is_finite())
+            .map(|value| value.clamp(min, max))
+    }
+
+    let track_db = bounded(track_db, -60.0, 20.0);
+    let album_db = bounded(album_db, -60.0, 20.0);
+    let track_peak = bounded(track_peak, 0.0, 16.0);
+    let album_peak = bounded(album_peak, 0.0, 16.0);
+    let gain = if album_mode {
+        album_db.or(track_db)
+    } else {
+        track_db.or(album_db)
+    };
+    let Some(gain) = gain else {
+        return 0.0;
+    };
+    let peak = if album_mode {
+        album_peak.or(track_peak)
+    } else {
+        track_peak.or(album_peak)
+    };
+    let preamp = if preamp_db.is_finite() {
+        preamp_db
+    } else {
+        0.0
+    };
+    let upper = if max_db.is_finite() {
+        max_db.clamp(0.0, 12.0)
+    } else {
+        6.0
+    };
+    let mut resolved = gain + preamp;
+    if resolved > 0.0 {
+        if let Some(peak) = peak.filter(|peak| *peak > 0.0) {
+            resolved = resolved.min(-20.0 * peak.log10());
+        }
+    }
+    let clamped = resolved.clamp(-18.0, upper);
+    if clamped == 0.0 {
+        0.0
+    } else {
+        clamped
     }
 }
 
@@ -1164,8 +1248,21 @@ mod tests {
     use super::NativeOutputController;
     use super::{
         decode_frames, probe_capabilities, resample_interleaved, AudioOutputMode, PcmFormat,
-        PcmRingBuffer, SharedPcmQueue,
+        PcmRingBuffer, ReplayGainDsp, SharedPcmQueue,
     };
+
+    #[test]
+    fn replay_gain_dsp_clamps_non_finite_and_extreme_values() {
+        assert_eq!(ReplayGainDsp::clamp_db(f64::NAN), 0.0);
+        assert_eq!(ReplayGainDsp::clamp_db(-100.0), -18.0);
+        assert_eq!(ReplayGainDsp::clamp_db(100.0), 12.0);
+        assert!((ReplayGainDsp::db_to_linear(0.0) - 1.0).abs() < 1e-12);
+        assert!((ReplayGainDsp::db_to_linear(6.0) - 1.9952623149688795).abs() < 1e-12);
+        assert!(
+            (ReplayGainDsp::db_to_linear(f64::INFINITY) - ReplayGainDsp::db_to_linear(0.0)).abs()
+                < 1e-12
+        );
+    }
 
     #[cfg(not(windows))]
     #[test]
