@@ -62,4 +62,10 @@ const detailHeader = read('src/renderer/src/components/DetailHeader.vue')
 assert(detailHeader.includes('letter-spacing: -0.02em;'), 'header title must have crisp tracking')
 assert(detailHeader.includes('padding: 9px 22px;'), 'play-all button must have Apple capsule padding')
 
+// 9. main.ts Windows 11 DWM rounded corners and shadows configuration
+const mainWindowSource = read('src/main/windows/main.ts')
+assert(mainWindowSource.includes('thickFrame: true'), 'main window must enable thickFrame: true for Windows 11 DWM rounded corners and drop shadows')
+assert(mainWindowSource.includes('roundedCorners: true'), 'main window must enable roundedCorners: true')
+assert(mainWindowSource.includes('hasShadow: true'), 'main window must enable hasShadow: true')
+
 console.log('All Apple Design UI Refinements Verification Tests passed successfully!')

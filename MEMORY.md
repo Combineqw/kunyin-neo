@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.55 — 2026-10-10】
+【kunyin-neo 项目记忆 v5.56 — 2026-10-10】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,21 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10；v5.48 M47 Windows 现代化安装程序体系与多格式文件关联记档：2026-10-10；v5.49 M48 Apple Design 细节美学与质感微调记档：2026-10-10；v5.50 M49 Windows 安装包构建打包与发布核验记档：2026-10-10；v5.51 M50 100% 纯 Rust 原生 GUI 与独立宿主架构记档：2026-10-10；v5.52 M51 在线网络与桌面歌词 Rust 下沉及透明度调节记档：2026-10-10；v5.53 M52 纯 Rust 桌面歌词悬浮透明视窗与全屏歌词架构记档：2026-10-10；v5.54 M53 Tauri 2 架构与全功能 UI 迁移方案落地：2026-10-10；v5.55 M54 视窗圆角与层次阴影系统加固 & 终极纯 Rust GUI 演进基线：2026-10-10）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10；v5.48 M47 Windows 现代化安装程序体系与多格式文件关联记档：2026-10-10；v5.49 M48 Apple Design 细节美学与质感微调记档：2026-10-10；v5.50 M49 Windows 安装包构建打包与发布核验记档：2026-10-10；v5.51 M50 100% 纯 Rust 原生 GUI 与独立宿主架构记档：2026-10-10；v5.52 M51 在线网络与桌面歌词 Rust 下沉及透明度调节记档：2026-10-10；v5.53 M52 纯 Rust 桌面歌词悬浮透明视窗与全屏歌词架构记档：2026-10-10；v5.54 M53 Tauri 2 架构与全功能 UI 迁移方案落地：2026-10-10；v5.55 M54 视窗圆角与层次阴影系统加固 & 终极纯 Rust GUI 演进基线：2026-10-10；v5.56 M55 thickFrame DWM 硬件级圆角投影修复与自动化回归门禁：2026-10-10）
+
+◆ M55 Win32 thickFrame DWM 硬件级圆角与外阴影修复 (Windows 11 DWM Native Squircle & Ambient Shadow Restoration via thickFrame: true)（2026-10-10，事实与回执）
+- 用户核心指示与截图反馈：“这什么r角”以及对无边框窗口直角生硬、缺乏立体外阴影的视觉反馈：
+  · 根因深度剖析：
+    - 在 `src/main/windows/main.ts` 中，虽然设置了 `frame: false, roundedCorners: true, hasShadow: true`，但错误配置了 `thickFrame: false`；
+    - 在 Win32 操作系统底层，`thickFrame: false` 会导致 Electron 主动剥离窗口的 `WS_THICKFRAME` (即 `WS_SIZEBOX`) 样式位；
+    - Windows 11 DWM（桌面窗口管理器）对缺乏 `WS_THICKFRAME` 的窗口强制判定为无修饰弹出窗口（WS_POPUP / Tool Window），从而直接**抑制并拒绝施加 DWMWCP_ROUND 系统原生圆角裁剪与 DWM 外部环境光投影**，导致视窗直接呈现为 90° 尖锐直角且浮于背景内容之上；
+  · 彻底修复与系统级阴影/圆角激活：
+    - `src/main/windows/main.ts`：将 `thickFrame` 明确恢复为 `true`（保留 `WS_THICKFRAME` 样式）；在 `frame: false` 下通过 Electron 的 `WM_NCCALCSIZE` 机制精确吞吐客户区，同时保留 Windows 11 DWM 原生 Squircle 硬件抗锯齿圆角及多层立体阴影；
+    - `scripts/m48-apple-design-ui-refinements-tests.mjs`：扩展第 9 项自动化门禁断言，严格校验 `main.ts` 中 `thickFrame: true`、`roundedCorners: true` 与 `hasShadow: true` 契约，防止后续版本发生退化；
+  · 质量门禁与测试：
+    - `npm run lint:gate` 与 `npm run typecheck` 0 报错；
+    - `npm test` 12 套测试（包含 Apple Design、主题对比度、核心领域与 Tauri 桥接）100% 通过；`node scripts/m48-apple-design-ui-refinements-tests.mjs` 门禁全绿；
+    - Git 提交并推送至远程 master。
 
 ◆ M54 视窗圆角与层次阴影系统加固 & 终极纯 Rust GUI 演进基线 (Window Rounded Corners, Layered Shadow Tokens & Pure Rust Ultimate Roadmap)（2026-10-10，事实与回执）
 - 用户核心指示与截图反馈：“加个阴影圆角谢谢”、“这什么r角”以及“以后还要逐渐抛弃Tauri”：

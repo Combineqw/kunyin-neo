@@ -78,9 +78,9 @@ export function createMainWindow(): BrowserWindow {
     autoHideMenuBar: true,
     title: '坤音neo',
     frame: false,
-    // 启用 Windows 11 DWM 系统级原生圆角与硬件投影（消除内容层圆角裁切产生的黑三角瑕疵）
+    // 启用 Windows 11 DWM 系统级原生圆角与硬件投影（消除内容层圆角裁切产生的黑三角瑕疵；必须保持 thickFrame: true 保留 WS_THICKFRAME 样式）
     roundedCorners: true,
-    thickFrame: false,
+    thickFrame: true,
     hasShadow: true,
     // 主窗口必须使用不透明背景：Windows 透明无框窗口在部分 DWM/GPU 环境中会显示为纯白，
     // 即使 renderer 已成功加载。桌面歌词和迷你播放器仍可独立使用透明窗口。
