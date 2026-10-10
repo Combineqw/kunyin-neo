@@ -417,6 +417,33 @@ fn window_toggle_maximize(window: Window) -> Result<(), String> {
     }
 }
 
+#[tauri::command]
+fn provider_parse_qq_track(item_json: String) -> Result<String, String> {
+    aurora_core::provider::parse_qq_track_json(&item_json).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn provider_parse_wy_track(item_json: String) -> Result<String, String> {
+    aurora_core::provider::parse_wy_track_json(&item_json).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn provider_parse_kg_track(item_json: String) -> Result<String, String> {
+    aurora_core::provider::parse_kg_track_json(&item_json).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn provider_parse_kw_track(item_json: String) -> Result<String, String> {
+    aurora_core::provider::parse_kw_track_json(&item_json).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn provider_kg_sign(params_json: String, body: String) -> Result<String, String> {
+    let params: std::collections::BTreeMap<String, String> = serde_json::from_str(&params_json)
+        .map_err(|e| format!("参数解析错误: {e}"))?;
+    Ok(aurora_core::provider::kg_sign(&params, &body))
+}
+
 fn main() {
     tauri::Builder::default()
         .manage(LibraryState::default())
@@ -456,7 +483,12 @@ fn main() {
             network_plan_stream_range,
             window_minimize,
             window_close,
-            window_toggle_maximize
+            window_toggle_maximize,
+            provider_parse_qq_track,
+            provider_parse_wy_track,
+            provider_parse_kg_track,
+            provider_parse_kw_track,
+            provider_kg_sign
         ])
         .run(tauri::generate_context!())
         .expect("failed to run the Tauri shell");

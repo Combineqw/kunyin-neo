@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.56 — 2026-10-10】
+【kunyin-neo 项目记忆 v5.57 — 2026-10-11】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,28 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10；v5.48 M47 Windows 现代化安装程序体系与多格式文件关联记档：2026-10-10；v5.49 M48 Apple Design 细节美学与质感微调记档：2026-10-10；v5.50 M49 Windows 安装包构建打包与发布核验记档：2026-10-10；v5.51 M50 100% 纯 Rust 原生 GUI 与独立宿主架构记档：2026-10-10；v5.52 M51 在线网络与桌面歌词 Rust 下沉及透明度调节记档：2026-10-10；v5.53 M52 纯 Rust 桌面歌词悬浮透明视窗与全屏歌词架构记档：2026-10-10；v5.54 M53 Tauri 2 架构与全功能 UI 迁移方案落地：2026-10-10；v5.55 M54 视窗圆角与层次阴影系统加固 & 终极纯 Rust GUI 演进基线：2026-10-10；v5.56 M55 thickFrame DWM 硬件级圆角投影修复与自动化回归门禁：2026-10-10）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10；v5.48 M47 Windows 现代化安装程序体系与多格式文件关联记档：2026-10-10；v5.49 M48 Apple Design 细节美学与质感微调记档：2026-10-10；v5.50 M49 Windows 安装包构建打包与发布核验记档：2026-10-10；v5.51 M50 100% 纯 Rust 原生 GUI 与独立宿主架构记档：2026-10-10；v5.52 M51 在线网络与桌面歌词 Rust 下沉及透明度调节记档：2026-10-10；v5.53 M52 纯 Rust 桌面歌词悬浮透明视窗与全屏歌词架构记档：2026-10-10；v5.54 M53 Tauri 2 架构与全功能 UI 迁移方案落地：2026-10-10；v5.55 M54 视窗圆角与层次阴影系统加固 & 终极纯 Rust GUI 演进基线：2026-10-10；v5.56 M55 thickFrame DWM 硬件级圆角投影修复与自动化回归门禁：2026-10-10；v5.57 M56 多源音源解析与签名算法下沉 Rust 及纯 Rust 搜索视图集成：2026-10-11）
+
+◆ M56 多源音源解析与签名算法下沉 Rust 及纯 Rust 搜索视图集成 (KuGou & KuWo Provider Normalization, Native Signing in aurora-core & Native Search View in aurora-app)（2026-10-11，事实与回执）
+- 用户核心指示：“完整全功能版的ui功能比纯rust版好多了，往rust方向迁吧”以及“以后还要逐渐抛弃Tauri”、“继续开发”：
+  · 多源音源解析与加密签名核心全量下沉 Rust (`crates/aurora-core/src/provider.rs`)：
+    1. 零依赖纯 Rust RFC 1321 MD5 消息摘要算法 `md5_hex`，通过标准测试向量验证；
+    2. 酷狗原生 MD5 请求签名器 `kg_sign` 与 URL query 构造器，与 TypeScript 算法 100% 对齐；
+    3. 酷狗搜索项原生结构化解析器 `parse_kg_track` & `parse_kg_track_json`：精准处理 `FileHash`、音质表（`128k`、`320k`、`flac`、`hires`）、`Suffix` 拼接清洗、五歌手截断与嵌套 Singers 结构；
+    4. 酷我搜索项原生结构化解析器 `parse_kw_track` & `parse_kw_track_json`：原生解析 `N_MINFO` 级联字段并映射为高精度音质字典与歌手列表；
+  · Node-API 与 Tauri 2 双宿主指令无缝暴露 (`crates/aurora-native` & `src-tauri/src/main.rs`)：
+    - `crates/aurora-native` 暴露 `provider_parse_kg_track`、`provider_parse_kw_track`、`provider_kg_sign`；
+    - 在 `src/main/native/bridge.ts` 与 `bridge-runtime.js` 完成类型化封装，并在 `src/main/providers/kg/sign.ts`、`kg/item.ts`、`kw/item.ts` 接入 Rust 优先加速与优雅回退；
+    - `src-tauri/src/main.rs` 注册 `provider_parse_qq_track`、`provider_parse_wy_track`、`provider_parse_kg_track`、`provider_parse_kw_track`、`provider_kg_sign` 指令；
+  · 纯 Rust 原生 GUI 原生搜索视图拓展 (`crates/aurora-app/src/components/search_view.rs`)：
+    - 依照 Apple HIG 规范实现 `SearchViewModel` 与 `SearchSourceTab`（全部/QQ/网易/酷狗/酷我），支持多源搜索项筛选与状态标签统计；
+    - `AppRoute` 拓展 `AppRoute::Search` 路由，并在 Win32 原生主视窗中完成侧栏“音乐搜索”导航、标题与歌曲列表无缝集成；
+  · 自动化质量门禁与测试覆盖：
+    - `crates/aurora-core` 30/30 项单元测试 100% 通过（新增 4 项测试覆盖 MD5、KG 签名、KG 歌曲与 KW 歌曲）；
+    - `crates/aurora-app` 15/15 项单元测试 100% 通过；
+    - `src-tauri` 通过 `cargo check`；
+    - 新增自动化测试 `scripts/m56-provider-rust-tests.mjs`，并通过 `npm test`（13 套核心测试全绿）；
+    - `npm run lint:gate` 0 报错；`npm run typecheck`（Node + Web）0 报错。
 
 ◆ M55 Win32 thickFrame DWM 硬件级圆角与外阴影修复 (Windows 11 DWM Native Squircle & Ambient Shadow Restoration via thickFrame: true)（2026-10-10，事实与回执）
 - 用户核心指示与截图反馈：“这什么r角”以及对无边框窗口直角生硬、缺乏立体外阴影的视觉反馈：

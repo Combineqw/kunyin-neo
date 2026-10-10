@@ -3,10 +3,14 @@
  * kgSign：首尾同一 salt，参数按 key 升序、k=v 无分隔拼接，md5 小写 hex。
  */
 import { createHash } from 'node:crypto'
+import { nativeKgSign } from '../../native/bridge-runtime.js'
 
 const KG_SALT = 'OIlwieks28dk2k092lksi2UIkp'
 
 export function kgSign(params: Record<string, string>, body = ''): string {
+  const native = nativeKgSign(params, body)
+  if (native) return native
+
   const joined = Object.keys(params)
     .sort()
     .map((k) => `${k}=${params[k]}`)

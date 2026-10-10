@@ -146,6 +146,9 @@ type NativeBinding = {
   syncValidateSession?(sessionJson: string): string
   providerParseQqTrack?(itemJson: string): string
   providerParseWyTrack?(itemJson: string): string
+  providerParseKgTrack?(itemJson: string): string
+  providerParseKwTrack?(itemJson: string): string
+  providerKgSign?(paramsJson: string, body: string): string
   lyricsParseLrc?(content: string): string
   lyricsFindActiveLine?(linesJson: string, timeMs: number): string | null
   desktopLyricComputeAppearance?(
@@ -791,6 +794,44 @@ export function nativeParseWyTrack<T extends object>(item: unknown): T | null {
     return null
   }
 }
+
+/** Optional Rust KuGou provider item mapping. */
+export function nativeParseKgTrack<T extends object>(item: unknown): T | null {
+  try {
+    const call = loadBinding()?.providerParseKgTrack
+    if (typeof call !== 'function') return null
+    const raw = call(JSON.stringify(item))
+    if (!raw) return null
+    return JSON.parse(raw) as T | null
+  } catch {
+    return null
+  }
+}
+
+/** Optional Rust KuWo provider item mapping. */
+export function nativeParseKwTrack<T extends object>(item: unknown): T | null {
+  try {
+    const call = loadBinding()?.providerParseKwTrack
+    if (typeof call !== 'function') return null
+    const raw = call(JSON.stringify(item))
+    if (!raw) return null
+    return JSON.parse(raw) as T | null
+  } catch {
+    return null
+  }
+}
+
+/** Optional Rust KuGou MD5 request signature calculation. */
+export function nativeKgSign(params: Record<string, string>, body = ''): string | null {
+  try {
+    const call = loadBinding()?.providerKgSign
+    if (typeof call !== 'function') return null
+    return call(JSON.stringify(params), body)
+  } catch {
+    return null
+  }
+}
+
 
 /** Optional native remote stream format negotiation. */
 export function nativeRemoteStreamNegotiateFormat(

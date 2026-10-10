@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** 酷狗解析：清洗、音质、搜索项、专辑歌曲(嵌套)、歌手歌曲(平铺) */
 import type { KugouMusicItem, Quality, Singer } from '@common'
+import { nativeParseKgTrack } from '../../native/bridge-runtime.js'
 
 export const SQ_ZERO_HASH = '00000000000000000000000000000000'
 
@@ -62,6 +63,9 @@ function toSingersWithId(artist: string, raw: any[] | undefined): Singer[] {
 
 /** song_search_v2 结果项 */
 export function parseSearchItem(info: any): KugouMusicItem | null {
+  const native = nativeParseKgTrack<KugouMusicItem>(info)
+  if (native) return native
+
   const hash = info.FileHash
   if (!hash) return null
   const q: Record<string, Quality> = {}

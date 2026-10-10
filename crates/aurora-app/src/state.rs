@@ -16,6 +16,7 @@ use aurora_core::lyrics::{find_active_line, parse_lrc, LyricLine, LyricLineMatch
 #[serde(rename_all = "camelCase")]
 pub enum AppRoute {
     Discover,
+    Search,
     Library,
     Trial,
     Favorites,

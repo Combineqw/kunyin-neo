@@ -155,6 +155,7 @@ pub mod win32 {
                 if x < 220 {
                     let nav_routes = [
                         AppRoute::Discover,
+                        AppRoute::Search,
                         AppRoute::Library,
                         AppRoute::Trial,
                         AppRoute::Favorites,
@@ -354,6 +355,7 @@ pub mod win32 {
             .unwrap_or(AppRoute::Discover);
         let nav_items = [
             ("发现音乐", AppRoute::Discover),
+            ("音乐搜索", AppRoute::Search),
             ("本地曲库", AppRoute::Library),
             ("试听列表", AppRoute::Trial),
             ("我的收藏", AppRoute::Favorites),
@@ -514,6 +516,7 @@ pub mod win32 {
         SetTextColor(mem_dc, rgb(255, 255, 255));
         let view_title = match current_route {
             AppRoute::Discover => "发现精选曲目",
+            AppRoute::Search => "聚合多源音乐搜索",
             AppRoute::Library => "本地无损曲库",
             AppRoute::Trial => "试听列表",
             AppRoute::Favorites => "我的收藏",

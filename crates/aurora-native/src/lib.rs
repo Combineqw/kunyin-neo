@@ -1451,6 +1451,26 @@ pub fn provider_parse_wy_track(item_json: String) -> napi::Result<String> {
     provider::parse_wy_track_json(&item_json).map_err(to_napi_error)
 }
 
+/// Parse one KuGou Music provider item through the shared Rust mapping.
+#[napi]
+pub fn provider_parse_kg_track(item_json: String) -> napi::Result<String> {
+    provider::parse_kg_track_json(&item_json).map_err(to_napi_error)
+}
+
+/// Parse one KuWo Music provider item through the shared Rust mapping.
+#[napi]
+pub fn provider_parse_kw_track(item_json: String) -> napi::Result<String> {
+    provider::parse_kw_track_json(&item_json).map_err(to_napi_error)
+}
+
+/// Calculate KuGou MD5 signature from JSON params map and optional body.
+#[napi]
+pub fn provider_kg_sign(params_json: String, body: String) -> napi::Result<String> {
+    let params: std::collections::BTreeMap<String, String> = serde_json::from_str(&params_json)
+        .map_err(|e| napi::Error::from_reason(format!("invalid params JSON: {e}")))?;
+    Ok(provider::kg_sign(&params, &body))
+}
+
 /// Parse LRC content into lines array JSON.
 #[napi]
 pub fn lyrics_parse_lrc(content: String) -> napi::Result<String> {

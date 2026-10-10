@@ -768,3 +768,35 @@ export function nativeAudioSinkSwitchDevice(sinkId, deviceName, exclusive) {
     return false
   }
 }
+
+export function nativeParseKgTrack(item) {
+  try {
+    const call = loadBinding()?.providerParseKgTrack
+    if (typeof call !== 'function') return null
+    const raw = call(JSON.stringify(item))
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeParseKwTrack(item) {
+  try {
+    const call = loadBinding()?.providerParseKwTrack
+    if (typeof call !== 'function') return null
+    const raw = call(JSON.stringify(item))
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeKgSign(params, body = '') {
+  try {
+    const call = loadBinding()?.providerKgSign
+    if (typeof call !== 'function') return null
+    return call(JSON.stringify(params), body)
+  } catch {
+    return null
+  }
+}

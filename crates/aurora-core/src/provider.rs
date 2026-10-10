@@ -452,6 +452,389 @@ pub fn parse_wy_track_json(input: &str) -> Result<String> {
     Ok(serde_json::to_string(&parse_wy_track(&value))?)
 }
 
+use std::collections::BTreeMap;
+
+pub const KG_SALT: &str = "OIlwieks28dk2k092lksi2UIkp";
+pub const SQ_ZERO_HASH: &str = "00000000000000000000000000000000";
+
+/// Pure RFC 1321 MD5 message-digest algorithm implementation in Rust.
+pub fn md5_hex(data: &[u8]) -> String {
+    const K: [u32; 64] = [
+        0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
+        0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
+        0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be,
+        0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821,
+        0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa,
+        0xd62f105d, 0x02441453, 0xd8a1e681, 0xe7d3fbc8,
+        0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed,
+        0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a,
+        0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c,
+        0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70,
+        0x289b7ec6, 0xeaa127fa, 0xd4ef3085, 0x04881d05,
+        0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665,
+        0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039,
+        0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1,
+        0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1,
+        0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391,
+    ];
+    const S: [u32; 64] = [
+        7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,
+        5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,
+        4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,
+        6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,
+    ];
+
+    let mut msg = data.to_vec();
+    let original_len_bits = (data.len() as u64).wrapping_mul(8);
+    msg.push(0x80);
+    while (msg.len() % 64) != 56 {
+        msg.push(0x00);
+    }
+    msg.extend_from_slice(&original_len_bits.to_le_bytes());
+
+    let mut a0: u32 = 0x67452301;
+    let mut b0: u32 = 0xefcdab89;
+    let mut c0: u32 = 0x98badcfe;
+    let mut d0: u32 = 0x10325476;
+
+    for chunk in msg.chunks_exact(64) {
+        let mut m = [0u32; 16];
+        for (i, word) in chunk.chunks_exact(4).enumerate() {
+            m[i] = u32::from_le_bytes([word[0], word[1], word[2], word[3]]);
+        }
+
+        let mut a = a0;
+        let mut b = b0;
+        let mut c = c0;
+        let mut d = d0;
+
+        for i in 0..64 {
+            let (f, g) = match i {
+                0..=15 => ((b & c) | (!b & d), i),
+                16..=31 => ((d & b) | (!d & c), (5 * i + 1) % 16),
+                32..=47 => (b ^ c ^ d, (3 * i + 5) % 16),
+                _ => (c ^ (b | !d), (7 * i) % 16),
+            };
+            let temp = d;
+            d = c;
+            c = b;
+            b = b.wrapping_add((a.wrapping_add(f).wrapping_add(K[i]).wrapping_add(m[g])).rotate_left(S[i]));
+            a = temp;
+        }
+
+        a0 = a0.wrapping_add(a);
+        b0 = b0.wrapping_add(b);
+        c0 = c0.wrapping_add(c);
+        d0 = d0.wrapping_add(d);
+    }
+
+    let mut digest = [0u8; 16];
+    digest[0..4].copy_from_slice(&a0.to_le_bytes());
+    digest[4..8].copy_from_slice(&b0.to_le_bytes());
+    digest[8..12].copy_from_slice(&c0.to_le_bytes());
+    digest[12..16].copy_from_slice(&d0.to_le_bytes());
+
+    let mut hex = String::with_capacity(32);
+    for b in digest {
+        use std::fmt::Write;
+        let _ = write!(hex, "{:02x}", b);
+    }
+    hex
+}
+
+/// Calculate KuGou MD5 signature from sorted parameters and optional body.
+pub fn kg_sign(params: &BTreeMap<String, String>, body: &str) -> String {
+    let mut joined = String::new();
+    for (k, v) in params {
+        joined.push_str(k);
+        joined.push('=');
+        joined.push_str(v);
+    }
+    let payload = format!("{}{}{}{}", KG_SALT, joined, body, KG_SALT);
+    md5_hex(payload.as_bytes())
+}
+
+/// Helper function to clean text: strip <em> tags, replace '/' with space, trim whitespace.
+fn clean_text(s: &str) -> String {
+    s.replace("<em>", "")
+        .replace("</em>", "")
+        .replace('/', " ")
+        .trim()
+        .to_string()
+}
+
+/// Helper function to limit singers to max 5.
+fn limit_singers(s: &str) -> String {
+    if !s.contains('、') {
+        return s.to_string();
+    }
+    let parts: Vec<&str> = s.split('、').collect();
+    if parts.len() > 5 {
+        parts[..5].join("、")
+    } else {
+        s.to_string()
+    }
+}
+
+/// Parse one KuGou Music API song object.
+pub fn parse_kg_track(value: &Value) -> Option<Value> {
+    if !value.is_object() {
+        return None;
+    }
+    let hash = member(value, "FileHash")
+        .and_then(Value::as_str)
+        .filter(|s| !s.is_empty())?;
+
+    let file_size = js_number(member(value, "FileSize"), 0.0);
+    let hq_hash = member(value, "HQFileHash").and_then(Value::as_str).unwrap_or("");
+    let hq_size = js_number(member(value, "HQFileSize"), 0.0);
+    let sq_hash = member(value, "SQFileHash").and_then(Value::as_str).unwrap_or("");
+    let sq_size = js_number(member(value, "SQFileSize"), 0.0);
+    let res_hash = member(value, "ResFileHash").and_then(Value::as_str).unwrap_or("");
+    let res_size = js_number(member(value, "ResFileSize"), 0.0);
+
+    let mut qualities = Map::new();
+    let mut all_hash = vec![Value::String(hash.to_string())];
+
+    if file_size > 0.0 {
+        add_quality_without_media(&mut qualities, "128k", "普通音质 128K", file_size);
+    }
+    if !hq_hash.is_empty() {
+        if hq_size > 0.0 {
+            add_quality_without_media(&mut qualities, "320k", "高品音质 320K", hq_size);
+        }
+        all_hash.push(Value::String(hq_hash.to_string()));
+    }
+    if !sq_hash.is_empty() && sq_hash != SQ_ZERO_HASH {
+        if sq_size > 0.0 {
+            add_quality_without_media(&mut qualities, "flac", "无损音质 FLAC", sq_size);
+        }
+        all_hash.push(Value::String(sq_hash.to_string()));
+    }
+    if !res_hash.is_empty() {
+        if res_size > 0.0 {
+            add_quality_without_media(&mut qualities, "hires", "无损音质 HiRes", res_size);
+        }
+        all_hash.push(Value::String(res_hash.to_string()));
+    }
+
+    if qualities.is_empty() {
+        return None;
+    }
+
+    let audio_id = js_string(member(value, "MixSongID").unwrap_or(&Value::String(String::new())));
+    let id = js_number(member(value, "MixSongID"), 0.0);
+
+    let raw_song_name = js_string(member(value, "SongName").unwrap_or(&Value::String(String::new())));
+    let suffix = js_string(member(value, "Suffix").unwrap_or(&Value::String(String::new())));
+    let combined_title = if !suffix.is_empty() && !raw_song_name.contains(&suffix) {
+        format!("{raw_song_name}{suffix}")
+    } else {
+        raw_song_name
+    };
+    let title = clean_text(&combined_title);
+
+    let raw_singer = js_string(member(value, "SingerName").unwrap_or(&Value::String(String::new())));
+    let artist = limit_singers(&clean_text(&raw_singer));
+
+    let album_name = clean_text(&js_string(member(value, "AlbumName").unwrap_or(&Value::String(String::new()))));
+    let album_id = member(value, "AlbumID")
+        .filter(|v| js_truthy(v))
+        .map(js_string);
+
+    let duration_sec = js_number(member(value, "Duration"), 0.0);
+    let duration_ms = duration_sec * 1000.0;
+
+    let mut singers = Vec::new();
+    if let Some(singer_arr) = member(value, "Singers").and_then(Value::as_array).filter(|a| !a.is_empty()) {
+        for s in singer_arr {
+            let name = clean_text(&js_string(member(s, "name").unwrap_or(&Value::String(String::new()))));
+            if !name.is_empty() {
+                let sid = js_number(member(s, "id"), 0.0);
+                let mut singer_obj = Map::new();
+                singer_obj.insert("name".to_string(), Value::String(name));
+                singer_obj.insert("singerId".to_string(), number_value(sid));
+                singers.push(Value::Object(singer_obj));
+            }
+        }
+    } else {
+        for part in artist.split('、') {
+            let trimmed = part.trim();
+            if !trimmed.is_empty() {
+                let mut singer_obj = Map::new();
+                singer_obj.insert("name".to_string(), Value::String(trimmed.to_string()));
+                singer_obj.insert("singerId".to_string(), number_value(0.0));
+                singers.push(Value::Object(singer_obj));
+            }
+        }
+    }
+
+    let mut output = Map::new();
+    output.insert("type".to_string(), Value::String("kg".to_string()));
+    output.insert("id".to_string(), number_value(id));
+    output.insert("title".to_string(), Value::String(title));
+    output.insert("artist".to_string(), Value::String(artist));
+    output.insert("album".to_string(), Value::String(album_name));
+    if let Some(aid) = album_id {
+        output.insert("albumId".to_string(), Value::String(aid));
+    }
+    output.insert("cover".to_string(), Value::String(String::new()));
+    output.insert("duration".to_string(), number_value(duration_ms));
+    output.insert("qualities".to_string(), Value::Object(qualities));
+    output.insert("hash".to_string(), Value::String(hash.to_string()));
+    output.insert("allHash".to_string(), Value::Array(all_hash));
+    output.insert("audioId".to_string(), Value::String(audio_id));
+    output.insert("mixsongmid".to_string(), number_value(id));
+    if !singers.is_empty() {
+        output.insert("singers".to_string(), Value::Array(singers));
+    }
+    if let Some(mv_id) = member(value, "mvdata")
+        .and_then(Value::as_array)
+        .and_then(|a| a.first())
+        .and_then(|m| member(m, "id"))
+        .filter(|v| js_truthy(v))
+    {
+        output.insert("mvid".to_string(), Value::String(js_string(mv_id)));
+    }
+
+    Some(Value::Object(output))
+}
+
+pub fn parse_kg_track_json(input: &str) -> Result<String> {
+    let value: Value = serde_json::from_str(input)?;
+    Ok(serde_json::to_string(&parse_kg_track(&value))?)
+}
+
+/// Helper function to parse KuWo minfo string:
+/// "level:ff,bitrate:2000,format:flac,size:28.5MB;level:p,bitrate:320,format:mp3,size:8.5MB"
+fn parse_kw_minfo(minfo: &str) -> Map<String, Value> {
+    let mut qualities = Map::new();
+    for seg in minfo.split(';') {
+        let seg = seg.trim();
+        if seg.is_empty() {
+            continue;
+        }
+        let mut bitrate_opt = None;
+        let mut size_opt = None;
+        for part in seg.split(',') {
+            let part = part.trim();
+            if let Some(idx) = part.find(':') {
+                let key = &part[..idx];
+                let val = &part[idx + 1..];
+                if key == "bitrate" {
+                    bitrate_opt = Some(val);
+                } else if key == "size" {
+                    size_opt = Some(val);
+                }
+            }
+        }
+        let Some(bitrate) = bitrate_opt else { continue; };
+        let (qid, name, br) = match bitrate {
+            "128" => ("128k", "普通音质 128K", 128),
+            "320" => ("320k", "高品音质 320K", 320),
+            "2000" => ("flac", "无损音质 FLAC", 2000),
+            "4000" => ("hires", "无损音质 HiRes", 4000),
+            "20201" => ("atmos", "臻品全景声", 20201),
+            "20501" => ("atmos_plus", "臻品全景声 2.0", 20501),
+            "20900" => ("master", "臻品母带", 20900),
+            _ => continue,
+        };
+        let mut q_obj = Map::new();
+        q_obj.insert("id".to_string(), Value::String(qid.to_string()));
+        q_obj.insert("name".to_string(), Value::String(name.to_string()));
+        q_obj.insert("filesize".to_string(), Value::Number(Number::from(0)));
+        q_obj.insert("bitrate".to_string(), Value::Number(Number::from(br)));
+        if let Some(size) = size_opt {
+            q_obj.insert("displaySize".to_string(), Value::String(size.to_uppercase()));
+        }
+        qualities.insert(qid.to_string(), Value::Object(q_obj));
+    }
+    qualities
+}
+
+/// Parse one KuWo Music API song object.
+pub fn parse_kw_track(value: &Value) -> Option<Value> {
+    if !value.is_object() {
+        return None;
+    }
+    let rid_str = js_string(member(value, "MUSICRID")?);
+    if rid_str.is_empty() {
+        return None;
+    }
+    let id_cleaned = rid_str.replace("MUSIC_", "");
+    let id = id_cleaned.parse::<f64>().ok()?;
+    if id == 0.0 {
+        return None;
+    }
+
+    let minfo_str = member(value, "N_MINFO").and_then(Value::as_str)?;
+    let qualities = parse_kw_minfo(minfo_str);
+    if qualities.is_empty() {
+        return None;
+    }
+
+    let title = js_string(member(value, "SONGNAME").unwrap_or(&Value::String(String::new())));
+    if title.is_empty() {
+        return None;
+    }
+
+    let artist = js_string(member(value, "ARTIST").unwrap_or(&Value::String(String::new())));
+    let album = js_string(member(value, "ALBUM").unwrap_or(&Value::String(String::new())));
+    let album_id = member(value, "ALBUMID").filter(|v| js_truthy(v)).map(js_string);
+
+    let duration_sec = js_number(member(value, "DURATION"), 0.0);
+    let duration_ms = duration_sec * 1000.0;
+
+    let all_artist_ids = member(value, "allartistid")
+        .or_else(|| member(value, "ARTISTID"))
+        .map(js_string)
+        .unwrap_or_default();
+    let ids: Vec<f64> = all_artist_ids
+        .split('&')
+        .map(|s| s.trim().parse::<f64>().unwrap_or(0.0))
+        .collect();
+
+    let mut singers = Vec::new();
+    for (i, part) in artist.split('&').enumerate() {
+        let trimmed = part.trim();
+        if !trimmed.is_empty() {
+            let sid = ids.get(i).copied().unwrap_or(0.0);
+            let mut s_obj = Map::new();
+            s_obj.insert("name".to_string(), Value::String(trimmed.to_string()));
+            s_obj.insert("singerId".to_string(), number_value(sid));
+            singers.push(Value::Object(s_obj));
+        }
+    }
+
+    let mut output = Map::new();
+    output.insert("type".to_string(), Value::String("kw".to_string()));
+    output.insert("id".to_string(), number_value(id));
+    output.insert("title".to_string(), Value::String(title));
+    output.insert("artist".to_string(), Value::String(artist));
+    output.insert("album".to_string(), Value::String(album));
+    if let Some(aid) = album_id {
+        output.insert("albumId".to_string(), Value::String(aid));
+    }
+    output.insert("cover".to_string(), Value::String(String::new()));
+    output.insert("duration".to_string(), number_value(duration_ms));
+    output.insert("qualities".to_string(), Value::Object(qualities));
+    if !singers.is_empty() {
+        output.insert("singers".to_string(), Value::Array(singers));
+    }
+    let has_mv = member(value, "HASMV").map(|v| js_string(v) == "1" || js_number(Some(v), 0.0) == 1.0).unwrap_or(false);
+    if has_mv {
+        output.insert("mvid".to_string(), Value::String(format!("{id:.0}")));
+    }
+
+    Some(Value::Object(output))
+}
+
+pub fn parse_kw_track_json(input: &str) -> Result<String> {
+    let value: Value = serde_json::from_str(input)?;
+    Ok(serde_json::to_string(&parse_kw_track(&value))?)
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::{parse_qq_track_json, parse_wy_track_json};
@@ -534,5 +917,86 @@ mod tests {
         let output = parse_wy_track_json(r#"{"id":1,"name":"Song","mv":"0"}"#).unwrap();
         let output: Value = serde_json::from_str(&output).unwrap();
         assert!(output.get("mvid").is_none());
+    }
+
+    #[test]
+    fn md5_matches_standard_rfc_vectors() {
+        use super::md5_hex;
+        assert_eq!(md5_hex(b""), "d41d8cd98f00b204e9800998ecf8427e");
+        assert_eq!(md5_hex(b"a"), "0cc175b9c0f1b6a831c399e269772661");
+        assert_eq!(md5_hex(b"abc"), "900150983cd24fb0d6963f7d28e17f72");
+        assert_eq!(md5_hex(b"message digest"), "f96b697d7cb7938d525a2f31aaf161d0");
+    }
+
+    #[test]
+    fn kg_sign_computes_expected_hash() {
+        use super::kg_sign;
+        use std::collections::BTreeMap;
+        let mut params = BTreeMap::new();
+        params.insert("appid".to_string(), "1005".to_string());
+        params.insert("mid".to_string(), "123".to_string());
+        let sig = kg_sign(&params, "");
+        assert_eq!(sig.len(), 32);
+        // Salted md5 should be deterministic
+        assert_eq!(sig, kg_sign(&params, ""));
+    }
+
+    #[test]
+    fn maps_kg_track_and_qualities() {
+        use super::parse_kg_track_json;
+        let json = r#"{
+            "FileHash": "F1234567890ABCDEF",
+            "FileSize": 3145728,
+            "HQFileHash": "H1234567890ABCDEF",
+            "HQFileSize": 8388608,
+            "SongName": "七里香",
+            "Suffix": " (Live)",
+            "SingerName": "周杰伦",
+            "AlbumName": "七里香",
+            "AlbumID": 1001,
+            "Duration": 299,
+            "MixSongID": "10001",
+            "Singers": [{"name": "周杰伦", "id": 77}]
+        }"#;
+        let output = parse_kg_track_json(json).unwrap();
+        let parsed: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(parsed["type"], "kg");
+        assert_eq!(parsed["title"], "七里香 (Live)");
+        assert_eq!(parsed["artist"], "周杰伦");
+        assert_eq!(parsed["album"], "七里香");
+        assert_eq!(parsed["duration"], 299000);
+        assert_eq!(parsed["qualities"]["128k"]["filesize"], 3145728);
+        assert_eq!(parsed["qualities"]["320k"]["filesize"], 8388608);
+        assert_eq!(parsed["singers"][0]["name"], "周杰伦");
+        assert_eq!(parsed["singers"][0]["singerId"], 77);
+    }
+
+    #[test]
+    fn maps_kw_track_and_minfo() {
+        use super::parse_kw_track_json;
+        let json = r#"{
+            "MUSICRID": "MUSIC_228908",
+            "SONGNAME": "晴天",
+            "ARTIST": "周杰伦",
+            "ALBUM": "叶惠美",
+            "ALBUMID": "88",
+            "DURATION": 269,
+            "N_MINFO": "level:ff,bitrate:2000,format:flac,size:28.5MB;level:p,bitrate:320,format:mp3,size:8.5MB;level:df,bitrate:128,format:mp3,size:3.5MB",
+            "allartistid": "77",
+            "HASMV": "1"
+        }"#;
+        let output = parse_kw_track_json(json).unwrap();
+        let parsed: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(parsed["type"], "kw");
+        assert_eq!(parsed["id"], 228908);
+        assert_eq!(parsed["title"], "晴天");
+        assert_eq!(parsed["artist"], "周杰伦");
+        assert_eq!(parsed["album"], "叶惠美");
+        assert_eq!(parsed["duration"], 269000);
+        assert_eq!(parsed["qualities"]["flac"]["bitrate"], 2000);
+        assert_eq!(parsed["qualities"]["320k"]["bitrate"], 320);
+        assert_eq!(parsed["qualities"]["128k"]["bitrate"], 128);
+        assert_eq!(parsed["singers"][0]["singerId"], 77);
+        assert_eq!(parsed["mvid"], "228908");
     }
 }

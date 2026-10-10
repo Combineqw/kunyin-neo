@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** 酷我解析：音质表、搜索项(JSON)、歌曲元素(XML)、详情项(musicpay JSON) */
 import type { KuwoMusicItem, Quality, Singer } from '@common'
+import { nativeParseKwTrack } from '../../native/bridge-runtime.js'
 
 export function num(v: any, def = 0): number {
   if (v == null) return def
@@ -48,6 +49,9 @@ function splitSingers(artist: string, artistIds?: string): Singer[] {
 
 /** 搜索结果项（JSON，key 大写） */
 export function parseSearchItem(info: any): KuwoMusicItem | null {
+  const native = nativeParseKwTrack<KuwoMusicItem>(info)
+  if (native) return native
+
   const rid = info.MUSICRID
   if (!rid) return null
   const id = num(String(rid).replace('MUSIC_', ''), 0)

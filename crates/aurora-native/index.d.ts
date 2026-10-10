@@ -208,6 +208,12 @@ export declare function syncValidateSession(sessionJson: string): string
 export declare function providerParseQqTrack(itemJson: string): string
 /** Parse one Netease Cloud Music provider item through the shared Rust mapping. */
 export declare function providerParseWyTrack(itemJson: string): string
+/** Parse one KuGou Music provider item through the shared Rust mapping. */
+export declare function providerParseKgTrack(itemJson: string): string
+/** Parse one KuWo Music provider item through the shared Rust mapping. */
+export declare function providerParseKwTrack(itemJson: string): string
+/** Calculate KuGou MD5 signature from JSON params map and optional body. */
+export declare function providerKgSign(paramsJson: string, body: string): string
 /** Parse LRC content into lines array JSON. */
 export declare function lyricsParseLrc(content: string): string
 /** Find active lyric line and calculate internal progress and surrounding lines. */
