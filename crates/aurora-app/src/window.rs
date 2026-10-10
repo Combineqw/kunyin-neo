@@ -27,7 +27,7 @@ pub mod win32 {
         WM_SIZE, WM_TIMER, WNDCLASSW, WS_EX_APPWINDOW, WS_OVERLAPPEDWINDOW, WS_VISIBLE,
     };
 
-    use crate::components::{EqPreset, PlayerBarView, SearchSourceTab, FREQUENCIES};
+    use crate::components::{EqPreset, LibraryCategoryTab, LibraryStats, PlayerBarView, SearchSourceTab, FREQUENCIES};
     use crate::state::{AppRoute, WindowDisplayMode};
     use crate::KunyinApp;
 
@@ -371,6 +371,93 @@ pub mod win32 {
                             let songs = get_sample_tracks();
                             if let Some(song) = songs.get(row_idx as usize) {
                                 app.state.play_track(song.clone());
+                                InvalidateRect(hwnd, null(), 0);
+                                return;
+                            }
+                        }
+                    }
+                    AppRoute::Library => {
+                        // Category Tabs: y in (108..138)
+                        if y >= 108 && y <= 138 {
+                            if x >= 240 && x <= 325 {
+                                app.state.switch_library_tab(LibraryCategoryTab::Tracks);
+                                InvalidateRect(hwnd, null(), 0);
+                                return;
+                            } else if x >= 335 && x <= 420 {
+                                app.state.switch_library_tab(LibraryCategoryTab::Albums);
+                                InvalidateRect(hwnd, null(), 0);
+                                return;
+                            } else if x >= 430 && x <= 515 {
+                                app.state.switch_library_tab(LibraryCategoryTab::Artists);
+                                InvalidateRect(hwnd, null(), 0);
+                                return;
+                            } else if x >= 525 && x <= 620 {
+                                app.state.switch_library_tab(LibraryCategoryTab::Folders);
+                                InvalidateRect(hwnd, null(), 0);
+                                return;
+                            }
+                        }
+                        // Tracks row click (when in Tracks tab)
+                        if app.state.library_model.current_tab == LibraryCategoryTab::Tracks {
+                            if x >= 230 && y >= 195 && y < win_height - 90 {
+                                let row_idx = (y - 195) / 48;
+                                let tracks = app.state.library_model.filtered_tracks();
+                                if let Some(track) = tracks.get(row_idx as usize) {
+                                    app.state.play_track(track.clone());
+                                    InvalidateRect(hwnd, null(), 0);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                    AppRoute::Favorites => {
+                        // "▶ 播放全部" (x: 326..426, y: 145..173)
+                        if x >= 326 && x <= 426 && y >= 145 && y <= 173 {
+                            if let Some(first) = app.state.favorites_model.tracks.first().cloned() {
+                                app.state.play_track(first);
+                                InvalidateRect(hwnd, null(), 0);
+                                return;
+                            }
+                        }
+                        // "🔀 随机播放" (x: 436..536, y: 145..173)
+                        if x >= 436 && x <= 536 && y >= 145 && y <= 173 {
+                            if let Some(last) = app.state.favorites_model.tracks.last().cloned() {
+                                app.state.play_track(last);
+                                InvalidateRect(hwnd, null(), 0);
+                                return;
+                            }
+                        }
+                        // Song rows click: y >= 190
+                        if x >= 230 && y >= 190 && y < win_height - 90 {
+                            let row_idx = (y - 190) / 48;
+                            let favs = app.state.favorites_model.filtered_tracks();
+                            if let Some(track) = favs.get(row_idx as usize) {
+                                app.state.play_track(track.clone());
+                                InvalidateRect(hwnd, null(), 0);
+                                return;
+                            }
+                        }
+                    }
+                    AppRoute::Trial => {
+                        // "▶ 顺序播放" (x: 310..400, y: 135..162)
+                        if x >= 310 && x <= 400 && y >= 135 && y <= 162 {
+                            if let Some(first) = app.state.trial_model.queue.first().cloned() {
+                                app.state.play_track(first);
+                                InvalidateRect(hwnd, null(), 0);
+                                return;
+                            }
+                        }
+                        // "🗑 清空队列" (x: 410..500, y: 135..162)
+                        if x >= 410 && x <= 500 && y >= 135 && y <= 162 {
+                            app.state.clear_trial_queue();
+                            InvalidateRect(hwnd, null(), 0);
+                            return;
+                        }
+                        // Song rows click: y >= 175
+                        if x >= 230 && y >= 175 && y < win_height - 90 {
+                            let row_idx = (y - 175) / 48;
+                            if let Some(track) = app.state.trial_model.queue.get(row_idx as usize).cloned() {
+                                app.state.play_track(track);
                                 InvalidateRect(hwnd, null(), 0);
                                 return;
                             }
@@ -1200,9 +1287,221 @@ pub mod win32 {
                 // Render result songs
                 paint_sample_rows(mem_dc, width, height, font_small, font_body, font_body_bold, 148, app);
             }
-            _ => {
-                // Default song table (Library, Trial, Favorites)
-                paint_sample_rows(mem_dc, width, height, font_small, font_body, font_body_bold, 108, app);
+            AppRoute::Library => {
+                // Category Tabs: [ 全部曲目, 专辑分类, 歌手分类, 本地文件夹 ]
+                let cur_tab = app.map(|a| a.state.library_model.current_tab).unwrap_or(LibraryCategoryTab::Tracks);
+                let tabs = [
+                    (LibraryCategoryTab::Tracks, "全部曲目", 240, 325),
+                    (LibraryCategoryTab::Albums, "专辑分类", 335, 420),
+                    (LibraryCategoryTab::Artists, "歌手分类", 430, 515),
+                    (LibraryCategoryTab::Folders, "本地文件夹", 525, 620),
+                ];
+                for (tab, name, l, r) in tabs {
+                    let is_sel = tab == cur_tab;
+                    let tb_b = CreateSolidBrush(if is_sel { rgb(28, 54, 90) } else { rgb(32, 34, 44) });
+                    let tb_r = RECT { left: l, top: 108, right: r, bottom: 138 };
+                    FillRect(mem_dc, &tb_r, tb_b);
+                    DeleteObject(tb_b);
+
+                    SelectObject(mem_dc, font_small);
+                    SetTextColor(mem_dc, if is_sel { rgb(10, 132, 255) } else { rgb(170, 170, 180) });
+                    let mut tt_r = tb_r;
+                    DrawTextW(mem_dc, to_wide(name).as_ptr(), -1, &mut tt_r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                }
+
+                // Stats Card (y: 146..186)
+                let stats = app.map(|a| a.state.library_model.compute_stats()).unwrap_or(LibraryStats {
+                    total_tracks: 4,
+                    total_folders: 3,
+                    lossless_percent: 100.0,
+                    total_duration_ms: 1_200_000,
+                });
+                let stat_b = CreateSolidBrush(rgb(22, 26, 36));
+                let stat_r = RECT { left: 240, top: 146, right: width - 40, bottom: 186 };
+                FillRect(mem_dc, &stat_r, stat_b);
+                DeleteObject(stat_b);
+
+                SelectObject(mem_dc, font_small);
+                SetTextColor(mem_dc, rgb(160, 160, 170));
+                let mut st_t = RECT { left: 256, top: 156, right: width - 180, bottom: 178 };
+                let st_msg = format!("本地曲库: {} 首 · 扫描目录: {} 个 · {} · 总时长 {}", stats.total_tracks, stats.total_folders, stats.formatted_lossless(), stats.formatted_duration());
+                DrawTextW(mem_dc, to_wide(&st_msg).as_ptr(), -1, &mut st_t, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+
+                // "+ 添加音乐目录" pill
+                let add_b = CreateSolidBrush(rgb(28, 54, 90));
+                let add_r = RECT { left: width - 175, top: 152, right: width - 50, bottom: 180 };
+                FillRect(mem_dc, &add_r, add_b);
+                DeleteObject(add_b);
+
+                SelectObject(mem_dc, font_small);
+                SetTextColor(mem_dc, rgb(10, 132, 255));
+                let mut add_t = add_r;
+                DrawTextW(mem_dc, to_wide("+ 添加音乐目录").as_ptr(), -1, &mut add_t, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+                match cur_tab {
+                    LibraryCategoryTab::Tracks => {
+                        paint_sample_rows(mem_dc, width, height, font_small, font_body, font_body_bold, 195, app);
+                    }
+                    LibraryCategoryTab::Albums => {
+                        let albums = app.map(|a| a.state.library_model.albums.clone()).unwrap_or_default();
+                        for (idx, al) in albums.iter().enumerate().take(6) {
+                            let card_y = 195 + (idx as i32) * 44;
+                            let c_b = CreateSolidBrush(rgb(25, 28, 38));
+                            let c_r = RECT { left: 240, top: card_y, right: width - 40, bottom: card_y + 38 };
+                            FillRect(mem_dc, &c_r, c_b);
+                            DeleteObject(c_b);
+
+                            SelectObject(mem_dc, font_body_bold);
+                            SetTextColor(mem_dc, rgb(255, 255, 255));
+                            let mut al_t = RECT { left: 255, top: card_y + 8, right: 480, bottom: card_y + 30 };
+                            DrawTextW(mem_dc, to_wide(&al.name).as_ptr(), -1, &mut al_t, DT_LEFT | DT_SINGLELINE);
+
+                            SelectObject(mem_dc, font_small);
+                            SetTextColor(mem_dc, rgb(140, 140, 150));
+                            let mut ar_t = RECT { left: 490, top: card_y + 10, right: 700, bottom: card_y + 30 };
+                            DrawTextW(mem_dc, to_wide(&al.artist).as_ptr(), -1, &mut ar_t, DT_LEFT | DT_SINGLELINE);
+
+                            let mut tc_t = RECT { left: width - 150, top: card_y + 10, right: width - 50, bottom: card_y + 30 };
+                            let tc_str = format!("{} 首曲目", al.track_count);
+                            DrawTextW(mem_dc, to_wide(&tc_str).as_ptr(), -1, &mut tc_t, DT_RIGHT | DT_SINGLELINE);
+                        }
+                    }
+                    LibraryCategoryTab::Artists => {
+                        let artists = app.map(|a| a.state.library_model.artists.clone()).unwrap_or_default();
+                        for (idx, ar) in artists.iter().enumerate().take(6) {
+                            let card_y = 195 + (idx as i32) * 44;
+                            let c_b = CreateSolidBrush(rgb(25, 28, 38));
+                            let c_r = RECT { left: 240, top: card_y, right: width - 40, bottom: card_y + 38 };
+                            FillRect(mem_dc, &c_r, c_b);
+                            DeleteObject(c_b);
+
+                            SelectObject(mem_dc, font_body_bold);
+                            SetTextColor(mem_dc, rgb(255, 255, 255));
+                            let mut ar_t = RECT { left: 255, top: card_y + 8, right: 480, bottom: card_y + 30 };
+                            DrawTextW(mem_dc, to_wide(&ar.name).as_ptr(), -1, &mut ar_t, DT_LEFT | DT_SINGLELINE);
+
+                            SelectObject(mem_dc, font_small);
+                            SetTextColor(mem_dc, rgb(140, 140, 150));
+                            let mut tc_t = RECT { left: width - 200, top: card_y + 10, right: width - 50, bottom: card_y + 30 };
+                            let tc_str = format!("{} 张专辑 · {} 首曲目", ar.album_count, ar.track_count);
+                            DrawTextW(mem_dc, to_wide(&tc_str).as_ptr(), -1, &mut tc_t, DT_RIGHT | DT_SINGLELINE);
+                        }
+                    }
+                    LibraryCategoryTab::Folders => {
+                        let folders = app.map(|a| a.state.library_model.folders.clone()).unwrap_or_default();
+                        for (idx, f) in folders.iter().enumerate().take(6) {
+                            let card_y = 195 + (idx as i32) * 44;
+                            let c_b = CreateSolidBrush(rgb(25, 28, 38));
+                            let c_r = RECT { left: 240, top: card_y, right: width - 40, bottom: card_y + 38 };
+                            FillRect(mem_dc, &c_r, c_b);
+                            DeleteObject(c_b);
+
+                            SelectObject(mem_dc, font_body);
+                            SetTextColor(mem_dc, rgb(200, 200, 210));
+                            let mut f_t = RECT { left: 255, top: card_y + 8, right: width - 150, bottom: card_y + 30 };
+                            let f_str = format!("📁 {}", f.path);
+                            DrawTextW(mem_dc, to_wide(&f_str).as_ptr(), -1, &mut f_t, DT_LEFT | DT_SINGLELINE);
+
+                            SelectObject(mem_dc, font_small);
+                            SetTextColor(mem_dc, rgb(140, 140, 150));
+                            let mut tc_t = RECT { left: width - 150, top: card_y + 10, right: width - 50, bottom: card_y + 30 };
+                            let tc_str = format!("{} 首曲目", f.track_count);
+                            DrawTextW(mem_dc, to_wide(&tc_str).as_ptr(), -1, &mut tc_t, DT_RIGHT | DT_SINGLELINE);
+                        }
+                    }
+                }
+            }
+            AppRoute::Favorites => {
+                // Heart Hero Banner (left: 240, top: 105, right: width - 40, bottom: 175)
+                let cov_b = CreateSolidBrush(rgb(42, 24, 32));
+                let cov_r = RECT { left: 240, top: 105, right: 310, bottom: 175 };
+                FillRect(mem_dc, &cov_r, cov_b);
+                DeleteObject(cov_b);
+
+                SelectObject(mem_dc, font_title);
+                SetTextColor(mem_dc, rgb(255, 45, 85)); // Apple Rose Red
+                let mut cov_t = cov_r;
+                DrawTextW(mem_dc, to_wide("♥").as_ptr(), -1, &mut cov_t, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+                SelectObject(mem_dc, font_title);
+                SetTextColor(mem_dc, rgb(255, 255, 255));
+                let mut t_rect = RECT { left: 326, top: 105, right: width - 40, bottom: 131 };
+                DrawTextW(mem_dc, to_wide("我的珍藏音乐").as_ptr(), -1, &mut t_rect, DT_LEFT | DT_SINGLELINE | DT_NOPREFIX);
+
+                let fav_count = app.map(|a| a.state.favorites_model.total_count()).unwrap_or(3);
+                let fav_dur = app.map(|a| a.state.favorites_model.formatted_duration()).unwrap_or_else(|| "12 分钟".to_string());
+                SelectObject(mem_dc, font_small);
+                SetTextColor(mem_dc, rgb(150, 150, 160));
+                let mut meta_rect = RECT { left: 326, top: 133, right: width - 40, bottom: 151 };
+                let meta_str = format!("精选歌曲 · {} 首珍藏 · 总时长 {} · WASAPI 独占硬件输出", fav_count, fav_dur);
+                DrawTextW(mem_dc, to_wide(&meta_str).as_ptr(), -1, &mut meta_rect, DT_LEFT | DT_SINGLELINE);
+
+                // Actions: [ ▶ 播放全部 ] and [ 🔀 随机播放 ]
+                let play_b = CreateSolidBrush(rgb(10, 132, 255));
+                let play_r = RECT { left: 326, top: 155, right: 426, bottom: 183 };
+                FillRect(mem_dc, &play_r, play_b);
+                DeleteObject(play_b);
+
+                SelectObject(mem_dc, font_small);
+                SetTextColor(mem_dc, rgb(255, 255, 255));
+                let mut pat_r = play_r;
+                DrawTextW(mem_dc, to_wide("▶ 播放全部").as_ptr(), -1, &mut pat_r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+                let shuf_b = CreateSolidBrush(rgb(40, 44, 56));
+                let shuf_r = RECT { left: 436, top: 155, right: 536, bottom: 183 };
+                FillRect(mem_dc, &shuf_r, shuf_b);
+                DeleteObject(shuf_b);
+
+                let mut shuf_t_r = shuf_r;
+                DrawTextW(mem_dc, to_wide("🔀 随机播放").as_ptr(), -1, &mut shuf_t_r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+                paint_sample_rows(mem_dc, width, height, font_small, font_body, font_body_bold, 195, app);
+            }
+            AppRoute::Trial => {
+                // Queue Card (y: 105..165)
+                let q_b = CreateSolidBrush(rgb(26, 32, 44));
+                let q_r = RECT { left: 240, top: 105, right: 295, bottom: 160 };
+                FillRect(mem_dc, &q_r, q_b);
+                DeleteObject(q_b);
+
+                SelectObject(mem_dc, font_title);
+                SetTextColor(mem_dc, rgb(10, 132, 255));
+                let mut q_t = q_r;
+                DrawTextW(mem_dc, to_wide("⏱").as_ptr(), -1, &mut q_t, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+                SelectObject(mem_dc, font_title);
+                SetTextColor(mem_dc, rgb(255, 255, 255));
+                let mut t_rect = RECT { left: 310, top: 105, right: width - 40, bottom: 131 };
+                DrawTextW(mem_dc, to_wide("试听列表与临时队列").as_ptr(), -1, &mut t_rect, DT_LEFT | DT_SINGLELINE | DT_NOPREFIX);
+
+                let q_count = app.map(|a| a.state.trial_model.count()).unwrap_or(2);
+                let q_dur = app.map(|a| a.state.trial_model.formatted_duration()).unwrap_or_else(|| "8 分钟".to_string());
+                SelectObject(mem_dc, font_small);
+                SetTextColor(mem_dc, rgb(150, 150, 160));
+                let mut meta_rect = RECT { left: 310, top: 133, right: width - 40, bottom: 151 };
+                let meta_str = format!("临时试听队列 · {} 首曲目 · 时长 {} · 先进先出自动去重", q_count, q_dur);
+                DrawTextW(mem_dc, to_wide(&meta_str).as_ptr(), -1, &mut meta_rect, DT_LEFT | DT_SINGLELINE);
+
+                // Actions: [ ▶ 顺序播放 ] and [ 🗑 清空队列 ]
+                let play_b = CreateSolidBrush(rgb(10, 132, 255));
+                let play_r = RECT { left: 310, top: 155, right: 400, bottom: 183 };
+                FillRect(mem_dc, &play_r, play_b);
+                DeleteObject(play_b);
+
+                SelectObject(mem_dc, font_small);
+                SetTextColor(mem_dc, rgb(255, 255, 255));
+                let mut pat_r = play_r;
+                DrawTextW(mem_dc, to_wide("▶ 顺序播放").as_ptr(), -1, &mut pat_r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+                let clr_b = CreateSolidBrush(rgb(50, 28, 34));
+                let clr_r = RECT { left: 410, top: 155, right: 500, bottom: 183 };
+                FillRect(mem_dc, &clr_r, clr_b);
+                DeleteObject(clr_b);
+
+                let mut clr_t_r = clr_r;
+                DrawTextW(mem_dc, to_wide("🗑 清空队列").as_ptr(), -1, &mut clr_t_r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+                paint_sample_rows(mem_dc, width, height, font_small, font_body, font_body_bold, 195, app);
             }
         }
 

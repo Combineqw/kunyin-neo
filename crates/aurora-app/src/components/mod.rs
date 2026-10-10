@@ -9,6 +9,9 @@ pub mod recommend_view;
 pub mod playlist_detail_view;
 pub mod eq_modal;
 pub mod mini_player;
+pub mod library_view;
+pub mod favorites_view;
+pub mod trial_view;
 
 pub use sidebar::{SidebarView, NavItem, NavItemStyle};
 pub use toolbar::{ToolbarView, SearchPillStyle};
@@ -21,3 +24,6 @@ pub use recommend_view::{RecommendViewModel, RecommendHeroCard, CuratedPlaylistC
 pub use playlist_detail_view::PlaylistDetailViewModel;
 pub use eq_modal::{EqVisualizerModel, FREQUENCIES};
 pub use mini_player::MiniPlayerViewModel;
+pub use library_view::{LibraryViewModel, LibraryCategoryTab, LibrarySortOrder, LibraryStats};
+pub use favorites_view::FavoritesViewModel;
+pub use trial_view::TrialQueueViewModel;

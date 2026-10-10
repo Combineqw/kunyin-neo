@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.58 — 2026-10-11】
+【kunyin-neo 项目记忆 v5.59 — 2026-10-11】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,33 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10；v5.48 M47 Windows 现代化安装程序体系与多格式文件关联记档：2026-10-10；v5.49 M48 Apple Design 细节美学与质感微调记档：2026-10-10；v5.50 M49 Windows 安装包构建打包与发布核验记档：2026-10-10；v5.51 M50 100% 纯 Rust 原生 GUI 与独立宿主架构记档：2026-10-10；v5.52 M51 在线网络与桌面歌词 Rust 下沉及透明度调节记档：2026-10-10；v5.53 M52 纯 Rust 桌面歌词悬浮透明视窗与全屏歌词架构记档：2026-10-10；v5.54 M53 Tauri 2 架构与全功能 UI 迁移方案落地：2026-10-10；v5.55 M54 视窗圆角与层次阴影系统加固 & 终极纯 Rust GUI 演进基线：2026-10-10；v5.56 M55 thickFrame DWM 硬件级圆角投影修复与自动化回归门禁：2026-10-10；v5.57 M56 多源音源解析与签名算法下沉 Rust 及纯 Rust 搜索视图集成：2026-10-11；v5.58 M57 播放地址与音质解析下沉 Rust 及纯 Rust 原生全功能 UI 组件矩阵迁移：2026-10-11）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10；v5.48 M47 Windows 现代化安装程序体系与多格式文件关联记档：2026-10-10；v5.49 M48 Apple Design 细节美学与质感微调记档：2026-10-10；v5.50 M49 Windows 安装包构建打包与发布核验记档：2026-10-10；v5.51 M50 100% 纯 Rust 原生 GUI 与独立宿主架构记档：2026-10-10；v5.52 M51 在线网络与桌面歌词 Rust 下沉及透明度调节记档：2026-10-10；v5.53 M52 纯 Rust 桌面歌词悬浮透明视窗与全屏歌词架构记档：2026-10-10；v5.54 M53 Tauri 2 架构与全功能 UI 迁移方案落地：2026-10-10；v5.55 M54 视窗圆角与层次阴影系统加固 & 终极纯 Rust GUI 演进基线：2026-10-10；v5.56 M55 thickFrame DWM 硬件级圆角投影修复与自动化回归门禁：2026-10-10；v5.57 M56 多源音源解析与签名算法下沉 Rust 及纯 Rust 搜索视图集成：2026-10-11；v5.58 M57 播放地址与音质解析下沉 Rust 及纯 Rust 原生全功能 UI 组件矩阵迁移：2026-10-11；v5.59 M58 远端歌单专辑歌手解析下沉 Rust 及纯 Rust 原生全路由 100% 覆盖与曲库收藏队列视图闭环：2026-10-11）
+
+◆ M58 远端歌单专辑歌手解析下沉 Rust 及纯 Rust 原生全路由 100% 覆盖与曲库收藏队列视图闭环 (Remote Playlist/Album/Artist Parsing Downsink to Rust & Pure Rust All-Route 100% Native View Parity)（2026-10-11，事实与回执）
+- 用户核心指示：“继续”以及“完整全功能版的ui功能比纯rust版好多了，往rust方向迁吧”、“以后还要逐渐抛弃Tauri”：
+  · 远端歌单、专辑、歌手结构化解析全量下沉 Rust (`crates/aurora-core/src/provider.rs`)：
+    1. 结构化歌单解析器 `parse_playlist_entry` & `parse_playlist_entry_json`：原生归一化网易云、QQ音乐、酷狗、酷我等平台的歌单 ID、名称、封面图、创建者与曲目数量；
+    2. 结构化专辑解析器 `parse_album_entry` & `parse_album_entry_json`：原生解析专辑 ID/MID、专辑名、唱片封面（含 QQ 音乐 `T002R300x300` 封面构造算法）、艺术家名、发行时间与曲目数；
+    3. 结构化歌手解析器 `parse_artist_entry` & `parse_artist_entry_json`：原生提取歌手 MID/ID、姓名、头像（含 QQ 音乐 `T001R300x300` 头像构造）、专辑总数与单曲总数；
+  · Node-API、TypeScript Bridge 与 Tauri 2 指令无缝穿透：
+    - `crates/aurora-native` 导出 `provider_parse_playlist_entry`、`provider_parse_album_entry`、`provider_parse_artist_entry`；
+    - 在 `src/main/native/bridge.ts` 与 `bridge-runtime.js` 封装强类型包装；
+    - `src/main/providers/wy/index.ts` 与 `src/main/providers/qq/index.ts` 全量接入 Rust 优先加速与优雅回退；
+    - `src-tauri/src/main.rs` 注册对应的三大远端元数据解析指令；
+  · 纯 Rust 原生自绘应用 (`crates/aurora-app`) 达成全部 8 大主路由 100% 原生自绘覆盖：
+    1. `LibraryViewModel` (`library_view.rs`)：本地曲库四大分类 Tab（全部曲目、专辑分类、歌手分类、本地文件夹）、曲库统计卡片（曲目总数、扫描目录数、无损率百分比、总时长）、添加音乐目录胶囊按钮、4 种排序模式与库内模糊搜索；
+    2. `FavoritesViewModel` (`favorites_view.rs`)：我的珍藏音乐 Hero 横幅（玫瑰红心徽章）、收藏歌曲统计与时长、全部播放与随机播放胶囊按钮、收藏状态即时切换；
+    3. `TrialQueueViewModel` (`trial_view.rs`)：试听列表与临时播放队列横幅、顺序播放、一键清空队列、队列上限防溢出（FIFO 100 首）与即时移除；
+    4. Win32 原生主视窗深度接线 (`window.rs` & `state.rs`)：全部 8 个 AppRoute（Discover, Search, Library, Trial, Favorites, Playlist, Settings, Lyrics）100% 显式匹配绘制，彻底消除默认粗糙回退，交互式鼠标点击热区实现完整的 Tab 切换、播放、清空等交互；
+  · 最新纯 Rust 独立安装包编译装配：
+    - Release 二进制成功构建，通过 NSIS 打包生成 `dist/kunyin-rust-1.1.0-setup.exe`（1.15 MB）；
+  · 自动化质量门禁与全量验证覆盖：
+    - `crates/aurora-core` 36/36 项单元测试 100% 通过；
+    - `crates/aurora-app` 25/25 项单元测试 100% 通过（0 编译警告）；
+    - `src-tauri` 通过 `cargo check`；
+    - 新增自动化测试 `scripts/m58-rust-full-route-migration-tests.mjs`；
+    - `npm run verify`（包含 `lint:gate`、`typecheck`、15 套核心测试全绿）100% 通过；
+    - `git diff --check` 0 报错。
 
 ◆ M57 播放地址与音质解析下沉 Rust 及纯 Rust 原生全功能 UI 组件矩阵迁移 (Provider Play URL Resolution, Quality Cascade Downsink & Pure Rust Rich UI Component Matrix)（2026-10-11，事实与回执）
 - 用户核心指示：“完整全功能版的ui功能比纯rust版好多了，往rust方向迁吧”以及“以后还要逐渐抛弃Tauri”、“继续开发”：

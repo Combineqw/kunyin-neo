@@ -1510,6 +1510,33 @@ pub fn provider_parse_media_info_response(
         .map_err(to_napi_error)
 }
 
+/// Parse raw remote playlist entry JSON into standard format.
+#[napi]
+pub fn provider_parse_playlist_entry(
+    source: String,
+    entry_json: String,
+) -> napi::Result<String> {
+    provider::parse_playlist_entry_json(&source, &entry_json).map_err(to_napi_error)
+}
+
+/// Parse raw remote album entry JSON into standard format.
+#[napi]
+pub fn provider_parse_album_entry(
+    source: String,
+    entry_json: String,
+) -> napi::Result<String> {
+    provider::parse_album_entry_json(&source, &entry_json).map_err(to_napi_error)
+}
+
+/// Parse raw remote artist entry JSON into standard format.
+#[napi]
+pub fn provider_parse_artist_entry(
+    source: String,
+    entry_json: String,
+) -> napi::Result<String> {
+    provider::parse_artist_entry_json(&source, &entry_json).map_err(to_napi_error)
+}
+
 /// Parse LRC content into lines array JSON.
 #[napi]
 pub fn lyrics_parse_lrc(content: String) -> napi::Result<String> {

@@ -847,3 +847,36 @@ export function nativeParseMediaInfoResponse(source, qualityId, response, nowMs 
     return null
   }
 }
+
+export function nativeParsePlaylistEntry(source, entry) {
+  try {
+    const call = loadBinding()?.providerParsePlaylistEntry
+    if (typeof call !== 'function') return null
+    const raw = call(source, JSON.stringify(entry))
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeParseAlbumEntry(source, entry) {
+  try {
+    const call = loadBinding()?.providerParseAlbumEntry
+    if (typeof call !== 'function') return null
+    const raw = call(source, JSON.stringify(entry))
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeParseArtistEntry(source, entry) {
+  try {
+    const call = loadBinding()?.providerParseArtistEntry
+    if (typeof call !== 'function') return null
+    const raw = call(source, JSON.stringify(entry))
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}

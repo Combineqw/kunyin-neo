@@ -954,6 +954,271 @@ pub fn parse_media_info_response(
     Ok(serde_json::to_string(&Value::Object(out))?)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StandardPlaylistEntry {
+    pub source: String,
+    pub id: String,
+    pub name: String,
+    pub cover: String,
+    pub creator: String,
+    pub description: String,
+    pub total: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StandardAlbumEntry {
+    pub source: String,
+    pub id: String,
+    pub name: String,
+    pub cover: String,
+    pub artist: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub publish_time: Option<String>,
+    pub total: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StandardArtistEntry {
+    pub source: String,
+    pub id: String,
+    pub name: String,
+    pub avatar: String,
+    pub album_size: u64,
+    pub music_size: u64,
+}
+
+pub fn parse_playlist_entry(source: &str, value: &Value) -> Option<StandardPlaylistEntry> {
+    let id_val = match source {
+        "wy" => value.get("id").or_else(|| value.get("playlistId")),
+        "qq" => value.get("dissid").or_else(|| value.get("dirid")).or_else(|| value.get("disstid")),
+        "kg" => value.get("specialid").or_else(|| value.get("id")),
+        "kw" => value.get("playlistid").or_else(|| value.get("id")),
+        _ => value.get("id"),
+    };
+    let id_str = match id_val? {
+        Value::String(s) if !s.is_empty() => s.clone(),
+        Value::Number(n) => n.to_string(),
+        _ => return None,
+    };
+
+    let name = match source {
+        "qq" => value.get("dissname").and_then(|v| v.as_str()).unwrap_or_else(|| value.get("name").and_then(|v| v.as_str()).unwrap_or("")),
+        "kg" => value.get("specialname").and_then(|v| v.as_str()).unwrap_or_else(|| value.get("name").and_then(|v| v.as_str()).unwrap_or("")),
+        _ => value.get("name").and_then(|v| v.as_str()).unwrap_or(""),
+    }.to_string();
+
+    let cover = match source {
+        "wy" => value.get("coverImgUrl").or_else(|| value.get("picUrl")).and_then(|v| v.as_str()).unwrap_or(""),
+        "qq" => value.get("imgurl").or_else(|| value.get("cover")).and_then(|v| v.as_str()).unwrap_or(""),
+        "kg" => value.get("imgurl").or_else(|| value.get("cover")).and_then(|v| v.as_str()).unwrap_or(""),
+        "kw" => value.get("pic").or_else(|| value.get("cover")).and_then(|v| v.as_str()).unwrap_or(""),
+        _ => value.get("cover").and_then(|v| v.as_str()).unwrap_or(""),
+    }.to_string();
+
+    let creator = match source {
+        "wy" => value.get("creator").and_then(|c| c.get("nickname")).and_then(|v| v.as_str()).unwrap_or(""),
+        "qq" => value.get("creator").and_then(|c| c.get("name")).and_then(|v| v.as_str())
+            .or_else(|| value.get("nickname").and_then(|v| v.as_str()))
+            .unwrap_or(""),
+        "kg" => value.get("nickname").or_else(|| value.get("username")).and_then(|v| v.as_str()).unwrap_or(""),
+        "kw" => value.get("uname").or_else(|| value.get("username")).and_then(|v| v.as_str()).unwrap_or(""),
+        _ => value.get("creator").and_then(|v| v.as_str()).unwrap_or(""),
+    }.to_string();
+
+    let description = match source {
+        "wy" => value.get("description").and_then(|v| v.as_str()).unwrap_or(""),
+        "qq" => value.get("desc").or_else(|| value.get("introduction")).and_then(|v| v.as_str()).unwrap_or(""),
+        "kg" => value.get("intro").and_then(|v| v.as_str()).unwrap_or(""),
+        "kw" => value.get("info").and_then(|v| v.as_str()).unwrap_or(""),
+        _ => value.get("description").and_then(|v| v.as_str()).unwrap_or(""),
+    }.to_string();
+
+    let total = match source {
+        "wy" => value.get("trackCount").and_then(|v| v.as_u64()).unwrap_or(0),
+        "qq" => value.get("songnum").or_else(|| value.get("song_count")).and_then(|v| v.as_u64()).unwrap_or(0),
+        "kg" => value.get("songcount").and_then(|v| v.as_u64()).unwrap_or(0),
+        "kw" => value.get("total").and_then(|v| v.as_u64()).unwrap_or(0),
+        _ => value.get("total").and_then(|v| v.as_u64()).unwrap_or(0),
+    };
+
+    Some(StandardPlaylistEntry {
+        source: source.to_string(),
+        id: id_str,
+        name,
+        cover,
+        creator,
+        description,
+        total,
+    })
+}
+
+pub fn parse_playlist_entry_json(source: &str, json: &str) -> Result<String> {
+    let val: Value = serde_json::from_str(json)?;
+    let entry = parse_playlist_entry(source, &val);
+    Ok(serde_json::to_string(&entry)?)
+}
+
+pub fn parse_album_entry(source: &str, value: &Value) -> Option<StandardAlbumEntry> {
+    let id_val = match source {
+        "wy" => value.get("id"),
+        "qq" => value.get("albumMID").or_else(|| value.get("albumMid")).or_else(|| value.get("album_mid")).or_else(|| value.get("albumID")).or_else(|| value.get("album_id")),
+        "kg" => value.get("albumid").or_else(|| value.get("id")),
+        "kw" => value.get("albumid").or_else(|| value.get("id")),
+        _ => value.get("id"),
+    };
+    let id_str = match id_val? {
+        Value::String(s) if !s.is_empty() => s.clone(),
+        Value::Number(n) => n.to_string(),
+        _ => return None,
+    };
+
+    let name = match source {
+        "qq" => value.get("albumName").or_else(|| value.get("album_name")).and_then(|v| v.as_str()).unwrap_or_else(|| value.get("name").and_then(|v| v.as_str()).unwrap_or("")),
+        "kg" => value.get("albumname").and_then(|v| v.as_str()).unwrap_or_else(|| value.get("name").and_then(|v| v.as_str()).unwrap_or("")),
+        _ => value.get("name").and_then(|v| v.as_str()).unwrap_or(""),
+    }.to_string();
+
+    let cover = match source {
+        "wy" => value.get("picUrl").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        "qq" => {
+            if let Some(c) = value.get("albumPic").and_then(|v| v.as_str()) {
+                c.to_string()
+            } else if let Some(mid) = value.get("albumMID").and_then(|v| v.as_str()) {
+                format!("https://y.gtimg.cn/music/photo_new/T002R300x300M000{mid}.jpg")
+            } else {
+                value.get("cover").and_then(|v| v.as_str()).unwrap_or("").to_string()
+            }
+        }
+        "kg" => value.get("imgurl").or_else(|| value.get("cover")).and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        "kw" => value.get("pic").or_else(|| value.get("cover")).and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        _ => value.get("cover").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+    };
+
+    let artist = match source {
+        "wy" => value.get("artist").and_then(|a| a.get("name")).and_then(|v| v.as_str())
+            .or_else(|| value.get("artists").and_then(|arr| arr.get(0)).and_then(|a| a.get("name")).and_then(|v| v.as_str()))
+            .unwrap_or(""),
+        "qq" => value.get("singerName").or_else(|| value.get("singer_name")).and_then(|v| v.as_str())
+            .or_else(|| value.get("singers").and_then(|arr| arr.get(0)).and_then(|s| s.get("name")).and_then(|v| v.as_str()))
+            .unwrap_or(""),
+        "kg" => value.get("singername").and_then(|v| v.as_str()).unwrap_or(""),
+        "kw" => value.get("artist").and_then(|v| v.as_str()).unwrap_or(""),
+        _ => value.get("artist").and_then(|v| v.as_str()).unwrap_or(""),
+    }.to_string();
+
+    let publish_time = match source {
+        "wy" => value.get("publishTime").and_then(|v| {
+            if let Some(s) = v.as_str() { Some(s.to_string()) }
+            else if let Some(n) = v.as_u64() { Some(n.to_string()) }
+            else { None }
+        }),
+        "qq" => value.get("pubTime").or_else(|| value.get("publish_date")).and_then(|v| {
+            if let Some(s) = v.as_str() { Some(s.to_string()) }
+            else if let Some(n) = v.as_u64() { Some(n.to_string()) }
+            else { None }
+        }),
+        "kg" => value.get("publishtime").and_then(|v| v.as_str()).map(str::to_string),
+        "kw" => value.get("releaseDate").and_then(|v| v.as_str()).map(str::to_string),
+        _ => None,
+    };
+
+    let total = match source {
+        "wy" => value.get("size").and_then(|v| v.as_u64()).unwrap_or(0),
+        "qq" => value.get("song_count").or_else(|| value.get("total_song_num")).and_then(|v| v.as_u64()).unwrap_or(0),
+        "kg" => value.get("songcount").and_then(|v| v.as_u64()).unwrap_or(0),
+        "kw" => value.get("total").and_then(|v| v.as_u64()).unwrap_or(0),
+        _ => value.get("total").and_then(|v| v.as_u64()).unwrap_or(0),
+    };
+
+    Some(StandardAlbumEntry {
+        source: source.to_string(),
+        id: id_str,
+        name,
+        cover,
+        artist,
+        publish_time,
+        total,
+    })
+}
+
+pub fn parse_album_entry_json(source: &str, json: &str) -> Result<String> {
+    let val: Value = serde_json::from_str(json)?;
+    let entry = parse_album_entry(source, &val);
+    Ok(serde_json::to_string(&entry)?)
+}
+
+pub fn parse_artist_entry(source: &str, value: &Value) -> Option<StandardArtistEntry> {
+    let id_val = match source {
+        "wy" => value.get("id"),
+        "qq" => value.get("singerMID").or_else(|| value.get("singerMid")).or_else(|| value.get("singer_mid")).or_else(|| value.get("singerID")).or_else(|| value.get("singer_id")),
+        "kg" => value.get("singerid").or_else(|| value.get("id")),
+        "kw" => value.get("artistid").or_else(|| value.get("id")),
+        _ => value.get("id"),
+    };
+    let id_str = match id_val? {
+        Value::String(s) if !s.is_empty() => s.clone(),
+        Value::Number(n) => n.to_string(),
+        _ => return None,
+    };
+
+    let name = match source {
+        "qq" => value.get("singerName").or_else(|| value.get("singer_name")).and_then(|v| v.as_str()).unwrap_or_else(|| value.get("name").and_then(|v| v.as_str()).unwrap_or("")),
+        "kg" => value.get("singername").and_then(|v| v.as_str()).unwrap_or_else(|| value.get("name").and_then(|v| v.as_str()).unwrap_or("")),
+        _ => value.get("name").and_then(|v| v.as_str()).unwrap_or(""),
+    }.to_string();
+
+    let avatar = match source {
+        "wy" => value.get("picUrl").or_else(|| value.get("img1v1Url")).and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        "qq" => {
+            if let Some(p) = value.get("singerPic").and_then(|v| v.as_str()) {
+                p.to_string()
+            } else if let Some(mid) = value.get("singerMID").and_then(|v| v.as_str()) {
+                format!("https://y.gtimg.cn/music/photo_new/T001R300x300M000{mid}.jpg")
+            } else {
+                value.get("avatar").and_then(|v| v.as_str()).unwrap_or("").to_string()
+            }
+        }
+        "kg" => value.get("imgurl").or_else(|| value.get("avatar")).and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        "kw" => value.get("pic").or_else(|| value.get("avatar")).and_then(|v| v.as_str()).unwrap_or("").to_string(),
+        _ => value.get("avatar").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+    };
+
+    let album_size = match source {
+        "wy" => value.get("albumSize").and_then(|v| v.as_u64()).unwrap_or(0),
+        "qq" => value.get("albumNum").or_else(|| value.get("album_num")).and_then(|v| v.as_u64()).unwrap_or(0),
+        "kg" => value.get("albumcount").and_then(|v| v.as_u64()).unwrap_or(0),
+        "kw" => value.get("album_num").and_then(|v| v.as_u64()).unwrap_or(0),
+        _ => value.get("albumCount").and_then(|v| v.as_u64()).unwrap_or(0),
+    };
+
+    let music_size = match source {
+        "wy" => value.get("musicSize").and_then(|v| v.as_u64()).unwrap_or(0),
+        "qq" => value.get("songNum").or_else(|| value.get("song_num")).and_then(|v| v.as_u64()).unwrap_or(0),
+        "kg" => value.get("songcount").and_then(|v| v.as_u64()).unwrap_or(0),
+        "kw" => value.get("music_num").and_then(|v| v.as_u64()).unwrap_or(0),
+        _ => value.get("musicCount").and_then(|v| v.as_u64()).unwrap_or(0),
+    };
+
+    Some(StandardArtistEntry {
+        source: source.to_string(),
+        id: id_str,
+        name,
+        avatar,
+        album_size,
+        music_size,
+    })
+}
+
+pub fn parse_artist_entry_json(source: &str, json: &str) -> Result<String> {
+    let val: Value = serde_json::from_str(json)?;
+    let entry = parse_artist_entry(source, &val);
+    Ok(serde_json::to_string(&entry)?)
+}
+
+
 
 #[cfg(test)]
 mod tests {
@@ -1159,5 +1424,110 @@ mod tests {
         assert_eq!(parsed["qualities"]["128k"]["bitrate"], 128);
         assert_eq!(parsed["singers"][0]["singerId"], 77);
         assert_eq!(parsed["mvid"], "228908");
+    }
+
+    #[test]
+    fn parses_wy_and_qq_playlist_entries() {
+        use super::{parse_playlist_entry, parse_playlist_entry_json};
+
+        let wy_json = r#"{
+            "id": 19882233,
+            "name": "云音乐热歌榜",
+            "coverImgUrl": "https://p1.music.126.net/cover.jpg",
+            "creator": { "nickname": "云音乐官方" },
+            "description": "网易云音乐官方榜单",
+            "trackCount": 200
+        }"#;
+        let wy_entry = parse_playlist_entry("wy", &serde_json::from_str(wy_json).unwrap()).unwrap();
+        assert_eq!(wy_entry.source, "wy");
+        assert_eq!(wy_entry.id, "19882233");
+        assert_eq!(wy_entry.name, "云音乐热歌榜");
+        assert_eq!(wy_entry.creator, "云音乐官方");
+        assert_eq!(wy_entry.total, 200);
+
+        let qq_json = r#"{
+            "dissid": "8901234567",
+            "dissname": "QQ音乐热歌榜",
+            "imgurl": "https://y.gtimg.cn/cover.jpg",
+            "creator": { "name": "QQ音乐官方" },
+            "desc": "QQ官方热歌",
+            "songnum": 300
+        }"#;
+        let qq_str = parse_playlist_entry_json("qq", qq_json).unwrap();
+        let qq_parsed: serde_json::Value = serde_json::from_str(&qq_str).unwrap();
+        assert_eq!(qq_parsed["source"], "qq");
+        assert_eq!(qq_parsed["id"], "8901234567");
+        assert_eq!(qq_parsed["name"], "QQ音乐热歌榜");
+        assert_eq!(qq_parsed["creator"], "QQ音乐官方");
+        assert_eq!(qq_parsed["total"], 300);
+    }
+
+    #[test]
+    fn parses_wy_and_qq_album_entries() {
+        use super::{parse_album_entry, parse_album_entry_json};
+
+        let wy_json = r#"{
+            "id": 34567,
+            "name": "范特西",
+            "picUrl": "https://p1.music.126.net/fantasy.jpg",
+            "artist": { "name": "周杰伦" },
+            "publishTime": 1000000000,
+            "size": 10
+        }"#;
+        let wy_entry = parse_album_entry("wy", &serde_json::from_str(wy_json).unwrap()).unwrap();
+        assert_eq!(wy_entry.source, "wy");
+        assert_eq!(wy_entry.id, "34567");
+        assert_eq!(wy_entry.name, "范特西");
+        assert_eq!(wy_entry.artist, "周杰伦");
+        assert_eq!(wy_entry.total, 10);
+
+        let qq_json = r#"{
+            "albumMID": "002J4UUk29y8DU",
+            "albumName": "叶惠美",
+            "singerName": "周杰伦",
+            "pubTime": "2003-07-31",
+            "song_count": 11
+        }"#;
+        let qq_str = parse_album_entry_json("qq", qq_json).unwrap();
+        let qq_parsed: serde_json::Value = serde_json::from_str(&qq_str).unwrap();
+        assert_eq!(qq_parsed["source"], "qq");
+        assert_eq!(qq_parsed["id"], "002J4UUk29y8DU");
+        assert_eq!(qq_parsed["name"], "叶惠美");
+        assert_eq!(qq_parsed["artist"], "周杰伦");
+        assert_eq!(qq_parsed["publishTime"], "2003-07-31");
+        assert_eq!(qq_parsed["total"], 11);
+    }
+
+    #[test]
+    fn parses_wy_and_qq_artist_entries() {
+        use super::{parse_artist_entry, parse_artist_entry_json};
+
+        let wy_json = r#"{
+            "id": 6452,
+            "name": "周杰伦",
+            "picUrl": "https://p1.music.126.net/jay.jpg",
+            "albumSize": 38,
+            "musicSize": 450
+        }"#;
+        let wy_entry = parse_artist_entry("wy", &serde_json::from_str(wy_json).unwrap()).unwrap();
+        assert_eq!(wy_entry.source, "wy");
+        assert_eq!(wy_entry.id, "6452");
+        assert_eq!(wy_entry.name, "周杰伦");
+        assert_eq!(wy_entry.album_size, 38);
+        assert_eq!(wy_entry.music_size, 450);
+
+        let qq_json = r#"{
+            "singerMID": "0025NhlN2yWrP4",
+            "singerName": "周杰伦",
+            "albumNum": 39,
+            "songNum": 512
+        }"#;
+        let qq_str = parse_artist_entry_json("qq", qq_json).unwrap();
+        let qq_parsed: serde_json::Value = serde_json::from_str(&qq_str).unwrap();
+        assert_eq!(qq_parsed["source"], "qq");
+        assert_eq!(qq_parsed["id"], "0025NhlN2yWrP4");
+        assert_eq!(qq_parsed["name"], "周杰伦");
+        assert_eq!(qq_parsed["albumSize"], 39);
+        assert_eq!(qq_parsed["musicSize"], 512);
     }
 }

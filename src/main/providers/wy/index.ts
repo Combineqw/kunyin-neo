@@ -26,6 +26,11 @@ import { requestJson } from '../../net/request'
 import { eapiPost, extractMusicU, weapiPost } from '../../crypto/netease'
 import { parseYrc } from '../../crypto/lyric'
 import { enrichFromQualityDetail, num, parseTrackInfo } from './item'
+import {
+  nativeParsePlaylistEntry,
+  nativeParseAlbumEntry,
+  nativeParseArtistEntry
+} from '../../native/bridge'
 
 /** 字节 → MB/GB 显示（MV 音质档用）。 */
 function formatMvSize(bytes: number): string {
@@ -443,6 +448,19 @@ export class WyProvider extends BaseProvider {
   // —— 私有 ——
   private parseAlbumEntry(o: any): AlbumInfoResult | null {
     if (o?.id == null || !o.name) return null
+    const rustParsed = nativeParseAlbumEntry('wy', o)
+    if (rustParsed) {
+      return {
+        source: 'wy',
+        id: rustParsed.id,
+        name: rustParsed.name,
+        cover: rustParsed.cover,
+        artist: rustParsed.artist,
+        publishTime: rustParsed.publishTime,
+        description: o.description,
+        total: rustParsed.total
+      }
+    }
     return {
       source: 'wy',
       id: String(o.id),
@@ -457,6 +475,17 @@ export class WyProvider extends BaseProvider {
 
   private parseArtistEntry(o: any): ArtistInfoResult | null {
     if (o?.id == null || !o.name) return null
+    const rustParsed = nativeParseArtistEntry('wy', o)
+    if (rustParsed) {
+      return {
+        source: 'wy',
+        id: rustParsed.id,
+        name: rustParsed.name,
+        cover: rustParsed.avatar,
+        songCount: rustParsed.musicSize,
+        albumCount: rustParsed.albumSize
+      }
+    }
     return {
       source: 'wy',
       id: String(o.id),
@@ -469,6 +498,19 @@ export class WyProvider extends BaseProvider {
 
   private parsePlaylistEntry(o: any): PlayListInfoResult | null {
     if (o?.id == null || !o.name) return null
+    const rustParsed = nativeParsePlaylistEntry('wy', o)
+    if (rustParsed) {
+      return {
+        source: 'wy',
+        id: rustParsed.id,
+        name: rustParsed.name,
+        cover: rustParsed.cover,
+        creator: rustParsed.creator,
+        description: rustParsed.description,
+        playCount: num(o.playCount ?? o.playCountText, 0),
+        total: rustParsed.total
+      }
+    }
     return {
       source: 'wy',
       id: String(o.id),

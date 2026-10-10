@@ -162,6 +162,9 @@ type NativeBinding = {
     responseJson: string,
     nowMs: number
   ): string
+  providerParsePlaylistEntry?(source: string, entryJson: string): string
+  providerParseAlbumEntry?(source: string, entryJson: string): string
+  providerParseArtistEntry?(source: string, entryJson: string): string
   lyricsParseLrc?(content: string): string
   lyricsFindActiveLine?(linesJson: string, timeMs: number): string | null
   desktopLyricComputeAppearance?(
@@ -903,6 +906,68 @@ export function nativeParseMediaInfoResponse<T extends object>(
     if (typeof call !== 'function') return null
     const raw = call(source, qualityId, JSON.stringify(response), nowMs)
     return raw ? (JSON.parse(raw) as T) : null
+  } catch {
+    return null
+  }
+}
+
+export interface NativePlaylistEntry {
+  source: string
+  id: string
+  name: string
+  cover: string
+  creator: string
+  description: string
+  total: number
+}
+
+export interface NativeAlbumEntry {
+  source: string
+  id: string
+  name: string
+  cover: string
+  artist: string
+  publishTime?: string
+  total: number
+}
+
+export interface NativeArtistEntry {
+  source: string
+  id: string
+  name: string
+  avatar: string
+  albumSize: number
+  musicSize: number
+}
+
+export function nativeParsePlaylistEntry(source: string, entry: unknown): NativePlaylistEntry | null {
+  try {
+    const call = loadBinding()?.providerParsePlaylistEntry
+    if (typeof call !== 'function') return null
+    const raw = call(source, JSON.stringify(entry))
+    return raw ? (JSON.parse(raw) as NativePlaylistEntry) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeParseAlbumEntry(source: string, entry: unknown): NativeAlbumEntry | null {
+  try {
+    const call = loadBinding()?.providerParseAlbumEntry
+    if (typeof call !== 'function') return null
+    const raw = call(source, JSON.stringify(entry))
+    return raw ? (JSON.parse(raw) as NativeAlbumEntry) : null
+  } catch {
+    return null
+  }
+}
+
+export function nativeParseArtistEntry(source: string, entry: unknown): NativeArtistEntry | null {
+  try {
+    const call = loadBinding()?.providerParseArtistEntry
+    if (typeof call !== 'function') return null
+    const raw = call(source, JSON.stringify(entry))
+    return raw ? (JSON.parse(raw) as NativeArtistEntry) : null
   } catch {
     return null
   }

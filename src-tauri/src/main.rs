@@ -479,6 +479,33 @@ fn provider_parse_media_info_response(
         .map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn provider_parse_playlist_entry(
+    source: String,
+    entry_json: String,
+) -> Result<String, String> {
+    aurora_core::provider::parse_playlist_entry_json(&source, &entry_json)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn provider_parse_album_entry(
+    source: String,
+    entry_json: String,
+) -> Result<String, String> {
+    aurora_core::provider::parse_album_entry_json(&source, &entry_json)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn provider_parse_artist_entry(
+    source: String,
+    entry_json: String,
+) -> Result<String, String> {
+    aurora_core::provider::parse_artist_entry_json(&source, &entry_json)
+        .map_err(|e| e.to_string())
+}
+
 fn main() {
     tauri::Builder::default()
         .manage(LibraryState::default())
@@ -526,7 +553,10 @@ fn main() {
             provider_kg_sign,
             provider_extract_backend_music_id,
             provider_select_optimal_quality,
-            provider_parse_media_info_response
+            provider_parse_media_info_response,
+            provider_parse_playlist_entry,
+            provider_parse_album_entry,
+            provider_parse_artist_entry
         ])
         .run(tauri::generate_context!())
         .expect("failed to run the Tauri shell");

@@ -220,6 +220,12 @@ export declare function providerExtractBackendMusicId(platform: string, id?: str
 export declare function providerSelectOptimalQuality(availableQualities: Array<string>, preferredQuality: string): string
 /** Parse backend getUrl JSON response into MediaInfoResult structure. */
 export declare function providerParseMediaInfoResponse(source: string, qualityId: string, responseJson: string, nowMs: number): string
+/** Parse raw remote playlist entry JSON into standard format. */
+export declare function providerParsePlaylistEntry(source: string, entryJson: string): string
+/** Parse raw remote album entry JSON into standard format. */
+export declare function providerParseAlbumEntry(source: string, entryJson: string): string
+/** Parse raw remote artist entry JSON into standard format. */
+export declare function providerParseArtistEntry(source: string, entryJson: string): string
 /** Parse LRC content into lines array JSON. */
 export declare function lyricsParseLrc(content: string): string
 /** Find active lyric line and calculate internal progress and surrounding lines. */

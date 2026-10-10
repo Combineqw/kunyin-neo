@@ -29,6 +29,11 @@ import { requestJson } from '../../net/request'
 import { num, parseTrackInfo, stripEm } from './item'
 import { zzcSign } from './sign'
 import { decodeLegacyLyric, isLyricEmpty, parseTxLyric } from './lyric'
+import {
+  nativeParsePlaylistEntry,
+  nativeParseAlbumEntry,
+  nativeParseArtistEntry
+} from '../../native/bridge'
 
 const GUID = '1F70E520B2EAA7D25E11760783C53CA9'
 
@@ -799,6 +804,18 @@ export class QqProvider extends BaseProvider {
   private parseAlbumEntry(o: any): AlbumInfoResult | null {
     const mid = o.albumMID
     if (!mid) return null
+    const rustParsed = nativeParseAlbumEntry('qq', o)
+    if (rustParsed) {
+      return {
+        source: 'qq',
+        id: rustParsed.id,
+        name: rustParsed.name,
+        cover: rustParsed.cover,
+        artist: rustParsed.artist,
+        publishTime: rustParsed.publishTime,
+        total: rustParsed.total
+      }
+    }
     return {
       source: 'qq',
       id: mid,
@@ -814,6 +831,17 @@ export class QqProvider extends BaseProvider {
   private parseSingerEntry(o: any): ArtistInfoResult | null {
     const mid = o.singerMID
     if (!mid) return null
+    const rustParsed = nativeParseArtistEntry('qq', o)
+    if (rustParsed) {
+      return {
+        source: 'qq',
+        id: rustParsed.id,
+        name: rustParsed.name,
+        cover: rustParsed.avatar,
+        albumCount: rustParsed.albumSize,
+        songCount: rustParsed.musicSize
+      }
+    }
     return {
       source: 'qq',
       id: mid,
@@ -828,6 +856,19 @@ export class QqProvider extends BaseProvider {
     const id = o.dissid ?? o.tid ?? o.dirid ?? o.id
     const name = stripEm(o.dissname ?? o.title ?? o.dirname ?? o.dirName ?? '')
     if (id == null || !name) return null
+    const rustParsed = nativeParsePlaylistEntry('qq', o)
+    if (rustParsed) {
+      return {
+        source: 'qq',
+        id: rustParsed.id,
+        name: rustParsed.name,
+        cover: rustParsed.cover,
+        creator: rustParsed.creator,
+        description: rustParsed.description,
+        playCount: num(o.listennum ?? o.playcnt ?? o.playCount, 0),
+        total: rustParsed.total
+      }
+    }
     const creator = typeof o.creator === 'object' ? o.creator?.name : o.creator
     return {
       source: 'qq',

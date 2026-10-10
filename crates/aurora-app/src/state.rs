@@ -126,6 +126,9 @@ pub struct AppState {
     pub selected_playlist: Option<crate::components::PlaylistDetailViewModel>,
     pub eq_visualizer: crate::components::EqVisualizerModel,
     pub search_source_tab: crate::components::SearchSourceTab,
+    pub library_model: crate::components::LibraryViewModel,
+    pub favorites_model: crate::components::FavoritesViewModel,
+    pub trial_model: crate::components::TrialQueueViewModel,
 }
 
 impl Default for AppState {
@@ -161,6 +164,9 @@ impl AppState {
             selected_playlist: None,
             eq_visualizer: crate::components::EqVisualizerModel::default(),
             search_source_tab: crate::components::SearchSourceTab::All,
+            library_model: crate::components::LibraryViewModel::default(),
+            favorites_model: crate::components::FavoritesViewModel::default(),
+            trial_model: crate::components::TrialQueueViewModel::default(),
         }
     }
 
@@ -332,6 +338,32 @@ impl AppState {
         self.recommend.toggle_heartbeat()
     }
 
+    pub fn switch_library_tab(&mut self, tab: crate::components::LibraryCategoryTab) {
+        self.library_model.set_tab(tab);
+    }
+
+    pub fn set_library_search(&mut self, query: &str) {
+        self.library_model.set_search_query(query);
+    }
+
+    pub fn sort_library(&mut self, order: crate::components::LibrarySortOrder) {
+        self.library_model.set_sort(order);
+    }
+
+    pub fn toggle_track_favorite(&mut self, track: AppTrack) -> bool {
+        if self.favorites_model.is_favorite(track.id) {
+            self.favorites_model.remove_track(track.id);
+            false
+        } else {
+            self.favorites_model.add_track(track);
+            true
+        }
+    }
+
+    pub fn clear_trial_queue(&mut self) {
+        self.trial_model.clear();
+    }
+
     pub fn snapshot(&self) -> PlaybackSnapshot {
         self.player_session.snapshot()
     }
@@ -433,5 +465,43 @@ mod tests {
         state.open_playlist(pl_vm);
         assert_eq!(state.current_route, AppRoute::Playlist(99));
         assert!(state.selected_playlist.is_some());
+
+        // Library tab and search
+        assert_eq!(state.library_model.current_tab, crate::components::LibraryCategoryTab::Tracks);
+        state.switch_library_tab(crate::components::LibraryCategoryTab::Albums);
+        assert_eq!(state.library_model.current_tab, crate::components::LibraryCategoryTab::Albums);
+        state.set_library_search("七里香");
+        assert_eq!(state.library_model.search_query, "七里香");
+
+        // Favorites toggle
+        let fav_track = AppTrack {
+            id: 888,
+            source: "local".to_string(),
+            title: "星晴".to_string(),
+            artist: "周杰伦".to_string(),
+            album: "Jay".to_string(),
+            duration_ms: 250_000,
+            cover_url: None,
+            file_path: None,
+        };
+        assert!(state.toggle_track_favorite(fav_track.clone()));
+        assert!(state.favorites_model.is_favorite(888));
+        assert!(!state.toggle_track_favorite(fav_track));
+        assert!(!state.favorites_model.is_favorite(888));
+
+        // Trial queue clear
+        state.trial_model.push_track(AppTrack {
+            id: 999,
+            source: "local".to_string(),
+            title: "龙卷风".to_string(),
+            artist: "周杰伦".to_string(),
+            album: "Jay".to_string(),
+            duration_ms: 245_000,
+            cover_url: None,
+            file_path: None,
+        });
+        assert!(state.trial_model.count() > 0);
+        state.clear_trial_queue();
+        assert_eq!(state.trial_model.count(), 0);
     }
 }
