@@ -28,6 +28,31 @@ files:
 win:
   executableName: kunyin-desktop
   icon: resources/icons/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+  fileAssociations:
+    - ext: mp3
+      name: MP3 Audio
+      description: MP3 Audio File
+      role: Viewer
+    - ext: flac
+      name: FLAC Audio
+      description: Free Lossless Audio Codec File
+      role: Viewer
+    - ext: wav
+      name: WAV Audio
+      description: Waveform Audio File
+      role: Viewer
+    - ext: m4a
+      name: M4A Audio
+      description: MPEG-4 Audio File
+      role: Viewer
+    - ext: ogg
+      name: OGG Audio
+      description: Ogg Vorbis Audio File
+      role: Viewer
   # 各平台只留自己的预编译二进制；.node 由 electron-builder 自动 unpack 到 app.asar.unpacked。
   # 保留同平台 arm64 版本，换架构构建时不会重现「找不到原生模块」（issue #1）。
   #
@@ -64,6 +89,8 @@ nsis:
   installerLanguages:
     - zh_CN
     - en_US
+  language: 2052
+  deleteAppDataOnUninstall: false
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:

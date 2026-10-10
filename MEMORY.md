@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.47 — 2026-10-10】
+【kunyin-neo 项目记忆 v5.48 — 2026-10-10】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,24 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10；v5.48 M47 Windows 现代化安装程序体系与多格式文件关联记档：2026-10-10）
+
+◆ M47 Windows 现代化安装程序体系与多格式文件关联 (Windows Modern Installer Packaging & Setup Verification)（2026-10-10，事实与回执）
+- `electron-builder.yml` Windows 构建与 NSIS 安装向导重构：
+  · 显式配置 `win.target`：标准 NSIS 向导安装包，锁定 `x64` 架构；
+  · 显式声明多格式音频文件关联（`fileAssociations`）：支持 `.mp3`、`.flac`、`.wav`、`.m4a`、`.ogg` 原生关联到坤音桌面客户端；
+  · 深度定制向导式安装配置（杜绝简陋单文件绿色版）：
+    1. `oneClick: false`（向导式安装向导，支持用户自主选择安装目标目录）；
+    2. `allowToChangeInstallationDirectory: true`；
+    3. `createDesktopShortcut: always`（强制生成桌面启动快捷方式）；
+    4. `createStartMenuShortcut: true`（生成开始菜单程序项）；
+    5. `license: build/license.txt`（包含标准许可协议说明页）；
+    6. `installerLanguages: [zh_CN, en_US]`（中英双语安装与卸载向导）；
+    7. `deleteAppDataOnUninstall: false`（卸载时安全保留用户本地曲库与配置，杜绝误删数据）；
+  · 验证 `scripts/afterPack.js` 钩子：在打包后自动将编译出的优化版 Rust 原生模块 `aurora-native.win32-x64-msvc.node` 注入安装包 `resources/assets/` 目录，并安全清理 Chromium 冗余许可文本。
+- 自动化测试与质量门禁：
+  · 新增 `scripts/m47-windows-installer-packaging-tests.mjs`（`npm run test:m47`）：覆盖 YAML 语法验证、NSIS 向导式安装配置断言、多格式文件关联校验、桌面与开始菜单快捷方式标记检查、双语配置与原生二进制文件存在性校验；
+  · 回归验证：`npm run test:m47`、`npm run test:m46`、`npm run test:m45`、`npm run test:m44`、`npm test`（9 项全过）、`npm run typecheck`、`npm run build`、`git diff --check`（0 errors）全部通过。
 
 ◆ M46 渲染层原生播放器状态无缝接管与双向同步 (Renderer Native Player UI Takeover & Bidirectional State Synchronization)（2026-10-10，事实与回执）
 - 渲染层 Pinia Player Store 全双工状态接管 (`src/renderer/src/stores/player.ts`)：

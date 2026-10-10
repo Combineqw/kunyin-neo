@@ -5,13 +5,13 @@
 ## 当前基线
 
 - 分支：`master`
-- M46 工作内容：渲染层原生播放器状态无缝接管与双向同步（Renderer Native Player UI Takeover & Bidirectional State Synchronization）
+- M47 工作内容：Windows 现代化安装程序体系与多格式文件关联（Windows Modern Installer Packaging & Setup Verification）
 - 产品版本：`1.1.0`
 - 远端：`https://github.com/Combineqw/kunyin-neo.git`
 - 技术栈：Electron 39、Vue 3、TypeScript、Rust、N-API-RS、纯 Rust 原生化架构规划
 - 终极形态战略决策：彻底弃用 Web / WebView 运行时（不采用 Tauri，走向 100% 纯 Rust 原生 GUI 与音频引擎，发布形态采用 NSIS/MSI 现代化安装程序）
 
-M46 在 Pinia player store (`src/renderer/src/stores/player.ts`) 全面接管原生播放状态。新增响应式 `isNativeActive`，在播放/暂停、Seek、音量渐变、10段EQ及 ReplayGain 音效变更时与主进程 `NativePlayerOrchestrator` 实现毫秒级事件双向穿透与状态同步。导出 `switchAudioDevice` 与 `getAudioDevices`，在原生直通音频激活时完全规避 HTML5 `<audio>` 播放并提供平滑容灾回退。现有 Chromium `<audio>` 与 Web Audio 混音 100% 保持不变。
+M47 重构 `electron-builder.yml` Windows 构建与 NSIS 安装向导体系。显式声明 `win.target` 为 NSIS x64 安装包；配置 `.mp3`、`.flac`、`.wav`、`.m4a`、`.ogg` 原生多格式音频文件关联；深度定制向导式安装配置（`oneClick: false`、目录自主选择、强制生成桌面快捷方式与开始菜单目录、用户许可展示、中英双语向导、干净卸载保护）；校验 `scripts/afterPack.js` 自动将 Rust 优化原生二进制注入安装包 `resources/assets/` 目录。现有 Chromium `<audio>` 与 Web Audio 混音 100% 保持不变。
 
 ## Rust 迁移地图
 
