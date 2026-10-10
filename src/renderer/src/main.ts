@@ -5,6 +5,10 @@
 // 必须最先注册：Vue 与路由模块初始化前即可将首屏异常写入 fallback，且不放宽 CSP。
 import './startupDiagnostics'
 import './assets/main.css'
+import { initTauriBridge } from './tauri-bridge'
+
+// 若在 Tauri 2 运行时启动，立即挂载 Rust 原生桥接层（在 Electron 运行时为无操作透传）
+initTauriBridge()
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'

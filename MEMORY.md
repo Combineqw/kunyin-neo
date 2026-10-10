@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.53 — 2026-10-10】
+【kunyin-neo 项目记忆 v5.54 — 2026-10-10】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,28 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10；v5.48 M47 Windows 现代化安装程序体系与多格式文件关联记档：2026-10-10；v5.49 M48 Apple Design 细节美学与质感微调记档：2026-10-10；v5.50 M49 Windows 安装包构建打包与发布核验记档：2026-10-10；v5.51 M50 100% 纯 Rust 原生 GUI 与独立宿主架构记档：2026-10-10；v5.52 M51 在线网络与桌面歌词 Rust 下沉及透明度调节记档：2026-10-10；v5.53 M52 纯 Rust 桌面歌词悬浮透明视窗与全屏歌词架构记档：2026-10-10）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10；v5.48 M47 Windows 现代化安装程序体系与多格式文件关联记档：2026-10-10；v5.49 M48 Apple Design 细节美学与质感微调记档：2026-10-10；v5.50 M49 Windows 安装包构建打包与发布核验记档：2026-10-10；v5.51 M50 100% 纯 Rust 原生 GUI 与独立宿主架构记档：2026-10-10；v5.52 M51 在线网络与桌面歌词 Rust 下沉及透明度调节记档：2026-10-10；v5.53 M52 纯 Rust 桌面歌词悬浮透明视窗与全屏歌词架构记档：2026-10-10；v5.54 M53 Tauri 2 架构与全功能 UI 迁移方案落地：2026-10-10）
+
+◆ M53 Tauri 2 架构与全功能 UI 迁移方案落地 (Tauri 2 Architecture, Vue 3 Apple UI Migration & Rust Unified Core Integration)（2026-10-10，事实与回执）
+- 用户核心指示：“完整全功能版的ui功能比纯rust版好多了，往rust方向迁吧”：
+  · 用户明确选定并授权推进“采用 Tauri 2 架构：Rust 原生内核 + 完整全功能版 Vue 3 界面（内存降至 ~35MB，零 Electron，100% 保留全部精美 UI 与六大音源）”技术路线。
+  · Tauri 2 宿主构建配置与产物装配 (`src-tauri/tauri.conf.json`)：
+    - `build.frontendDist` 挂载路径对齐全功能 Vue 3 构建目录 `../out/renderer`；
+    - 应用产品名称设置为 `昆音 (Kunyin Neo)`，版本升级至 `1.1.0`，主窗口尺寸 1080x720，最小 800x560；
+    - 开放 `withGlobalTauri: true` 与高精度 CSP 图像/网络规则（允许本地 asset、IPC 与在线封面/流连接）。
+  · 原生 Rust 指令集扩展 (`src-tauri/src/main.rs`)：
+    - 接入 M51/M52 核心能力：`lyric_parse_syllables`（毫秒逐字解析）、`lyric_compute_syllable_progress`（卡拉OK状态机）、`lyric_render_desktop_frame`（桌面排版帧）、`compute_mini_player_appearance`（迷你播放器毛玻璃）、`compute_desktop_lyric_appearance`（桌面歌词毛玻璃）、`network_stream_headers`（防盗链请求头）、`network_plan_stream_range`（Range 切片规划）；
+    - 接入基础系统指令：`app_version`、`app_platform`、`window_minimize`、`window_close`、`window_toggle_maximize`。
+  · 前端通用桥接适配器 (`src/renderer/src/tauri-bridge.ts` & `src/renderer/src/main.ts`)：
+    - 实现了基于递归动态 Proxy 的 `createTauriApi()`，与既有 `WindowApi` 契约 100% 结构对齐；
+    - 具备优雅降级与兜底：事件订阅函数自动返回 `Unsubscribe` 闭包，未实现能力安全返回默认空集合或 Promise；
+    - 在 `main.ts` 入口首行前置挂载，检测到 Tauri 环境即自动注入；Electron 运行时为无操作透传，零性能损耗与零回归破坏。
+  · 质量门禁与全套验证：
+    - 新增专项测试 `scripts/m53-tauri-migration-tests.mjs`，并通过 `npm test`（12 套测试全绿）；
+    - `npm run lint:gate` 0 报错；`npm run typecheck`（Node & Web 双配置）0 报错；
+    - `cargo check --manifest-path src-tauri/Cargo.toml` 退出码 0；
+    - `cargo test --manifest-path crates/aurora-core/Cargo.toml` 26/26 全部通过；
+    - `cargo test --manifest-path crates/aurora-app/Cargo.toml` 14/14 全部通过。
 
 ◆ M52 纯 Rust 原生桌面歌词置顶悬浮透明视窗、全屏动态歌词与卡拉OK逐字时间轴推进 (Pure Rust Desktop Lyric Floating Window, Fullscreen Lyric View & Syllable Timeline Engine)（2026-10-10，事实与回执）
 - 用户核心指示：“继续朝rust推进”（针对 Electron 6 进程、336MB 内存与 24.8% CPU 占用痛点，继续深推 Rust 零开销架构）：

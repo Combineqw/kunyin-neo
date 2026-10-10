@@ -1,24 +1,24 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Kunyin Native Rust",
-  "version": "0.1.0",
-  "identifier": "com.combineqw.kunyin.tauri-shell",
+  "productName": "昆音 (Kunyin Neo)",
+  "version": "1.1.0",
+  "identifier": "com.combineqw.kunyin.desktop",
   "build": {
-    "frontendDist": "ui"
+    "frontendDist": "../out/renderer"
   },
   "app": {
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "Kunyin Tauri Core Shell",
-        "width": 960,
-        "height": 640,
-        "minWidth": 720,
-        "minHeight": 480
+        "title": "昆音 (Kunyin Neo)",
+        "width": 1080,
+        "height": 720,
+        "minWidth": 800,
+        "minHeight": 560
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost blob: data:; connect-src ipc: http://ipc.localhost"
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost blob: data: https: http:; connect-src ipc: http://ipc.localhost https: http:"
     }
   },
   "bundle": {

@@ -1,5 +1,6 @@
 use aurora_core::{
-    lyrics::{parse_lrc, LyricLine},
+    lyrics::{self, parse_lrc, LyricLine},
+    network,
     scan::{scan_dir, ScanResult},
     settings_io::{deep_merge, read_json, write_json_atomic},
     sync,
@@ -8,7 +9,7 @@ use aurora_library::{Library, PlaylistOptions};
 use aurora_player::{PlaybackSession, PlaybackSnapshot};
 use serde_json::{json, Value};
 use std::{fs, path::PathBuf, sync::Mutex};
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Manager, State, Window};
 
 #[derive(Default)]
 struct LibraryState {
@@ -306,6 +307,116 @@ fn sync_validate_session(session_json: String) -> Result<Option<String>, String>
     sync::session_json(&session_json).map_err(|error| error.to_string())
 }
 
+#[tauri::command]
+fn app_version() -> String {
+    "1.1.0".to_string()
+}
+
+#[tauri::command]
+fn app_platform() -> String {
+    std::env::consts::OS.to_string()
+}
+
+#[tauri::command]
+fn lyric_parse_syllables(lrc_text: String) -> Result<Vec<lyrics::SyllableLine>, String> {
+    Ok(lyrics::parse_syllables_lrc(&lrc_text))
+}
+
+#[tauri::command]
+fn lyric_compute_syllable_progress(
+    syllable_line_json: String,
+    position_ms: u64,
+) -> Result<lyrics::SyllableProgress, String> {
+    let line: lyrics::SyllableLine =
+        serde_json::from_str(&syllable_line_json).map_err(|error| error.to_string())?;
+    Ok(lyrics::compute_syllable_progress(&line, position_ms))
+}
+
+#[tauri::command]
+fn lyric_render_desktop_frame(
+    main_text: String,
+    sub_text: Option<String>,
+    progress: f64,
+    active_color: String,
+    normal_color: String,
+    appearance_json: String,
+    font_size: u32,
+    is_playing: bool,
+) -> Result<lyrics::DesktopLyricRenderFrame, String> {
+    let appearance: lyrics::DesktopLyricAppearance =
+        serde_json::from_str(&appearance_json).map_err(|error| error.to_string())?;
+    Ok(lyrics::render_desktop_lyric_frame(
+        &main_text,
+        sub_text.as_deref(),
+        progress,
+        &active_color,
+        &normal_color,
+        &appearance,
+        font_size,
+        is_playing,
+    ))
+}
+
+#[tauri::command]
+fn compute_mini_player_appearance(opacity_percent: f64) -> lyrics::MiniPlayerAppearance {
+    lyrics::compute_mini_player_appearance(opacity_percent)
+}
+
+#[tauri::command]
+fn compute_desktop_lyric_appearance(
+    bg_opacity: f64,
+    text_opacity: f64,
+    font_weight: u32,
+    shadow_opacity: f64,
+    stroke_width: u32,
+) -> lyrics::DesktopLyricAppearance {
+    lyrics::compute_desktop_lyric_appearance(
+        bg_opacity,
+        text_opacity,
+        font_weight,
+        shadow_opacity,
+        stroke_width,
+    )
+}
+
+#[tauri::command]
+fn network_stream_headers(
+    provider_str: String,
+    target_url: String,
+    range_start: Option<u64>,
+    range_end: Option<u64>,
+) -> network::NetworkHeaders {
+    network::build_network_headers(&provider_str, &target_url, range_start, range_end)
+}
+
+#[tauri::command]
+fn network_plan_stream_range(
+    start_byte: u64,
+    total_bytes: i64,
+    chunk_size: u64,
+) -> network::NetworkStreamRange {
+    network::plan_stream_range(start_byte, total_bytes, chunk_size)
+}
+
+#[tauri::command]
+fn window_minimize(window: Window) -> Result<(), String> {
+    window.minimize().map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn window_close(window: Window) -> Result<(), String> {
+    window.close().map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn window_toggle_maximize(window: Window) -> Result<(), String> {
+    if window.is_maximized().unwrap_or(false) {
+        window.unmaximize().map_err(|error| error.to_string())
+    } else {
+        window.maximize().map_err(|error| error.to_string())
+    }
+}
+
 fn main() {
     tauri::Builder::default()
         .manage(LibraryState::default())
@@ -333,7 +444,19 @@ fn main() {
             native_capabilities,
             audio_backend_capabilities,
             sync_normalize_base_url,
-            sync_validate_session
+            sync_validate_session,
+            app_version,
+            app_platform,
+            lyric_parse_syllables,
+            lyric_compute_syllable_progress,
+            lyric_render_desktop_frame,
+            compute_mini_player_appearance,
+            compute_desktop_lyric_appearance,
+            network_stream_headers,
+            network_plan_stream_range,
+            window_minimize,
+            window_close,
+            window_toggle_maximize
         ])
         .run(tauri::generate_context!())
         .expect("failed to run the Tauri shell");
