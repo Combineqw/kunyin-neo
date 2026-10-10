@@ -9,9 +9,17 @@ import { requestJson } from '../net/request'
 import { getProvider } from './index'
 import { currentAuthst } from '../auth/manager'
 import { getCachedMediaInfo, invalidateMediaInfo, setCachedMediaInfo } from '../cache/urlCache'
+import {
+  nativeExtractBackendMusicId,
+  nativeParseMediaInfoResponse
+} from '../native/bridge-runtime.js'
 
-/** 各平台送给后端的 musicId 取值（对应 MusicUrlHelper 的提取规则） */
+/** 各平台送给后端的 musicId 取值（对应 MusicUrlHelper 的提取规则，优先走 Rust 原生解析） */
 function extractMusicId(item: MusicItem): string {
+  const mid = 'mid' in item ? (item as unknown as { mid?: string }).mid : undefined
+  const hash = 'hash' in item ? (item as unknown as { hash?: string }).hash : undefined
+  const nativeId = nativeExtractBackendMusicId(item.type, item.id, mid, hash)
+  if (nativeId) return nativeId
   switch (item.type) {
     case 'qq':
       return item.mid
@@ -47,6 +55,14 @@ export async function fetchMediaUrl(
       authst
     }
   }).catch(() => null)
+
+  const nativeParsed = resp
+    ? nativeParseMediaInfoResponse<MediaInfoResult>(item.type, qualityId, resp)
+    : null
+  if (nativeParsed) {
+    nativeParsed.musicItem = item
+    return nativeParsed
+  }
 
   if (!resp || resp.code !== 200 || !resp.url) {
     return {

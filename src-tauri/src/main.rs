@@ -444,6 +444,41 @@ fn provider_kg_sign(params_json: String, body: String) -> Result<String, String>
     Ok(aurora_core::provider::kg_sign(&params, &body))
 }
 
+#[tauri::command]
+fn provider_extract_backend_music_id(
+    platform: String,
+    id: Option<String>,
+    mid: Option<String>,
+    hash: Option<String>,
+) -> String {
+    aurora_core::provider::extract_backend_music_id(
+        &platform,
+        id.as_deref(),
+        mid.as_deref(),
+        hash.as_deref(),
+    )
+}
+
+#[tauri::command]
+fn provider_select_optimal_quality(
+    available_qualities: Vec<String>,
+    preferred_quality: String,
+) -> String {
+    let refs: Vec<&str> = available_qualities.iter().map(|s| s.as_str()).collect();
+    aurora_core::provider::select_optimal_quality(&refs, &preferred_quality).to_string()
+}
+
+#[tauri::command]
+fn provider_parse_media_info_response(
+    source: String,
+    quality_id: String,
+    response_json: String,
+    now_ms: u64,
+) -> Result<String, String> {
+    aurora_core::provider::parse_media_info_response(&source, &quality_id, &response_json, now_ms)
+        .map_err(|e| e.to_string())
+}
+
 fn main() {
     tauri::Builder::default()
         .manage(LibraryState::default())
@@ -488,7 +523,10 @@ fn main() {
             provider_parse_wy_track,
             provider_parse_kg_track,
             provider_parse_kw_track,
-            provider_kg_sign
+            provider_kg_sign,
+            provider_extract_backend_music_id,
+            provider_select_optimal_quality,
+            provider_parse_media_info_response
         ])
         .run(tauri::generate_context!())
         .expect("failed to run the Tauri shell");

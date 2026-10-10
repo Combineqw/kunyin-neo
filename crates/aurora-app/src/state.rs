@@ -89,6 +89,18 @@ impl Default for DspSettings {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum WindowDisplayMode {
+    Normal,
+    MiniPlayer,
+}
+
+impl Default for WindowDisplayMode {
+    fn default() -> Self {
+        Self::Normal
+    }
+}
+
 pub struct AppState {
     pub current_route: AppRoute,
     pub current_track: Option<AppTrack>,
@@ -108,6 +120,12 @@ pub struct AppState {
     pub desktop_lyric_visible: bool,
     pub desktop_lyric_opacity: f32,
     pub desktop_lyric_locked: bool,
+    pub window_mode: WindowDisplayMode,
+    pub mini_player: crate::components::MiniPlayerViewModel,
+    pub recommend: crate::components::RecommendViewModel,
+    pub selected_playlist: Option<crate::components::PlaylistDetailViewModel>,
+    pub eq_visualizer: crate::components::EqVisualizerModel,
+    pub search_source_tab: crate::components::SearchSourceTab,
 }
 
 impl Default for AppState {
@@ -137,6 +155,12 @@ impl AppState {
             desktop_lyric_visible: false,
             desktop_lyric_opacity: 0.72,
             desktop_lyric_locked: false,
+            window_mode: WindowDisplayMode::Normal,
+            mini_player: crate::components::MiniPlayerViewModel::default(),
+            recommend: crate::components::RecommendViewModel::default_curated(),
+            selected_playlist: None,
+            eq_visualizer: crate::components::EqVisualizerModel::default(),
+            search_source_tab: crate::components::SearchSourceTab::All,
         }
     }
 
@@ -237,7 +261,15 @@ impl AppState {
         let snap = self.player_session.tick(elapsed_ms);
         if !self.lyrics_lines.is_empty() {
             self.active_lyric = find_active_line(&self.lyrics_lines, snap.position_ms);
+            if let Some(active) = &self.active_lyric {
+                self.mini_player.update_lyrics(
+                    &active.text,
+                    active.next_text.as_deref().unwrap_or(""),
+                );
+            }
         }
+        self.mini_player.is_playing = snap.status == PlaybackStatus::Playing;
+        self.mini_player.tick_rotation(elapsed_ms);
         snap
     }
 
@@ -274,6 +306,32 @@ impl AppState {
         self.muted
     }
 
+    pub fn toggle_window_mode(&mut self) -> WindowDisplayMode {
+        self.window_mode = match self.window_mode {
+            WindowDisplayMode::Normal => WindowDisplayMode::MiniPlayer,
+            WindowDisplayMode::MiniPlayer => WindowDisplayMode::Normal,
+        };
+        self.window_mode
+    }
+
+    pub fn open_playlist(&mut self, playlist: crate::components::PlaylistDetailViewModel) {
+        self.current_route = AppRoute::Playlist(playlist.id);
+        self.selected_playlist = Some(playlist);
+    }
+
+    pub fn apply_eq_preset(&mut self, preset: crate::components::EqPreset) {
+        self.eq_visualizer.apply_preset(preset);
+        self.dsp.bands = preset.gains();
+    }
+
+    pub fn set_search_tab(&mut self, tab: crate::components::SearchSourceTab) {
+        self.search_source_tab = tab;
+    }
+
+    pub fn toggle_heartbeat(&mut self) -> bool {
+        self.recommend.toggle_heartbeat()
+    }
+
     pub fn snapshot(&self) -> PlaybackSnapshot {
         self.player_session.snapshot()
     }
@@ -306,6 +364,7 @@ mod tests {
         let active = state.active_lyric.as_ref().expect("active lyric must exist at 6s");
         assert_eq!(active.text, "第一句主歌");
         assert_eq!(active.index, 1);
+        assert_eq!(state.mini_player.current_lyric, "第一句主歌");
     }
 
     #[test]
@@ -336,5 +395,43 @@ mod tests {
 
         let status = state.toggle_play_pause();
         assert_eq!(status, PlaybackStatus::Paused);
+    }
+
+    #[test]
+    fn app_state_feature_parity_methods() {
+        let mut state = AppState::new();
+
+        // Window mode toggle
+        assert_eq!(state.window_mode, WindowDisplayMode::Normal);
+        assert_eq!(state.toggle_window_mode(), WindowDisplayMode::MiniPlayer);
+        assert_eq!(state.toggle_window_mode(), WindowDisplayMode::Normal);
+
+        // Heartbeat mode
+        assert!(!state.recommend.is_heartbeat_active);
+        assert!(state.toggle_heartbeat());
+        assert!(state.recommend.is_heartbeat_active);
+
+        // EQ preset application
+        state.apply_eq_preset(crate::components::EqPreset::BassBoost);
+        assert!(state.dsp.bands[0] > 0.0);
+        assert_eq!(state.eq_visualizer.bands[0], state.dsp.bands[0]);
+
+        // Search tab
+        assert_eq!(state.search_source_tab, crate::components::SearchSourceTab::All);
+        state.set_search_tab(crate::components::SearchSourceTab::Qq);
+        assert_eq!(state.search_source_tab, crate::components::SearchSourceTab::Qq);
+
+        // Playlist detail opening
+        let pl_vm = crate::components::PlaylistDetailViewModel::new(
+            99,
+            "我的私享歌单",
+            "测试用户",
+            "描述",
+            vec!["精选".to_string()],
+            vec![],
+        );
+        state.open_playlist(pl_vm);
+        assert_eq!(state.current_route, AppRoute::Playlist(99));
+        assert!(state.selected_playlist.is_some());
     }
 }

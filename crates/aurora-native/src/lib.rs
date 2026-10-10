@@ -1471,6 +1471,45 @@ pub fn provider_kg_sign(params_json: String, body: String) -> napi::Result<Strin
     Ok(provider::kg_sign(&params, &body))
 }
 
+/// Extract backend musicId according to platform rules.
+#[napi]
+pub fn provider_extract_backend_music_id(
+    platform: String,
+    id: Option<String>,
+    mid: Option<String>,
+    hash: Option<String>,
+) -> napi::Result<String> {
+    Ok(provider::extract_backend_music_id(
+        &platform,
+        id.as_deref(),
+        mid.as_deref(),
+        hash.as_deref(),
+    ))
+}
+
+/// Select optimal audio quality matching user preferences.
+#[napi]
+pub fn provider_select_optimal_quality(
+    available_qualities: Vec<String>,
+    preferred_quality: String,
+) -> napi::Result<String> {
+    let refs: Vec<&str> = available_qualities.iter().map(|s| s.as_str()).collect();
+    Ok(provider::select_optimal_quality(&refs, &preferred_quality).to_string())
+}
+
+/// Parse backend getUrl JSON response into MediaInfoResult structure.
+#[napi]
+pub fn provider_parse_media_info_response(
+    source: String,
+    quality_id: String,
+    response_json: String,
+    now_ms: i64,
+) -> napi::Result<String> {
+    let now = now_ms.max(0) as u64;
+    provider::parse_media_info_response(&source, &quality_id, &response_json, now)
+        .map_err(to_napi_error)
+}
+
 /// Parse LRC content into lines array JSON.
 #[napi]
 pub fn lyrics_parse_lrc(content: String) -> napi::Result<String> {

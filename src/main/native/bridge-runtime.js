@@ -800,3 +800,50 @@ export function nativeKgSign(params, body = '') {
     return null
   }
 }
+
+export function nativeExtractBackendMusicId(platform, id, mid, hash) {
+  try {
+    const call = loadBinding()?.providerExtractBackendMusicId
+    if (typeof call === 'function') {
+      const idStr = id != null ? String(id) : null
+      return call(platform, idStr, mid ?? null, hash ?? null)
+    }
+  } catch {
+    // fallback
+  }
+  switch (platform) {
+    case 'qq':
+      return mid ?? ''
+    case 'joox':
+      return mid ?? (id != null ? String(id) : '')
+    case 'kg':
+      return (hash ?? '').toLowerCase()
+    default:
+      return id != null ? String(id) : ''
+  }
+}
+
+export function nativeSelectOptimalQuality(availableQualities, preferredQuality) {
+  try {
+    const call = loadBinding()?.providerSelectOptimalQuality
+    if (typeof call === 'function') {
+      return call(availableQualities, preferredQuality)
+    }
+  } catch {
+    // fallback
+  }
+  if (!availableQualities.length) return '128k'
+  if (availableQualities.includes(preferredQuality)) return preferredQuality
+  return availableQualities[0]
+}
+
+export function nativeParseMediaInfoResponse(source, qualityId, response, nowMs = Date.now()) {
+  try {
+    const call = loadBinding()?.providerParseMediaInfoResponse
+    if (typeof call !== 'function') return null
+    const raw = call(source, qualityId, JSON.stringify(response), nowMs)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}

@@ -214,6 +214,12 @@ export declare function providerParseKgTrack(itemJson: string): string
 export declare function providerParseKwTrack(itemJson: string): string
 /** Calculate KuGou MD5 signature from JSON params map and optional body. */
 export declare function providerKgSign(paramsJson: string, body: string): string
+/** Extract backend musicId according to platform rules. */
+export declare function providerExtractBackendMusicId(platform: string, id?: string | undefined | null, mid?: string | undefined | null, hash?: string | undefined | null): string
+/** Select optimal audio quality matching user preferences. */
+export declare function providerSelectOptimalQuality(availableQualities: Array<string>, preferredQuality: string): string
+/** Parse backend getUrl JSON response into MediaInfoResult structure. */
+export declare function providerParseMediaInfoResponse(source: string, qualityId: string, responseJson: string, nowMs: number): string
 /** Parse LRC content into lines array JSON. */
 export declare function lyricsParseLrc(content: string): string
 /** Find active lyric line and calculate internal progress and surrounding lines. */

@@ -5,6 +5,10 @@ pub mod song_table;
 pub mod settings_view;
 pub mod lyric_view;
 pub mod search_view;
+pub mod recommend_view;
+pub mod playlist_detail_view;
+pub mod eq_modal;
+pub mod mini_player;
 
 pub use sidebar::{SidebarView, NavItem, NavItemStyle};
 pub use toolbar::{ToolbarView, SearchPillStyle};
@@ -13,3 +17,7 @@ pub use song_table::{SongTableView, SongRowStyle};
 pub use settings_view::{SettingsViewModel, EqPreset};
 pub use lyric_view::{LyricViewModel, LyricLineRenderItem};
 pub use search_view::{SearchViewModel, SearchSourceTab};
+pub use recommend_view::{RecommendViewModel, RecommendHeroCard, CuratedPlaylistCard, NewReleaseCard};
+pub use playlist_detail_view::PlaylistDetailViewModel;
+pub use eq_modal::{EqVisualizerModel, FREQUENCIES};
+pub use mini_player::MiniPlayerViewModel;

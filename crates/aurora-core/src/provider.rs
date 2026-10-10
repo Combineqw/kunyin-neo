@@ -834,11 +834,172 @@ pub fn parse_kw_track_json(input: &str) -> Result<String> {
     Ok(serde_json::to_string(&parse_kw_track(&value))?)
 }
 
+/// Extracts the platform-specific musicId sent to the backend getUrl endpoint.
+/// Corresponds to extractMusicId in getUrl.ts & Android MusicUrlHelper.kt:
+/// - "qq": mid
+/// - "joox": mid.unwrap_or(id)
+/// - "kg": hash.to_lowercase()
+/// - default: id
+pub fn extract_backend_music_id(
+    platform: &str,
+    id: Option<&str>,
+    mid: Option<&str>,
+    hash: Option<&str>,
+) -> String {
+    match platform {
+        "qq" => mid.unwrap_or("").to_string(),
+        "joox" => mid.or(id).unwrap_or("").to_string(),
+        "kg" => hash.map(|h| h.to_lowercase()).unwrap_or_default(),
+        _ => id.unwrap_or("").to_string(),
+    }
+}
+
+/// Selects the best available audio quality given a user preference.
+/// Priority hierarchy (from highest to lowest):
+/// 1. "master" / "atmos_plus" / "atmos" / "dolby" (50)
+/// 2. "hires" (40)
+/// 3. "flac" (30)
+/// 4. "320k" (20)
+/// 5. "128k" (10)
+pub fn select_optimal_quality<'a>(available: &[&'a str], preferred: &str) -> &'a str {
+    if available.is_empty() {
+        return "128k";
+    }
+    if let Some(&exact) = available.iter().find(|&&q| q == preferred) {
+        return exact;
+    }
+
+    let quality_rank = |q: &str| -> i32 {
+        match q {
+            "master" | "atmos_plus" | "atmos" | "dolby" => 50,
+            "hires" => 40,
+            "flac" => 30,
+            "320k" => 20,
+            "128k" => 10,
+            _ => 0,
+        }
+    };
+
+    let target_rank = quality_rank(preferred);
+
+    let mut best_sub = None;
+    let mut best_overall = available[0];
+    let mut best_overall_rank = quality_rank(best_overall);
+
+    for &q in available {
+        let rank = quality_rank(q);
+        if rank <= target_rank {
+            match best_sub {
+                None => best_sub = Some((q, rank)),
+                Some((_, prev_rank)) if rank > prev_rank => best_sub = Some((q, rank)),
+                _ => {}
+            }
+        }
+        if rank > best_overall_rank {
+            best_overall = q;
+            best_overall_rank = rank;
+        }
+    }
+
+    if let Some((sub_q, _)) = best_sub {
+        sub_q
+    } else {
+        best_overall
+    }
+}
+
+/// Parses the getUrl backend response JSON into a normalized MediaInfoResult JSON string.
+/// Matches getUrl.ts:
+/// - input: `{ code: 200, url: "https://...", ekey?: "...", _cacheTTL?: 600, message?: "..." }`
+/// - output: `{ source, playUrl, expire, isSuccess, quality, encryptionInfo?: { isEncrypt: true, ekey }, rejectReason?: "..." }`
+pub fn parse_media_info_response(
+    source: &str,
+    quality_id: &str,
+    response_json: &str,
+    now_ms: u64,
+) -> Result<String> {
+    let val: Value = serde_json::from_str(response_json)?;
+    let code = val.get("code").and_then(|v| v.as_i64()).unwrap_or(0);
+    let url_opt = val.get("url").and_then(|v| v.as_str());
+
+    let mut out = Map::new();
+    out.insert("source".to_string(), Value::String(source.to_string()));
+    out.insert("quality".to_string(), Value::String(quality_id.to_string()));
+
+    if code == 200 && url_opt.is_some() && !url_opt.unwrap().is_empty() {
+        let play_url = url_opt.unwrap();
+        let cache_ttl = val.get("_cacheTTL").and_then(|v| v.as_u64()).unwrap_or(600);
+        let expire = now_ms + cache_ttl * 1000;
+
+        out.insert("playUrl".to_string(), Value::String(play_url.to_string()));
+        out.insert("expire".to_string(), Value::Number(Number::from(expire)));
+        out.insert("isSuccess".to_string(), Value::Bool(true));
+
+        if let Some(ekey) = val.get("ekey").and_then(|v| v.as_str()) {
+            if !ekey.is_empty() && ekey != "null" {
+                let mut enc = Map::new();
+                enc.insert("isEncrypt".to_string(), Value::Bool(true));
+                enc.insert("ekey".to_string(), Value::String(ekey.to_string()));
+                out.insert("encryptionInfo".to_string(), Value::Object(enc));
+            }
+        }
+    } else {
+        let msg = val.get("message").and_then(|v| v.as_str()).unwrap_or("获取播放地址失败");
+        out.insert("playUrl".to_string(), Value::String(String::new()));
+        out.insert("expire".to_string(), Value::Number(Number::from(0)));
+        out.insert("isSuccess".to_string(), Value::Bool(false));
+        out.insert("rejectReason".to_string(), Value::String(msg.to_string()));
+    }
+
+    Ok(serde_json::to_string(&Value::Object(out))?)
+}
+
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_qq_track_json, parse_wy_track_json};
+    use super::*;
     use serde_json::Value;
+
+    #[test]
+    fn extracts_backend_music_id_for_different_providers() {
+        assert_eq!(extract_backend_music_id("qq", Some("123"), Some("003mid"), None), "003mid");
+        assert_eq!(extract_backend_music_id("joox", Some("456"), Some("jx_mid"), None), "jx_mid");
+        assert_eq!(extract_backend_music_id("joox", Some("456"), None, None), "456");
+        assert_eq!(extract_backend_music_id("kg", Some("789"), None, Some("ABCDEF123456")), "abcdef123456");
+        assert_eq!(extract_backend_music_id("wy", Some("999"), None, None), "999");
+    }
+
+    #[test]
+    fn selects_optimal_quality_gracefully() {
+        let available = ["128k", "320k", "flac"];
+        assert_eq!(select_optimal_quality(&available, "flac"), "flac");
+        assert_eq!(select_optimal_quality(&available, "hires"), "flac"); // degrades to flac
+        assert_eq!(select_optimal_quality(&available, "320k"), "320k");
+        assert_eq!(select_optimal_quality(&available, "128k"), "128k");
+
+        let hires_available = ["128k", "320k", "flac", "hires"];
+        assert_eq!(select_optimal_quality(&hires_available, "hires"), "hires");
+        assert_eq!(select_optimal_quality(&hires_available, "master"), "hires");
+    }
+
+    #[test]
+    fn parses_media_info_response_success_and_failure() {
+        let success_resp = r#"{"code": 200, "url": "https://cdn.music.com/audio.flac", "ekey": "key123", "_cacheTTL": 300}"#;
+        let parsed_json = parse_media_info_response("qq", "flac", success_resp, 1000).unwrap();
+        let parsed: Value = serde_json::from_str(&parsed_json).unwrap();
+        assert_eq!(parsed["isSuccess"], true);
+        assert_eq!(parsed["source"], "qq");
+        assert_eq!(parsed["playUrl"], "https://cdn.music.com/audio.flac");
+        assert_eq!(parsed["expire"], 301000);
+        assert_eq!(parsed["encryptionInfo"]["isEncrypt"], true);
+        assert_eq!(parsed["encryptionInfo"]["ekey"], "key123");
+
+        let fail_resp = r#"{"code": 404, "message": "Song copyright restricted"}"#;
+        let fail_json = parse_media_info_response("wy", "320k", fail_resp, 1000).unwrap();
+        let fail_parsed: Value = serde_json::from_str(&fail_json).unwrap();
+        assert_eq!(fail_parsed["isSuccess"], false);
+        assert_eq!(fail_parsed["rejectReason"], "Song copyright restricted");
+    }
 
     #[test]
     fn maps_qq_track_and_quality_fields() {

@@ -149,6 +149,19 @@ type NativeBinding = {
   providerParseKgTrack?(itemJson: string): string
   providerParseKwTrack?(itemJson: string): string
   providerKgSign?(paramsJson: string, body: string): string
+  providerExtractBackendMusicId?(
+    platform: string,
+    id?: string | null,
+    mid?: string | null,
+    hash?: string | null
+  ): string
+  providerSelectOptimalQuality?(availableQualities: string[], preferredQuality: string): string
+  providerParseMediaInfoResponse?(
+    source: string,
+    qualityId: string,
+    responseJson: string,
+    nowMs: number
+  ): string
   lyricsParseLrc?(content: string): string
   lyricsFindActiveLine?(linesJson: string, timeMs: number): string | null
   desktopLyricComputeAppearance?(
@@ -827,6 +840,69 @@ export function nativeKgSign(params: Record<string, string>, body = ''): string 
     const call = loadBinding()?.providerKgSign
     if (typeof call !== 'function') return null
     return call(JSON.stringify(params), body)
+  } catch {
+    return null
+  }
+}
+
+/** Optional Rust platform music ID extraction. */
+export function nativeExtractBackendMusicId(
+  platform: string,
+  id?: string | number | null,
+  mid?: string | null,
+  hash?: string | null
+): string {
+  try {
+    const call = loadBinding()?.providerExtractBackendMusicId
+    if (typeof call === 'function') {
+      const idStr = id != null ? String(id) : null
+      return call(platform, idStr, mid ?? null, hash ?? null)
+    }
+  } catch {
+    // fallback
+  }
+  switch (platform) {
+    case 'qq':
+      return mid ?? ''
+    case 'joox':
+      return mid ?? (id != null ? String(id) : '')
+    case 'kg':
+      return (hash ?? '').toLowerCase()
+    default:
+      return id != null ? String(id) : ''
+  }
+}
+
+/** Optional Rust audio quality resolution with graceful fallback. */
+export function nativeSelectOptimalQuality(
+  availableQualities: string[],
+  preferredQuality: string
+): string {
+  try {
+    const call = loadBinding()?.providerSelectOptimalQuality
+    if (typeof call === 'function') {
+      return call(availableQualities, preferredQuality)
+    }
+  } catch {
+    // fallback
+  }
+  if (!availableQualities.length) return '128k'
+  if (availableQualities.includes(preferredQuality)) return preferredQuality
+  return availableQualities[0]
+}
+
+/** Optional Rust getUrl response parser. */
+export function nativeParseMediaInfoResponse<T extends object>(
+  source: string,
+  qualityId: string,
+  response: unknown,
+  nowMs = Date.now()
+): T | null {
+  try {
+    const call = loadBinding()?.providerParseMediaInfoResponse
+    if (typeof call !== 'function') return null
+    const raw = call(source, qualityId, JSON.stringify(response), nowMs)
+    return raw ? (JSON.parse(raw) as T) : null
   } catch {
     return null
   }
