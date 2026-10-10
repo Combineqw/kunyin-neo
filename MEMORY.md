@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.54 — 2026-10-10】
+【kunyin-neo 项目记忆 v5.55 — 2026-10-10】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,25 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10；v5.48 M47 Windows 现代化安装程序体系与多格式文件关联记档：2026-10-10；v5.49 M48 Apple Design 细节美学与质感微调记档：2026-10-10；v5.50 M49 Windows 安装包构建打包与发布核验记档：2026-10-10；v5.51 M50 100% 纯 Rust 原生 GUI 与独立宿主架构记档：2026-10-10；v5.52 M51 在线网络与桌面歌词 Rust 下沉及透明度调节记档：2026-10-10；v5.53 M52 纯 Rust 桌面歌词悬浮透明视窗与全屏歌词架构记档：2026-10-10；v5.54 M53 Tauri 2 架构与全功能 UI 迁移方案落地：2026-10-10）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10；v5.48 M47 Windows 现代化安装程序体系与多格式文件关联记档：2026-10-10；v5.49 M48 Apple Design 细节美学与质感微调记档：2026-10-10；v5.50 M49 Windows 安装包构建打包与发布核验记档：2026-10-10；v5.51 M50 100% 纯 Rust 原生 GUI 与独立宿主架构记档：2026-10-10；v5.52 M51 在线网络与桌面歌词 Rust 下沉及透明度调节记档：2026-10-10；v5.53 M52 纯 Rust 桌面歌词悬浮透明视窗与全屏歌词架构记档：2026-10-10；v5.54 M53 Tauri 2 架构与全功能 UI 迁移方案落地：2026-10-10；v5.55 M54 视窗圆角与层次阴影系统加固 & 终极纯 Rust GUI 演进基线：2026-10-10）
+
+◆ M54 视窗圆角与层次阴影系统加固 & 终极纯 Rust GUI 演进基线 (Window Rounded Corners, Layered Shadow Tokens & Pure Rust Ultimate Roadmap)（2026-10-10，事实与回执）
+- 用户核心指示与截图反馈：“加个阴影圆角谢谢”、“这什么r角”以及“以后还要逐渐抛弃Tauri”：
+  · 根因彻底排查：
+    - 历史配置在 `src/main/windows/main.ts` 中错误显式关闭了 `roundedCorners: false; hasShadow: false;`，而前端 `base.css` 的 `#app` 却配置了 `border-radius: 16px`；
+    - 在非透明视窗（`transparent: false, backgroundColor: '#171918'`）下，内容层裁切直接漏出底部黑色视窗矩形，导致视窗四角出现突兀的黑色直角三角块；
+  · 彻底修复与系统级阴影/圆角落地：
+    - `src/main/windows/main.ts`：显式开启 `roundedCorners: true` 与 `hasShadow: true`，移交 Windows 11 DWM 进行原生硬件抗锯齿圆角裁剪与全局立体投影；
+    - `src/renderer/src/assets/base.css`：将 `#app` 的假圆角修正为 `border-radius: 0`，视窗外缘由系统 DWM 原生无黑边闭合；内部界面由 Apple HIG 20px/22px 玻璃卡片排版接管；
+    - 注入 Apple Design 层次阴影系统 tokens（`--shadow-sm`、`--shadow-md`、`--shadow-lg`、`--shadow-floating`），并按 Apple HIG 标准重构浅色/深色 `--glass-shadow` 的主光与环境光漫反射深度；
+    - `src-tauri/tauri.conf.json`：配置 `"shadow": true`，确保 Tauri 宿主同样具备完整硬件阴影。
+  · 终极技术路线图共识（弃用 Tauri 的长远规划）：
+    - 明确 Tauri 2 是将全功能 Vue 3 界面与六大音源在不降低体验前提下将 336MB 内存先降至 ~35MB 的平稳跳板；
+    - 核心业务逻辑（`aurora-core`, `aurora-audio`, `aurora-library`）保持 100% 独立与高内聚；
+    - 终极目标依然是 `crates/aurora-app` 规划的 100% 纯 Rust 原生自绘 GUI（Zero WebView / Zero Node.js），待底层完备后彻底剥离 WebView。
+  · 质量门禁与测试：
+    - `npm run lint:gate` 与 `npm run typecheck`（Node & Web 双配置）0 报错；
+    - `npm test` 12 套测试全绿；`git diff --check` 通过。
 
 ◆ M53 Tauri 2 架构与全功能 UI 迁移方案落地 (Tauri 2 Architecture, Vue 3 Apple UI Migration & Rust Unified Core Integration)（2026-10-10，事实与回执）
 - 用户核心指示：“完整全功能版的ui功能比纯rust版好多了，往rust方向迁吧”：

@@ -62,6 +62,11 @@
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 20px;
+  /* ---- Apple Design 层次阴影系统 ---- */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.10), 0 2px 6px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.14), 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-floating: 0 16px 40px rgba(0, 0, 0, 0.16), 0 2px 6px rgba(0, 0, 0, 0.08);
   --font-system: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
     'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Segoe UI',
     sans-serif;
@@ -121,7 +126,7 @@
   --glass-thick-saturation: 1.8;
   --glass-border: color-mix(in srgb, var(--color-font) 10%, transparent);
   --glass-highlight: rgba(255, 255, 255, 0.4);
-  --glass-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  --glass-shadow: 0 10px 32px rgba(0, 0, 0, 0.10), 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 /* ================= 深色模式修正 =================
@@ -145,7 +150,7 @@ html.theme-dark {
   --color-shadow-floating: rgba(0, 0, 0, 0.55);
   --glass-border: rgba(255, 255, 255, 0.12);
   --glass-highlight: rgba(255, 255, 255, 0.14);
-  --glass-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  --glass-shadow: 0 14px 40px rgba(0, 0, 0, 0.50), 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
 /* Shell surfaces keep the theme's two background roles in dark mode. The
@@ -352,8 +357,9 @@ body {
   background: var(--background-image) var(--background-image-position) no-repeat;
   background-size: var(--background-image-size);
   background-color: var(--color-content-background);
-  /* 主窗口使用透明 BrowserWindow：圆角在内容层裁切，保留圆角但不带 Windows DWM 蓝边/阴影。 */
-  border-radius: 16px;
+  /* 移除原内容层假圆角，消除在非透明视窗角落漏出的黑三角瑕疵；
+     视窗外轮廓圆角由系统 DWM 原生渲染，内部界面由玻璃卡片排版接管。 */
+  border-radius: 0;
   overflow: hidden;
   transition: none;
 }
