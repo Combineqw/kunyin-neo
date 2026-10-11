@@ -15,8 +15,8 @@ use aurora_audio::{
     StreamDecoder,
 };
 use aurora_core::{
-    download::DownloadSession, lyrics, metadata, network, provider, scan, settings_io, sync,
-    theme, AuroraError,
+    download::{self, DownloadSession},
+    lyrics, matcher, metadata, network, provider, scan, settings_io, sync, theme, AuroraError,
 };
 use aurora_player::PlaybackSession;
 use napi::bindgen_prelude::Buffer;
@@ -1672,4 +1672,102 @@ pub fn lyrics_render_desktop_frame(
         is_playing,
     );
     serde_json::to_string(&frame).map_err(|e| napi::Error::from_reason(e.to_string()))
+}
+
+/// Normalize music text using Rust unicode-aware normalizer.
+#[napi]
+pub fn matcher_normalize_music_text(text: String) -> napi::Result<String> {
+    Ok(matcher::normalize_music_text(&text))
+}
+
+/// Check if two artist strings match (equality or containment).
+#[napi]
+pub fn matcher_artists_match(left: String, right: String) -> napi::Result<bool> {
+    Ok(matcher::artists_match(&left, &right))
+}
+
+/// Select a single unambiguous enrichment candidate from a list.
+#[napi]
+pub fn matcher_select_enrichment_candidate(
+    tags_json: String,
+    duration_ms: i64,
+    candidates_json: String,
+) -> napi::Result<Option<String>> {
+    let tags: matcher::MatchTags = serde_json::from_str(&tags_json)
+        .map_err(|e| napi::Error::from_reason(format!("invalid tags JSON: {e}")))?;
+    let candidates: Vec<serde_json::Value> = serde_json::from_str(&candidates_json)
+        .map_err(|e| napi::Error::from_reason(format!("invalid candidates JSON: {e}")))?;
+    let dur = duration_ms.max(0) as u64;
+    let res = matcher::select_enrichment_candidate(&tags, dur, &candidates);
+    match res {
+        Some(item) => serde_json::to_string(&item)
+            .map(Some)
+            .map_err(|e| napi::Error::from_reason(e.to_string())),
+        None => Ok(None),
+    }
+}
+
+/// Compute fuzzy match score between local track tags and an online candidate.
+#[napi]
+pub fn matcher_score_music_match(
+    tag_title: String,
+    tag_artist: String,
+    tag_duration_ms: i64,
+    candidate_title: String,
+    candidate_artist: String,
+    candidate_duration_ms: i64,
+) -> napi::Result<f64> {
+    let t_dur = tag_duration_ms.max(0) as u64;
+    let c_dur = candidate_duration_ms.max(0) as u64;
+    Ok(matcher::score_music_match(
+        &tag_title,
+        &tag_artist,
+        t_dur,
+        &candidate_title,
+        &candidate_artist,
+        c_dur,
+    ))
+}
+
+/// Rank online candidates by relevance score against local track tags.
+#[napi]
+pub fn matcher_rank_candidates(
+    tags_json: String,
+    duration_ms: i64,
+    candidates_json: String,
+) -> napi::Result<String> {
+    let tags: matcher::MatchTags = serde_json::from_str(&tags_json)
+        .map_err(|e| napi::Error::from_reason(format!("invalid tags JSON: {e}")))?;
+    let candidates: Vec<serde_json::Value> = serde_json::from_str(&candidates_json)
+        .map_err(|e| napi::Error::from_reason(format!("invalid candidates JSON: {e}")))?;
+    let dur = duration_ms.max(0) as u64;
+    let ranked = matcher::rank_enrichment_candidates(&tags, dur, &candidates);
+    serde_json::to_string(&ranked).map_err(|e| napi::Error::from_reason(e.to_string()))
+}
+
+/// Sniff real container audio extension from file header (.ogg, .flac, .mp3).
+#[napi]
+pub fn download_sniff_audio_extension(file_path: String) -> napi::Result<Option<String>> {
+    Ok(download::sniff_audio_extension_file(Path::new(&file_path)))
+}
+
+/// Parse FLAC sample rate and bit depth tag from STREAMINFO header (e.g. [16Bit-44.1kHz]).
+#[napi]
+pub fn download_parse_flac_quality_tag(file_path: String) -> napi::Result<Option<String>> {
+    Ok(download::parse_flac_streaminfo_tag_file(Path::new(&file_path)))
+}
+
+/// Normalize download title for cross-source alternative candidate search.
+#[napi]
+pub fn download_normalize_title(title: String) -> napi::Result<String> {
+    Ok(download::normalize_download_title(&title))
+}
+
+/// Search alternative candidates for first matching title.
+#[napi]
+pub fn download_select_alternative_candidate(
+    target_title: String,
+    candidates_json: String,
+) -> napi::Result<Option<String>> {
+    Ok(download::select_alternative_candidate(&target_title, &candidates_json))
 }

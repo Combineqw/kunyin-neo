@@ -246,3 +246,21 @@ export declare function lyricsParseSyllables(lrcText: string): string
 export declare function lyricsComputeSyllableProgress(lineJson: string, timeMs: number): string
 /** Render structured desktop lyric frame with progress, color palette, and typography. */
 export declare function lyricsRenderDesktopFrame(mainLine: string, subLine: string | undefined | null, progress: number, activeColor: string, normalColor: string, bgOpacity: number, textOpacity: number, fontSize: number, isPlaying: boolean): string
+/** Normalize music text using Rust unicode-aware normalizer. */
+export declare function matcherNormalizeMusicText(text: string): string
+/** Check if two artist strings match (equality or containment). */
+export declare function matcherArtistsMatch(left: string, right: string): boolean
+/** Select a single unambiguous enrichment candidate from a list. */
+export declare function matcherSelectEnrichmentCandidate(tagsJson: string, durationMs: number, candidatesJson: string): string | null
+/** Compute fuzzy match score between local track tags and an online candidate. */
+export declare function matcherScoreMusicMatch(tagTitle: string, tagArtist: string, tagDurationMs: number, candidateTitle: string, candidateArtist: string, candidateDurationMs: number): number
+/** Rank online candidates by relevance score against local track tags. */
+export declare function matcherRankCandidates(tagsJson: string, durationMs: number, candidatesJson: string): string
+/** Sniff real container audio extension from file header (.ogg, .flac, .mp3). */
+export declare function downloadSniffAudioExtension(filePath: string): string | null
+/** Parse FLAC sample rate and bit depth tag from STREAMINFO header (e.g. [16Bit-44.1kHz]). */
+export declare function downloadParseFlacQualityTag(filePath: string): string | null
+/** Normalize download title for cross-source alternative candidate search. */
+export declare function downloadNormalizeTitle(title: string): string
+/** Search alternative candidates for first matching title. */
+export declare function downloadSelectAlternativeCandidate(targetTitle: string, candidatesJson: string): string | null

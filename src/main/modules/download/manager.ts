@@ -31,6 +31,10 @@ import {
   nativeDownloadAbort,
   nativeDownloadCommit,
   nativeDownloadCreate,
+  nativeDownloadNormalizeTitle,
+  nativeDownloadParseFlacQualityTag,
+  nativeDownloadSelectAlternativeCandidate,
+  nativeDownloadSniffAudioExtension,
   nativeDownloadWrite
 } from '../../native/bridge-runtime.js'
 import type {
@@ -119,8 +123,10 @@ function buildFileName(task: DownloadTask): string {
   return base
 }
 
-/** 嗅探音频真实容器扩展名（QQ mflac 解密后可能是 Ogg），无法识别返回 null。 */
+/** 嗅探音频真实容器扩展名（QQ mflac 解密后可能是 Ogg），无法识别返回 null。优先走 Rust 原生嗅探。 */
 function sniffAudioExtension(filePath: string): string | null {
+  const native = nativeDownloadSniffAudioExtension(filePath)
+  if (native) return native
   try {
     const fd = openSync(filePath, 'r')
     const header = Buffer.alloc(12)
@@ -146,8 +152,10 @@ function sniffImageExt(data: Buffer): string {
   return data.length > 8 && data[0] === 0x89 && data[1] === 0x50 ? '.png' : '.jpg'
 }
 
-/** 采样率/位深标记（仅 FLAC 有效，从文件头读 STREAMINFO）。失败返回 null。 */
+/** 采样率/位深标记（仅 FLAC 有效，从文件头读 STREAMINFO）。失败返回 null。优先走 Rust 原生解析。 */
 function flacQualityTag(filePath: string): string | null {
+  const native = nativeDownloadParseFlacQualityTag(filePath)
+  if (native) return native
   try {
     const fd = openSync(filePath, 'r')
     const buf = Buffer.alloc(42)
@@ -246,9 +254,9 @@ async function resolveWithFallback(
 /** 跨源换源的尝试顺序（排除原源）。 */
 const ALT_SOURCES: MusicSource[] = ['wy', 'kg', 'kw', 'qq', 'qqc', 'joox']
 
-/** 归一化标题用于同名匹配（忽略大小写、空白与常见标点）。 */
+/** 归一化标题用于同名匹配（忽略大小写、空白与常见标点）。优先走 Rust 原生归一化。 */
 function normalizeTitle(s: string): string {
-  return s.toLowerCase().replace(/[\s()（）【】\-—_·,.，。'"'""?!:：;；]/g, '')
+  return nativeDownloadNormalizeTitle(s)
 }
 
 /** 换源下载：按「歌名 歌手」搜其它音源，取第一个同名命中，解析其可用音质的播放地址。 */
@@ -266,7 +274,9 @@ async function resolveAlternative(
     if (!provider) continue
     try {
       const res = await provider.search(keyword, 0, 10)
-      const match = res.result.find((i) => normalizeTitle(i.title) === target)
+      const match =
+        nativeDownloadSelectAlternativeCandidate(song.title, res.result) ??
+        res.result.find((i) => normalizeTitle(i.title) === target)
       if (!match) continue
       const q = pickQuality(match, qualityId)
       if (!q) continue

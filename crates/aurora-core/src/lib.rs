@@ -3,6 +3,7 @@
 pub mod download;
 pub mod error;
 pub mod lyrics;
+pub mod matcher;
 pub mod metadata;
 pub mod network;
 pub mod provider;
@@ -12,6 +13,10 @@ pub mod sync;
 pub mod theme;
 
 pub use error::AuroraError;
+pub use matcher::{
+    artists_match, normalize_music_text, rank_enrichment_candidates, score_music_match,
+    select_enrichment_candidate, MatchTags, ScoredCandidate,
+};
 
 #[cfg(test)]
 mod tests {

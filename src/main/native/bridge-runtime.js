@@ -880,3 +880,183 @@ export function nativeParseArtistEntry(source, entry) {
     return null
   }
 }
+
+export function nativeMatcherNormalizeMusicText(text) {
+  try {
+    const raw = loadBinding()?.matcherNormalizeMusicText?.(text)
+    if (typeof raw === 'string') return raw
+  } catch {
+    // fallback
+  }
+  return text
+    .normalize('NFKC')
+    .toLocaleLowerCase()
+    .replace(/\b(?:feat|ft)\.?\b/gu, '')
+    .replace(/[^\p{L}\p{N}]+/gu, '')
+}
+
+export function nativeMatcherArtistsMatch(left, right) {
+  try {
+    const res = loadBinding()?.matcherArtistsMatch?.(left, right)
+    if (typeof res === 'boolean') return res
+  } catch {
+    // fallback
+  }
+  const a = nativeMatcherNormalizeMusicText(left)
+  const b = nativeMatcherNormalizeMusicText(right)
+  return !!a && !!b && (a === b || a.includes(b) || b.includes(a))
+}
+
+export function nativeMatcherSelectEnrichmentCandidate(tags, duration, candidates) {
+  try {
+    const call = loadBinding()?.matcherSelectEnrichmentCandidate
+    if (typeof call === 'function') {
+      const raw = call(
+        JSON.stringify(tags),
+        Math.max(0, Math.round(duration)),
+        JSON.stringify(candidates)
+      )
+      if (raw) return JSON.parse(raw)
+      return null
+    }
+  } catch {
+    // fallback
+  }
+  const title = nativeMatcherNormalizeMusicText(tags.title)
+  if (!title || !nativeMatcherNormalizeMusicText(tags.artist)) return null
+  const matches = candidates.filter((candidate) => {
+    if (candidate.type === 'local' || nativeMatcherNormalizeMusicText(candidate.title) !== title)
+      return false
+    if (!nativeMatcherArtistsMatch(tags.artist, candidate.artist)) return false
+    const candDur = candidate.duration ?? 0
+    if (duration > 0 && candDur > 0 && Math.abs(duration - candDur) > 5000) return false
+    return true
+  })
+  return matches.length === 1 ? matches[0] : null
+}
+
+export function nativeMatcherScoreMusicMatch(
+  tagTitle,
+  tagArtist,
+  tagDuration,
+  candidateTitle,
+  candidateArtist,
+  candidateDuration
+) {
+  try {
+    const score = loadBinding()?.matcherScoreMusicMatch?.(
+      tagTitle,
+      tagArtist,
+      Math.max(0, Math.round(tagDuration)),
+      candidateTitle,
+      candidateArtist,
+      Math.max(0, Math.round(candidateDuration))
+    )
+    if (typeof score === 'number' && Number.isFinite(score)) return score
+  } catch {
+    // fallback
+  }
+  const tNorm = nativeMatcherNormalizeMusicText(tagTitle)
+  const cNorm = nativeMatcherNormalizeMusicText(candidateTitle)
+  if (!tNorm || !cNorm) return 0
+  let score = 0
+  if (tNorm === cNorm) score += 0.6
+  else if (tNorm.includes(cNorm) || cNorm.includes(tNorm)) score += 0.4
+  const aNorm = nativeMatcherNormalizeMusicText(tagArtist)
+  const caNorm = nativeMatcherNormalizeMusicText(candidateArtist)
+  if (aNorm && caNorm) {
+    if (aNorm === caNorm) score += 0.3
+    else if (aNorm.includes(caNorm) || caNorm.includes(aNorm)) score += 0.2
+  }
+  if (tagDuration > 0 && candidateDuration > 0) {
+    const diff = Math.abs(tagDuration - candidateDuration)
+    if (diff <= 2000) score += 0.1
+    else if (diff <= 5000) score += 0.05
+    else if (diff > 15000) score -= 0.15
+  }
+  return Math.max(0, Math.min(1, score))
+}
+
+export function nativeMatcherRankCandidates(tags, duration, candidates) {
+  try {
+    const call = loadBinding()?.matcherRankCandidates
+    if (typeof call === 'function') {
+      const raw = call(
+        JSON.stringify(tags),
+        Math.max(0, Math.round(duration)),
+        JSON.stringify(candidates)
+      )
+      if (raw) return JSON.parse(raw)
+    }
+  } catch {
+    // fallback
+  }
+  return candidates
+    .filter((c) => c.type !== 'local')
+    .map((item) => {
+      const score = nativeMatcherScoreMusicMatch(
+        tags.title,
+        tags.artist,
+        duration,
+        item.title,
+        item.artist,
+        item.duration ?? 0
+      )
+      return {
+        item,
+        score,
+        titleMatched:
+          nativeMatcherNormalizeMusicText(item.title) ===
+          nativeMatcherNormalizeMusicText(tags.title),
+        artistMatched: nativeMatcherArtistsMatch(tags.artist, item.artist),
+        durationDiffMs:
+          duration > 0 && (item.duration ?? 0) > 0 ? Math.abs(duration - (item.duration ?? 0)) : 0
+      }
+    })
+    .sort((a, b) => b.score - a.score)
+}
+
+export function nativeDownloadSniffAudioExtension(filePath) {
+  try {
+    const raw = loadBinding()?.downloadSniffAudioExtension?.(filePath)
+    if (typeof raw === 'string') return raw
+  } catch {
+    // fallback
+  }
+  return null
+}
+
+export function nativeDownloadParseFlacQualityTag(filePath) {
+  try {
+    const raw = loadBinding()?.downloadParseFlacQualityTag?.(filePath)
+    if (typeof raw === 'string') return raw
+  } catch {
+    // fallback
+  }
+  return null
+}
+
+export function nativeDownloadNormalizeTitle(title) {
+  try {
+    const raw = loadBinding()?.downloadNormalizeTitle?.(title)
+    if (typeof raw === 'string') return raw
+  } catch {
+    // fallback
+  }
+  return title.toLowerCase().replace(/[\s()（）【】\-—_·,.，。'"'""?!:：;；]/g, '')
+}
+
+export function nativeDownloadSelectAlternativeCandidate(targetTitle, candidates) {
+  try {
+    const call = loadBinding()?.downloadSelectAlternativeCandidate
+    if (typeof call === 'function') {
+      const raw = call(targetTitle, JSON.stringify(candidates))
+      if (raw) return JSON.parse(raw)
+    }
+  } catch {
+    // fallback
+  }
+  const target = nativeDownloadNormalizeTitle(targetTitle)
+  if (!target) return null
+  return candidates.find((c) => nativeDownloadNormalizeTitle(c.title) === target) ?? null
+}

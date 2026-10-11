@@ -1,4 +1,4 @@
-【kunyin-neo 项目记忆 v5.59 — 2026-10-11】
+【kunyin-neo 项目记忆 v5.60 — 2026-10-11】
 （整合 v1~v3.1 补丁 + v4.0~v4.3，本版为唯一权威版本，
   旧版本全部作废；自本版起记忆落盘仓库，随升版同步提交。
   v4.4 交接修订：执行侧 dsh → codex，2026-09-05；
@@ -28,7 +28,32 @@
   v5.25 M24 Rust QMC2 分块解密记档：2026-10-02；v5.26 M25 Rust 下载解密降内存记档：2026-10-02；
   v5.27 M26 Rust FTS5 本地曲库搜索记档：2026-10-02；v5.28 M27 运行时桥接降压记档：2026-10-02；
   v5.29 M28 Rust 同步协议边界记档：2026-10-02；v5.30 M29 QQ Provider Rust 归一化记档：2026-10-02；
-  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10；v5.48 M47 Windows 现代化安装程序体系与多格式文件关联记档：2026-10-10；v5.49 M48 Apple Design 细节美学与质感微调记档：2026-10-10；v5.50 M49 Windows 安装包构建打包与发布核验记档：2026-10-10；v5.51 M50 100% 纯 Rust 原生 GUI 与独立宿主架构记档：2026-10-10；v5.52 M51 在线网络与桌面歌词 Rust 下沉及透明度调节记档：2026-10-10；v5.53 M52 纯 Rust 桌面歌词悬浮透明视窗与全屏歌词架构记档：2026-10-10；v5.54 M53 Tauri 2 架构与全功能 UI 迁移方案落地：2026-10-10；v5.55 M54 视窗圆角与层次阴影系统加固 & 终极纯 Rust GUI 演进基线：2026-10-10；v5.56 M55 thickFrame DWM 硬件级圆角投影修复与自动化回归门禁：2026-10-10；v5.57 M56 多源音源解析与签名算法下沉 Rust 及纯 Rust 搜索视图集成：2026-10-11；v5.58 M57 播放地址与音质解析下沉 Rust 及纯 Rust 原生全功能 UI 组件矩阵迁移：2026-10-11；v5.59 M58 远端歌单专辑歌手解析下沉 Rust 及纯 Rust 原生全路由 100% 覆盖与曲库收藏队列视图闭环：2026-10-11）
+  v5.31 M30 网易云 Provider Rust 归一化记档：2026-10-02；v5.32 M31 远程播放 QMC2 有状态流会话记档：2026-10-02；v5.33 M32 QMC2 回退解密懒加载记档：2026-10-02；v5.34 M33 Rust 主题动效 profile 记档：2026-10-02；v5.35 M34 FPS/GPU 调度过渡记档：2026-10-02；v5.36 M35 桌面歌词合并播放器记档：2026-10-02；v5.37 M36 Rust ReplayGain DSP 边界记档：2026-10-07；v5.38 M37 远程播放链 shadow session 记档：2026-10-10；v5.39 M38 Apple Design HIG 规范对齐与无极帧率调度记档：2026-10-10；v5.40 M39 远程流分块预加载调度与 HTTP Range 规划记档：2026-10-10；v5.41 M40 原生流分块环形缓存与文件缓冲记档：2026-10-10；v5.42 M41 原生流式解码管线记档：2026-10-10；v5.43 M42 原生 DSP 音效引擎记档：2026-10-10；v5.44 M43 原生音频渲染管线与 WASAPI 端点直通记档：2026-10-10；v5.45 M44 WASAPI 独占模式与系统多设备无缝热插拔切换记档：2026-10-10；v5.46 M45 全原生播放器会话集成与主进程调度接管记档：2026-10-10；v5.47 M46 渲染层原生播放器状态无缝接管与双向同步记档：2026-10-10；v5.48 M47 Windows 现代化安装程序体系与多格式文件关联记档：2026-10-10；v5.49 M48 Apple Design 细节美学与质感微调记档：2026-10-10；v5.50 M49 Windows 安装包构建打包与发布核验记档：2026-10-10；v5.51 M50 100% 纯 Rust 原生 GUI 与独立宿主架构记档：2026-10-10；v5.52 M51 在线网络与桌面歌词 Rust 下沉及透明度调节记档：2026-10-10；v5.53 M52 纯 Rust 桌面歌词悬浮透明视窗与全屏歌词架构记档：2026-10-10；v5.54 M53 Tauri 2 架构与全功能 UI 迁移方案落地：2026-10-10；v5.55 M54 视窗圆角与层次阴影系统加固 & 终极纯 Rust GUI 演进基线：2026-10-10；v5.55 M55 thickFrame DWM 硬件级圆角投影修复与自动化回归门禁：2026-10-10；v5.57 M56 多源音源解析与签名算法下沉 Rust 及纯 Rust 搜索视图集成：2026-10-11；v5.58 M57 播放地址与音质解析下沉 Rust 及纯 Rust 原生全功能 UI 组件矩阵迁移：2026-10-11；v5.59 M58 远端歌单专辑歌手解析下沉 Rust 及纯 Rust 原生全路由 100% 覆盖与曲库收藏队列视图闭环：2026-10-11；v5.60 M59 全功能桌面版重度后台业务下沉 Rust：本地曲库模糊匹配引擎与下载文件嗅探与流解析闭环：2026-10-11）
+
+◆ M59 全功能桌面版重度后台业务下沉 Rust：本地曲库模糊匹配引擎与下载文件嗅探与流解析闭环 (Local Music Fuzzy Matcher Engine & Download File Header Sniffing Downsink to Rust)（2026-10-11，事实与回执）
+- 用户核心指示：“我说基于全功能桌面版的基础上，慢慢迁移到rust，纯rust版效果令人感到失望”、“继续将全功能版的重度后台业务迁移至 Rust”：
+  · 坚定贯彻全功能桌面版（Vue 3 + Apple Design 精美毛玻璃界面）为核心产品的方针，彻底摒弃 Win32 GDI 自绘路线，将 CPU/内存/正则/高频密集型重度业务逐层下沉至 Rust (`aurora-core`, `aurora-native`)；
+  · 本地曲库高性能模糊匹配引擎全量下沉 Rust (`crates/aurora-core/src/matcher.rs`)：
+    1. Unicode 感知与 NFKC 归一化文本清洗算法 `normalize_music_text`：原生处理全角字符映射半角、大写转小写、精准正则边界剔除 `\b(?:feat|ft)\.?\b` 并过滤非字母数字字符，杜绝 V8 GC 压力与正则回溯；
+    2. 多歌手关系判定与包含算法 `artists_match`：原生支持歌手精准匹配、交集匹配与多歌手子串包含判定；
+    3. 唯一候选确定性筛选与歧义仲裁算法 `select_enrichment_candidate`：严格执行标题归一化绝对一致、歌手包含判定、时长秒级容差 (5000ms) 仲裁，歧义与多结果时安全返回 None，保持与前端 TypeScript 100% 行为契约一致；
+    4. 模糊匹配距离与相似度评分引擎 `score_music_match`：基于 Levenshtein 编辑距离、子串覆盖率与时长偏差惩罚矩阵输出高精度评分 (0.0..=1.0)；
+    5. 候选列表优选排序算法 `rank_enrichment_candidates`：为数万首本地曲库的高并发跨平台（网易/QQ/酷狗/酷我）富化提供毫秒级批量排序输出；
+  · 下载管理模块文件头嗅探与格式解析下沉 Rust (`crates/aurora-core/src/download.rs`)：
+    1. 真实容器扩展名嗅探器 `sniff_audio_extension_file` & `sniff_audio_extension_bytes`：直接读取前 12 字节魔数判定 OggS (.ogg)、fLaC (.flac)、ID3 / MPEG sync (.mp3)；
+    2. FLAC STREAMINFO 块采样率与位深解析器 `parse_flac_streaminfo_tag_file` & `parse_flac_streaminfo_tag_bytes`：直接从文件头偏移量提取 20-bit 采样率与 bits-per-sample，原生输出格式化标记如 `[16Bit-44.1kHz]`、`[24Bit-96kHz]`；
+    3. 跨源换源标题归一化 `normalize_download_title` 与候选首中快速选择器 `select_alternative_candidate`；
+  · Node-API 桥接与主进程全功能版无缝接线：
+    - `crates/aurora-native` 导出 9 项新 N-API 接口：`matcher_normalize_music_text`, `matcher_artists_match`, `matcher_select_enrichment_candidate`, `matcher_score_music_match`, `matcher_rank_candidates`, `download_sniff_audio_extension`, `download_parse_flac_quality_tag`, `download_normalize_title`, `download_select_alternative_candidate`；
+    - 在 `src/main/native/bridge.ts` 与 `bridge-runtime.js` 完成强类型包装与优雅降级；
+    - `src/main/modules/local-music/match.ts` 全量接入 Rust 模糊匹配与候选筛选；
+    - `src/main/modules/download/manager.ts` 全量接入 Rust 音频嗅探、FLAC STREAMINFO 解析与换源同名筛选；
+  · 自动化质量门禁与全量验证覆盖：
+    - `crates/aurora-core` 44/44 项单元测试 100% 通过（新增 8 项测试覆盖 matcher 与 download 扩展）；
+    - `crates/aurora-native` 通过 `cargo check` 并成功编译 Release 原生动态链接库；
+    - 新增自动化测试套件 `scripts/m59-rust-heavy-backend-tests.mjs`；
+    - `npm run verify`（包含 `lint:gate`、`typecheck`、16 套核心自动化测试全绿）100% 通过；
+    - `git diff --check` 0 报错。
 
 ◆ M58 远端歌单专辑歌手解析下沉 Rust 及纯 Rust 原生全路由 100% 覆盖与曲库收藏队列视图闭环 (Remote Playlist/Album/Artist Parsing Downsink to Rust & Pure Rust All-Route 100% Native View Parity)（2026-10-11，事实与回执）
 - 用户核心指示：“继续”以及“完整全功能版的ui功能比纯rust版好多了，往rust方向迁吧”、“以后还要逐渐抛弃Tauri”：
